@@ -1,17 +1,28 @@
 from CodeGen.Python.networkStructureAttributesAndInstances import *
 from CodeGen.Python.networkUtil import *
+#from networkStructureAttributesAndInstances import *
+#from networkUtil import *
 import numpy as np
 import random
 from scipy.stats import expon
 
+# Random path of a specific length
+def random_path(length):
+    paths = network_structure.graph.paths
+    path_trim = [p for p in paths if len(p) == length]
+    return random.choice(path_trim)
+
 # Simulation of events in queue network
-#
 class Simulation:
+    # Input:
+    ## Events_O (array Events) - Observed events, with arrival time, departure time, and queue path
+    ## Events_H (array Events) - Unobserved events, no infor
+    ## Queue (array Queue) - Set of Queue objects
     def __init__(self, Events_O, Events_H, Queues):
         # Initial queue
         self.queue_init = Queue(0)
         # Add initial queue to every event
-        self.Events_H = Events_O
+        self.Events_O = Events_O
         self.Events_H = Events_H
         self.Queues = Queues
 
@@ -89,28 +100,46 @@ class Simulation:
         return joint_density_log_d_q
 
 class Event:
-    def __init__(self, id, arrival_times, queues, departure_times, hidden=False):
+    # Inputs
+    ## id (int) - name of Event object
+    ## arrival_times (array(timestamp)) - arrival times for each task in Event object
+    ## departure_times (array(timestamp)) - departure times for each task in Event object
+    ## queues (array(queue_id)) - queue index for queue processing each task in Event object
+    ## hidden (boolean) - if False, all data is flexible, if True, data is fixed
+    def __init__(self, id, arrival_times, departure_times, queues, hidden=False):
         self.id = id
         self.arrival_times = arrival_times
         self.queues = queues
         self.departure_times = departure_times
         self.tasks = len(queues)
-        self.current_queue = 0
+        if len(departure_times) != self.tasks:
+            raise Exception('Number of departure times does not match number of queues in task')
+        if len(arrival_times) != self.tasks:
+            raise Exception('Number of departure times does not match number of queues in task')
+        self.current_task = 0
         self.hidden = hidden
+
+    # Input:
+    ## departure_time (timestamp) - new departure time
+    ## task_id (int) - ordered id of task in Event
+    def update_departure_times(self, departure_time, task_id):
+        if not self.hidden:
+            raise Exception("Arrival and departure of observed variables are fixed.")
+        self.departure_times[task_id] = departure_time
 
     # Given an ordered list of queues to visit, leave current queue and move to queue of next
     def move_queue(self):
-        self.current_queue += 1
-        if self.current_queue >= self.tasks:
+        self.current_task += 1
+        if self.current_task >= self.tasks:
             return []
         else:
-            queue_id = self.queues[self.current_queue]
-            return queue_id
+            queue_id = self.queues[self.current_task]
+            return queue_id # Return id of next queue
 
 class Queue:
-    def __init__(self, id):
+    def __init__(self, id, service_rate):
         self.id = id
-        #self.service_rate = service_rate
+        self.service_rate = service_rate
         self.queue_events = []
         self.queue_times_arrival = []
         self.queue_times_departures = []
@@ -118,9 +147,13 @@ class Queue:
         self.waiting = 0
 
     # Add an event to FIFO queue, end of line
-    def arrival(self, event, time, departure_time):
-        self.queue_events.append(event)
-        self.queue_times_arrival.append(time)
+    # Input:
+    ## event_task_id (string) - id of event to add to queue
+    ## arrival_time (timestamp) - arrival time of new task
+    ## departure_time (timestamp) - departure time of new task
+    def arrival(self, event_task_id, arrival_time, departure_time):
+        self.queue_events.append(event_task_id)
+        self.queue_times_arrival.append(arrival_time)
         self.queue_times_departures.append(departure_time)
         self.waiting += 1
 
@@ -150,36 +183,54 @@ class Queue:
 
 
 events = 50
+p = 0.4
 random.seed(events)
-
 ns = network_structure.graph.nodes
-service_rates = {}
+queues = {}
 for node in ns:
-    service_rates[node] = 5*np.random.random()
+    service_rate = 5*np.random.random()
+    queues[node] = Queue(node, service_rate)
 
 arrival_rate = 3
-
 arrivals = np.zeros(events)
 arrivals[0] = 0.0
-
+for e in range(1, events):
+    arrivals[e] = arrivals[e-1] + np.random.exponential(1/arrival_rate)
 departures = np.zeros(events)
-for e in range(events-1):
-    arrivals[e+1] = arrivals[e] + np.random.exponential(1/arrival_rate)
-print(arrivals)
 
-queues = {}
-P = len(network_structure.graph.paths)
-paths = network_structure.graph.paths
+all_events = []
+events_O = []
+events_H = []
+
 for e in range(events):
-    rand_p = random.randint(0, P-1)
-    path = paths[rand_p]
-    queues[e] = path
+    tasks = np.random.randint(1, 3)
+    event_path = random_path(tasks)
+    arrival_event = np.zeros(tasks)
+    departure_event = np.zeros(tasks)
+    arrival_event[0] = arrivals[e]
+    id = 'e' + str(e)
+    p_sample = np.random.rand()
+    if p_sample < p:
+        Event(id, arrival_event, departure_event, event_path, hidden=True)
+    else:
+        Event(id, arrival_event, departure_event, event_path)
+
+# All events are initialized with temporary values. Run a full simulation forward to fill in the remaining arrival times
+# TODO
+
+# Copy the hidden events with real values for testing
+events_H_actual = events_H
+
+
+
+
+
 
 
 
 # TODO - Bass
 # Init simulation
-S = Simulation(...)
+#S = Simulation()
 runs = 10
 for i in range(runs):
     # Build sample d [departure_times]
