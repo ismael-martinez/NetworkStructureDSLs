@@ -3,16 +3,15 @@
 ## Read parameters from .trs file
 
 import json
-import math
 from scipy.stats import expon
 from numpy.random import normal
-from CodeGen.Python.networkStructure import *
+from networkStructure import *
+
 from textx import metamodel_from_file
 from textx.export import metamodel_export
 import os
+import sys, getopt
 
-
-# TODO When we find a keyword, we need to find the opening and closing brackets {}
 
 
 # Schedules
@@ -368,7 +367,7 @@ def generateGraphClasses(pns_model):
 def code_gen(trs_model, pns_model, trs_location, nsm_location):
 
     attribute_class_gen = []
-    attribute_class_gen.append('from CodeGen.Python.networkStructure import *\n')
+    attribute_class_gen.append('from networkStructure import *\n')
     attribute_class_gen.append(generateThingClasses(trs_model=trs_model))
     [graph_code_gen, graph_name] = generateGraphClasses(pns_model)
     attribute_class_gen.append(graph_code_gen)
@@ -380,78 +379,105 @@ def code_gen(trs_model, pns_model, trs_location, nsm_location):
     a = open('networkStructureAttributesAndInstances.py', 'w')
     a.write('\n'.join(attribute_class_gen))
 
-trs_file = 'TRS/iotRequestSchedule.trs'
-trs_grammar = 'TRS/trs.tx'
-trs_location_file = 'TRS/location.json'
 
-## Verify TRS file
-mm_trs = metamodel_from_file(trs_grammar)
-metamodel_export(mm_trs, 'TRS/trs.dot')
-os.system('dot -Tpng -O  TRS/trs.dot')
-#os.system('dot -Tpng -O  TRS/trs_grammar.dot') # Creates PNG of metamodel from Grammar
-try:
-    trs_model = mm_trs.model_from_file(trs_file)
-    # All attributes are unique
-    unique_set = list(set(trs_model.attributes))
-    if len(trs_model.attributes) != len(unique_set):
-        raise Exception("Things attributes must be unique: ThingSet {}.".format(trs_model.name))
-    # The attributes of each thing is unique
-    for thing in trs_model.things:
-        thing_unqiue_attr = list(set(thing.attributes))
-        if len(thing_unqiue_attr) != len(thing.attributes):
-            raise Exception("Thing attribubte must be unqiue: Thing {}".format(thing.name))
-except Exception as e:
-    print('Verification Failed: Error in file {}'.format(trs_file))
-    print(e)
-    exit()
-print('Verification of file {} succeeded.'.format(trs_file))
-with open(trs_location_file) as loc:
-    loc_data_trs = json.load(loc)
+def main(argv):
+    # Arguments
+    trs_file = ''
+    pns_file = ''
+    trs_location_file = ''
+    pns_location_file = ''
+    try:
+        opts, args = getopt.getopt(argv, "ht:T:p:P:", ["trsfile=", "pnsfile=", "thinglocation=", "nodelocation="])
+    except getopt.GetoptError:
+        print('codeGen.py -t <trsfilepath> -T <thinglocationJSON> -p <pnsfilepath> -P <nodelocationJSON>')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print('codeGen.py -t <trsfilepath> -T <thinglocationJSON> -p <pnsfilepath> -P <nodelocationJSON>')
+            sys.exit()
+        elif opt in ("-t", "--trsfile"):
+            trs_file = arg
+        elif opt in ("-p", "--pnsfile"):
+            pns_file = arg
+        elif opt in ("-T", "--thinglocation"):
+            trs_location_file = arg
+        elif opt in ("-P", "--nodelocation"):
+            pns_location_file = arg
 
-trs_parser(trs_model, loc_data_trs['location']) #
+    print("TRS file:" + trs_file)
+    #trs_file = 'TRS/iotRequestSchedule.trs'
+    trs_grammar = 'TRS/trs.tx'
+    #trs_location_file = 'TRS/location.json'
 
-pns_file = 'PNS/edgeNetwork.pns'
-pns_location_file = 'PNS/location.json'
-pns_grammar = 'PNS/pns.tx'
-## Verify PNM file
-mm_pns = metamodel_from_file(pns_grammar)
-metamodel_export(mm_pns, 'PNS/pns.dot')
-os.system('dot -Tpng -O  PNS/pns.dot')
-#os.system('dot -Tpng -O  TRS/trs_grammar.dot') # Creates PNG of metamodel from Grammar
-try:
-    pns_model = mm_pns.model_from_file(pns_file)
-    # All attributes are unique
-    ## Nodes
-    nodeSet = pns_model.nodeSet
-    unique_set_node = list(set(nodeSet.attributes))
-    if len(nodeSet.attributes) != len(unique_set_node):
-        raise Exception("NodeSet attributes must be unique: Graph {}.".format(pns_model.name))
-    # The attributes of each thing is unique
-    for node in nodeSet.nodes:
-        node_unqiue_attr = list(set(nodeSet.attributes))
-        if len(node_unqiue_attr) != len(nodeSet.attributes):
-            raise Exception("Node attribubte must be unqiue: Node {}".format(node.name))
-    ## Links
-    linkSet = pns_model.linkSet
-    unique_set_link = list(set(linkSet.attributes))
-    if len(linkSet.attributes) != len(unique_set_link):
-        raise Exception("LinkSet attributes must be unique: Graph {}.".format(pns_model.name))
-    # The attributes of each thing is unique
-    for link in linkSet.links:
-        link_unqiue_attr = list(set(linkSet.attributes))
-        if len(link_unqiue_attr) != len(linkSet.attributes):
-            raise Exception("Link attribubte must be unqiue: Link {}".format(link.name))
-except Exception as e:
-    print('Verification Failed: Error in file {}'.format(pns_file))
-    print(e)
-    exit()
-print('Verification of file {} succeeded.'.format(pns_file))
+    ## Verify TRS file
+    mm_trs = metamodel_from_file(trs_grammar)
+    metamodel_export(mm_trs, 'TRS/trs.dot')
+    os.system('dot -Tpng -O  TRS/trs.dot')
+    #os.system('dot -Tpng -O  TRS/trs_grammar.dot') # Creates PNG of metamodel from Grammar
+    try:
+        trs_model = mm_trs.model_from_file(trs_file)
+        # All attributes are unique
+        unique_set = list(set(trs_model.attributes))
+        if len(trs_model.attributes) != len(unique_set):
+            raise Exception("Things attributes must be unique: ThingSet {}.".format(trs_model.name))
+        # The attributes of each thing is unique
+        for thing in trs_model.things:
+            thing_unqiue_attr = list(set(thing.attributes))
+            if len(thing_unqiue_attr) != len(thing.attributes):
+                raise Exception("Thing attribubte must be unqiue: Thing {}".format(thing.name))
+    except Exception as e:
+        print('Verification Failed: Error in file {}'.format(trs_file))
+        print(e)
+        exit()
+    print('Verification of file {} succeeded.'.format(trs_file))
+    with open(trs_location_file) as loc:
+        loc_data_trs = json.load(loc)
+
+    trs_parser(trs_model, loc_data_trs['location']) #
+
+    #pns_file = 'PNS/edgeNetwork.pns'
+    #pns_location_file = 'PNS/location.json'
+    pns_grammar = 'PNS/pns.tx'
+    ## Verify PNM file
+    mm_pns = metamodel_from_file(pns_grammar)
+    metamodel_export(mm_pns, 'PNS/pns.dot')
+    os.system('dot -Tpng -O  PNS/pns.dot')
+    #os.system('dot -Tpng -O  TRS/trs_grammar.dot') # Creates PNG of metamodel from Grammar
+    try:
+        pns_model = mm_pns.model_from_file(pns_file)
+        # All attributes are unique
+        ## Nodes
+        nodeSet = pns_model.nodeSet
+        unique_set_node = list(set(nodeSet.attributes))
+        if len(nodeSet.attributes) != len(unique_set_node):
+            raise Exception("NodeSet attributes must be unique: Graph {}.".format(pns_model.name))
+        # The attributes of each thing is unique
+        for node in nodeSet.nodes:
+            node_unqiue_attr = list(set(nodeSet.attributes))
+            if len(node_unqiue_attr) != len(nodeSet.attributes):
+                raise Exception("Node attribubte must be unqiue: Node {}".format(node.name))
+        ## Links
+        linkSet = pns_model.linkSet
+        unique_set_link = list(set(linkSet.attributes))
+        if len(linkSet.attributes) != len(unique_set_link):
+            raise Exception("LinkSet attributes must be unique: Graph {}.".format(pns_model.name))
+        # The attributes of each thing is unique
+        for link in linkSet.links:
+            link_unqiue_attr = list(set(linkSet.attributes))
+            if len(link_unqiue_attr) != len(linkSet.attributes):
+                raise Exception("Link attribubte must be unqiue: Link {}".format(link.name))
+    except Exception as e:
+        print('Verification Failed: Error in file {}'.format(pns_file))
+        print(e)
+        exit()
+    print('Verification of file {} succeeded.'.format(pns_file))
 
 
-with open(pns_location_file) as loc:
-    loc_data_nsm = json.load(loc)
+    with open(pns_location_file) as loc:
+        loc_data_nsm = json.load(loc)
 
-code_gen(trs_model, pns_model, loc_data_trs['location'], loc_data_nsm['location'])
+    code_gen(trs_model, pns_model, loc_data_trs['location'], loc_data_nsm['location'])
 
 
-
+if __name__=="__main__":
+    main(sys.argv[1:])

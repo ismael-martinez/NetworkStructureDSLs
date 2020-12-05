@@ -1,4 +1,4 @@
-from CodeGen.Python.networkStructure import *
+from networkStructure import *
 
 class ThingAttributes_IoT:
 	def __init__(self, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb):
