@@ -1,0 +1,54 @@
+
+    digraph textX {
+    fontname = "Bitstream Vera Sans"
+    fontsize = 8
+    node[
+        shape=record,
+        style=filled,
+        fillcolor=aliceblue
+    ]
+    nodesep = 0.3
+    edge[dir=black,arrowtail=empty]
+
+
+2481599998104[ label="{Graph|name: ID\l}"]
+
+2481599994328[ label="{NodeSet|}"]
+
+2481599966952[ label="{LinkSet|}"]
+
+2481600007544[ label="{Node|name: ID\lval: optional\<list[BASETYPE]\>\l}"]
+
+2481599999992[ label="{NodePair|}"]
+
+2481600000936[ label="{Link|name: ID\lval: optional\<list[BASETYPE]\>\l}"]
+
+2481600010376[ label="{Attribute|name: ID\ltype: SimpleType\l}"]
+
+2481600009432[ label="{LocationReference|loc_ref: optional\<list[INT]\>\l}"]
+
+
+
+2481599998104 -> 2481599994328[arrowtail=diamond, dir=both, headlabel="nodeSet "]
+2481599998104 -> 2481599966952[arrowtail=diamond, dir=both, headlabel="linkSet "]
+2481599994328 -> 2481600010376[arrowtail=diamond, dir=both, headlabel="attributes 1..*"]
+2481599994328 -> 2481600007544[arrowtail=diamond, dir=both, headlabel="nodes 1..*"]
+2481599966952 -> 2481600010376[arrowtail=diamond, dir=both, headlabel="attributes 1..*"]
+2481599966952 -> 2481600000936[arrowtail=diamond, dir=both, headlabel="links 1..*"]
+2481600007544 -> 2481600010376[headlabel="attributes 0..*"]
+2481600007544 -> 2481600009432[arrowtail=diamond, dir=both, headlabel="location "]
+2481599999992 -> 2481600007544[headlabel="nodeSource "]
+2481599999992 -> 2481600007544[headlabel="nodeTarget "]
+2481600000936 -> 2481600010376[headlabel="attributes 0..*"]
+2481600000936 -> 2481599999992[arrowtail=diamond, dir=both, headlabel="nodePair "]
+match_rules [ shape=plaintext, label=< <table>
+	<tr>
+		<td><b>Comment</b></td><td>\/\*(.|\n)*?\*\/</td>
+	</tr>
+	<tr>
+		<td><b>SimpleType</b></td><td>string|float|int|id|bool|timestamp</td>
+	</tr>
+</table> >]
+
+
+}

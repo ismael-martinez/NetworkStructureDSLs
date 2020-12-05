@@ -1,0 +1,99 @@
+ThingSet:
+    'Things' name=ID
+    ('attributes' '{'
+        attributes+=Attribute
+        '}')?
+    things+=Thing
+;
+
+Attribute:
+    'key' ':' name=ID ',' 'type' ':' type=SimpleType
+;
+
+Thing:
+    'thing' name=ID '{'
+        requestSchedule=RequestSchedule
+        location=LocationReference
+        ('attributes' '{'
+            (attributes=[Attribute] ':' val=BASETYPE)*
+        '}')?
+    '}'
+;
+
+SimpleType:
+    'string' | 'float' | 'int' | 'id' | 'bool' | 'timestamp'
+;
+
+
+RequestSchedule:
+	ExplicitRequestSchedule | ConsistentRequestSchedule | ProbabilisticRequestSchedule
+;
+
+Distribution:
+	Gaussian | Exponential
+;
+
+Gaussian:
+	'Gaussian'
+	'('
+		'mu=' mu=FLOAT ','
+		'var=' var=FLOAT
+	')';
+
+Exponential:
+	'Exponential'
+	'('
+		'lambda=' lambda_mean=FLOAT
+	')';
+
+HOURMIN:
+    /(2[0-3]|[01][0-9]):[0-5][0-9]/
+;
+HOURMINSEC:
+    /(2[0-3]|[01][0-9]):[0-5][0-9]:[0-5][0-9]/
+;
+HOURMINSECMS:
+    /(2[0-3]|[01][0-9]):[0-5][0-9]:[0-5][0-9].[0-9]{3}/
+;
+
+Timestamp:
+    HOURMIN | HOURMINSEC | HOURMINSECMS
+;
+
+Schedule:
+	'[' Timestamp (',' Timestamp)* ']'
+;
+
+ExplicitRequestSchedule:
+	'explicitRequestSchedule'
+	'{'
+		schedule=Schedule
+	'}'
+;
+
+ConsistentRequestSchedule:
+	'consistentRequestSchedule'
+	'{'
+		'start:' start=Timestamp
+		'end:' end=Timestamp
+		'gap:' gap=Timestamp
+	'}';
+
+ProbabilisticRequestSchedule:
+	'probabilisticRequestSchedule'
+	'{'
+		'start' ':' start=Timestamp
+		'end' ':' end=Timestamp
+		'interarrivalDistribution' ':' interarrivalDistribution=Distribution
+	'}';
+
+
+LocationReference:
+    'location' '{'
+        '[' '"' loc_ref=INT '"' (',' '"' loc_ref=INT '"')* ']'
+     '}'
+;
+
+Comment:
+    /\/\*(.|\n)*?\*\//
+;
