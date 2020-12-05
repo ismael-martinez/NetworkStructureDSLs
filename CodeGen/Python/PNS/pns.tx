@@ -1,0 +1,65 @@
+Graph:
+    'Graph' name=ID
+    nodeSet=NodeSet
+    linkSet=LinkSet
+;
+
+NodeSet:
+
+'nodeSet' '{'
+    ('attributes' '{'
+            attributes+=Attribute
+        '}')?
+    nodes+=Node
+'}'
+;
+
+LinkSet:
+'linkSet' '{'
+    ('attributes' '{'
+        attributes+=Attribute
+        '}')?
+    links+=Link
+'}'
+;
+
+Node:
+    'node' name=ID '{'
+        ('attributes' '{'
+            (attributes=[Attribute] ':' val=BASETYPE)*
+        '}')?
+        location=LocationReference
+    '}'
+;
+
+NodePair:
+    '(' nodeSource=[Node] ',' nodeTarget=[Node] ')'
+;
+
+Link:
+    'link' name=ID '{'
+        ('attributes' '{'
+            (attributes=[Attribute] ':' val=BASETYPE)*
+        '}')?
+        'nodePair' ':' nodePair=NodePair
+    '}'
+;
+
+Attribute:
+    'key' ':' name=ID ',' 'type' ':' type=SimpleType
+;
+
+SimpleType:
+    'string' | 'float' | 'int' | 'id' | 'bool' | 'timestamp'
+;
+
+
+LocationReference:
+    'location' '{'
+        '[' '"' loc_ref=INT '"' (',' '"' loc_ref=INT '"')* ']'
+     '}'
+;
+
+Comment:
+    /\/\*(.|\n)*?\*\//
+;

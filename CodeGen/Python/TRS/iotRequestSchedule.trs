@@ -1,0 +1,138 @@
+Things IoT
+
+attributes {
+			key: fileSize_mb, type: int
+			key: localCPU_ghz, type: float
+			key: localProcessing_ms, type: int
+			key: memoryReq_mb, type: int
+			key: storageReq_mb, type: int
+		}
+
+thing t1 {
+	consistentRequestSchedule {
+		start: 12:12
+		end: 13:54
+		gap:00:15
+	}
+	location { 
+		["5"]
+	}
+	attributes {
+		fileSize_mb : 16
+		localCPU_ghz:3.2
+		localProcessing_ms: 5
+		memoryReq_mb:6
+		storageReq_mb:0
+	}
+}
+
+thing t2 {
+	explicitRequestSchedule{
+		[12:00, 12:03, 14:29]
+	}
+	location { 
+		["6", "7"]
+	}
+	attributes {
+		fileSize_mb:64
+		localCPU_ghz:3.8
+		localProcessing_ms: 10
+		memoryReq_mb:32
+		storageReq_mb:0
+	}
+}
+
+thing t3 {
+	probabilisticRequestSchedule {
+		start:12:00
+		end: 13:00
+		interarrivalDistribution: Exponential(lambda=0.002)
+	}
+	
+	location { 
+		["8"]
+	}
+	attributes {
+		fileSize_mb:85
+		localCPU_ghz:4.6
+		localProcessing_ms: 32
+		memoryReq_mb:24
+		storageReq_mb:0
+	}
+}
+
+thing t4 {
+	probabilisticRequestSchedule {
+		start:12:00
+		end: 13:00
+		interarrivalDistribution: Gaussian(mu=90.0, var=5.0)
+	}
+	
+	location { 
+		["9", "10"]
+	}
+	attributes {
+		fileSize_mb:64
+		localCPU_ghz:1.3
+		localProcessing_ms: 52
+		memoryReq_mb:73
+		storageReq_mb:0
+	}
+}
+
+thing t5 {
+	probabilisticRequestSchedule {
+		start:12:00
+		end: 13:00
+		interarrivalDistribution: Exponential(lambda=0.008)
+	}
+	
+	location { 
+		["13"]
+	}
+	attributes {
+		fileSize_mb:543
+		localCPU_ghz:4.7
+		localProcessing_ms: 542
+		memoryReq_mb:13
+		storageReq_mb:0
+	}
+}
+
+thing t6 {
+	probabilisticRequestSchedule {
+		start:12:00
+		end: 13:00
+		interarrivalDistribution: Gaussian(mu=120.0, var=15.3)
+	}
+	
+	location { 
+		["14"]
+	}
+	attributes {
+		fileSize_mb:5
+		localCPU_ghz:5.2
+		localProcessing_ms: 5
+		memoryReq_mb:6
+		storageReq_mb:0
+	}
+}
+
+thing t7 {
+	consistentRequestSchedule {
+		start: 12:00
+		end: 17:00
+		gap:05:00
+	}
+	
+	location { 
+		["11", "12"]
+	}
+	attributes {
+		fileSize_mb:79
+		localCPU_ghz:3.2
+		localProcessing_ms: 13
+		memoryReq_mb:798
+		storageReq_mb:0
+	}
+}

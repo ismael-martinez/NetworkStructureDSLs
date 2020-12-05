@@ -1,0 +1,74 @@
+
+    digraph textX {
+    fontname = "Bitstream Vera Sans"
+    fontsize = 8
+    node[
+        shape=record,
+        style=filled,
+        fillcolor=aliceblue
+    ]
+    nodesep = 0.3
+    edge[dir=black,arrowtail=empty]
+
+
+2481600201064[ label="{ThingSet|name: ID\l}"]
+
+2481600186904[ label="{Attribute|name: ID\ltype: SimpleType\l}"]
+
+2481600194456[ label="{Thing|name: ID\lval: optional\<list[BASETYPE]\>\l}"]
+
+2481600202952[ label="{*RequestSchedule|}"]
+
+2481600203896[ label="{*Distribution|}"]
+
+2481600219000[ label="{Gaussian|mu: FLOAT\lvar: FLOAT\l}"]
+
+2481600206728[ label="{Exponential|lambda_mean: FLOAT\l}"]
+
+2481599973560[ label="{ExplicitRequestSchedule|schedule: Schedule\l}"]
+
+2481599979224[ label="{ConsistentRequestSchedule|start: Timestamp\lend: Timestamp\lgap: Timestamp\l}"]
+
+2481599980168[ label="{ProbabilisticRequestSchedule|start: Timestamp\lend: Timestamp\l}"]
+
+2481599974504[ label="{LocationReference|loc_ref: optional\<list[INT]\>\l}"]
+
+
+
+2481600201064 -> 2481600186904[arrowtail=diamond, dir=both, headlabel="attributes 1..*"]
+2481600201064 -> 2481600194456[arrowtail=diamond, dir=both, headlabel="things 1..*"]
+2481600194456 -> 2481600202952[arrowtail=diamond, dir=both, headlabel="requestSchedule "]
+2481600194456 -> 2481599974504[arrowtail=diamond, dir=both, headlabel="location "]
+2481600194456 -> 2481600186904[headlabel="attributes 0..*"]
+2481600202952 -> 2481599973560 [dir=back]
+2481600202952 -> 2481599979224 [dir=back]
+2481600202952 -> 2481599980168 [dir=back]
+2481600203896 -> 2481600219000 [dir=back]
+2481600203896 -> 2481600206728 [dir=back]
+2481599980168 -> 2481600203896[arrowtail=diamond, dir=both, headlabel="interarrivalDistribution "]
+match_rules [ shape=plaintext, label=< <table>
+	<tr>
+		<td><b>Comment</b></td><td>\/\*(.|\n)*?\*\/</td>
+	</tr>
+	<tr>
+		<td><b>HOURMIN</b></td><td>(2[0-3]|[01][0-9]):[0-5][0-9]</td>
+	</tr>
+	<tr>
+		<td><b>HOURMINSEC</b></td><td>(2[0-3]|[01][0-9]):[0-5][0-9]:[0-5][0-9]</td>
+	</tr>
+	<tr>
+		<td><b>HOURMINSECMS</b></td><td>(2[0-3]|[01][0-9]):[0-5][0-9]:[0-5][0-9].[0-9]{3}</td>
+	</tr>
+	<tr>
+		<td><b>Schedule</b></td><td>[ Timestamp (, Timestamp)* ]</td>
+	</tr>
+	<tr>
+		<td><b>SimpleType</b></td><td>string|float|int|id|bool|timestamp</td>
+	</tr>
+	<tr>
+		<td><b>Timestamp</b></td><td></td>
+	</tr>
+</table> >]
+
+
+}
