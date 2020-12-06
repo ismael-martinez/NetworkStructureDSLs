@@ -79,13 +79,9 @@ class Simulation:
             print(trigger)
             trigger_time = trigger[0]
             event_id = trigger[1]
-            if 'e18' in event_id:
-                print('here')
             trigger_type = trigger[2]
             event = self.dict_events[event_id]
             task = event.current_task
-            print(event.queues)
-            print(task)
             queue_id = event.queues[task]
             queue = self.dict_queue[queue_id]
             if 'Arrival' in trigger_type:
@@ -125,8 +121,6 @@ class Simulation:
         [_, _, _, d, e] = queue.service_next(trigger_time)
         if e is None:
             return
-        if e == 'e18':
-            print('here')
         event = self.dict_events[e]
         queue.servicing = e
         task = event.current_task
