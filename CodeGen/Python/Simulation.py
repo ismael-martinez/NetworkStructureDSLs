@@ -79,7 +79,7 @@ class Simulation:
             print(trigger)
             trigger_time = trigger[0]
             event_id = trigger[1]
-            if 'e3' in event_id:
+            if 'e18' in event_id:
                 print('here')
             trigger_type = trigger[2]
             event = self.dict_events[event_id]
@@ -92,42 +92,41 @@ class Simulation:
                 queue_service = queue.service_rate
                 service_time = expon.rvs(scale=1/queue_service)
                 service_ready = queue.arrival(event_id, trigger_time, service_time=service_time)
-                if queue_id == 'n2':
-                    print('here')
                 print('Event {} arrived at queue {}'.format(event_id, queue_id))
                 if service_ready:
                     self.service_queue(trigger_time, queue, t)
                     print('Servicing event {} at queue: {}'.format(event_id, queue_id))
 
             elif 'Departure' in trigger_type:
-                if queue.id == 'n2':
-                    print('here')
                 queue.complete_service()
                 print('Event {} complete at queue {}'.format(event_id, queue_id))
                 # New queue for current event
                 new_queue_id = event.move_queue()
-                if not new_queue_id: # event completed
-                    t += 1
-                    continue
-                new_queue = self.dict_queue[new_queue_id]
-                #queue_service = queue.service_rate
-                service_time = expon.rvs(scale=1 / queue_service)
-                #service_ready = new_queue.arrival(event_id, trigger_time, service_time=service_time)
-                arrival_trigger = (trigger_time, event_id, 'Arrival')
-                self.event_triggers = insert_event_trigger(self.event_triggers, arrival_trigger)
-                # if service_ready:
-                #     self.service_queue(trigger_time, new_queue, t)
+                if new_queue_id: # event completed
+                    # add trigger for current event, new queue
+                    arrival_trigger = (trigger_time, event_id, 'Arrival')
+                    self.event_triggers = insert_event_trigger(self.event_triggers, arrival_trigger)
+
                 # New event for current queue
                 self.service_queue(trigger_time, queue, t)
             t += 1
+                #new_queue = self.dict_queue[new_queue_id]
+                #queue_service = queue.service_rate
+                #service_time = expon.rvs(scale=1 / queue_service)
+                #service_ready = new_queue.arrival(event_id, trigger_time, service_time=service_time)
+
+                # if service_ready:
+                #     self.service_queue(trigger_time, new_queue, t)
+
+
 
 
     def service_queue(self, trigger_time, queue, t):
-        if queue.id == 'n2':
-            print('here')
         [_, _, _, d, e] = queue.service_next(trigger_time)
         if e is None:
             return
+        if e == 'e18':
+            print('here')
         event = self.dict_events[e]
         queue.servicing = e
         task = event.current_task

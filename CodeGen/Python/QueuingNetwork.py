@@ -30,7 +30,7 @@ events_H = []
 
 for e in range(events):
     tasks = np.random.randint(1, 3)
-    event_path = random_path(tasks)
+    event_path = list(random_path(tasks)) # Make copy
     arrival_event = np.zeros(tasks)
     departure_event = np.zeros(tasks)
     arrival_event[0] = arrivals[e]
@@ -42,8 +42,12 @@ for e in range(events):
         events_O.append(Event(id, arrival_event, departure_event, event_path))
 # Init calls execution_initial() internally
 S = Simulation(events_O, events_H, queues)
-for e in S.event_triggers:
-    print(e[0])
+# for e in S.event_triggers:
+#     print(e[0])
+print('\nDeparture times')
+for e in S.Events_O:
+    print(e.id)
+    print(e.departure_times)
 
 # Copy the hidden events with real values for testing. Deep copy creates new objects with their own references
 events_H_actual = copy.deepcopy(events_H)
@@ -52,9 +56,9 @@ events_H_actual = copy.deepcopy(events_H)
 # Init simulation
 #S = Simulation()
 runs = 10
-for i in range(runs):
+#for i in range(runs):
     # Build sample d [departure_times]
 
-    [service_times, wait_times] = S.update_hidden_events(events_H)
+    #[service_times, wait_times] = S.update_hidden_events(events_H)
     # Gibbs sampling from metrics
     # Use S.joint_density_log()
