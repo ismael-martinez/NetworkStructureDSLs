@@ -13,6 +13,16 @@ def random_path(length):
     path_trim = [p for p in paths if len(p) == length]
     return random.choice(path_trim)
 
+def insert_event_trigger(event_triggers, arrival_trigger):
+    # insert by timestamp
+    insertion_point = len(event_triggers)
+    for i in range(len(event_triggers) - 1, -1, -1):
+        if arrival_trigger[0] < event_triggers[i][0]:  # Assume all timestamps are seconds
+            insertion_point -= 1
+        else:
+            break
+    return event_triggers[0:insertion_point] + [arrival_trigger] + event_triggers[insertion_point:]
+
 # Simulation of events in queue network
 class Simulation:
     # Input:
@@ -57,55 +67,65 @@ class Simulation:
         for e in all_Events:
             # first arrival
             arrival_trigger = (e.departure_times[0], e.id, 'Arrival')
+            e.current_task += 1
             # insert by timestamp
-            insertion_point = len(self.event_triggers)
-            for i in range(len(self.event_triggers)-1, -1, -1):
-                if arrival_trigger[0] <= self.event_triggers[i][0]: # Assume all timestamps are seconds
-                    insertion_point -= 1
-                else:
-                    break
-            self.event_triggers = self.event_triggers[0:insertion_point] + [arrival_trigger] + self.event_triggers[insertion_point:]
+            self.event_triggers = insert_event_trigger(self.event_triggers, arrival_trigger)
 
         # Iterate through arrival times. At each time, simulate the new state
-        for t in range(len(self.event_triggers)):
+        t = 0
+        while t < len(self.event_triggers):
+            # todo Fix t iteration to be dynamic
             trigger = self.event_triggers[t]
             print(trigger)
             trigger_time = trigger[0]
             event_id = trigger[1]
+            if 'e3' in event_id:
+                print('here')
             trigger_type = trigger[2]
             event = self.dict_events[event_id]
             task = event.current_task
+            print(event.queues)
+            print(task)
             queue_id = event.queues[task]
             queue = self.dict_queue[queue_id]
             if 'Arrival' in trigger_type:
                 queue_service = queue.service_rate
                 service_time = expon.rvs(scale=1/queue_service)
-                event.current_task += 1
                 service_ready = queue.arrival(event_id, trigger_time, service_time=service_time)
+                print('Arrived at queue {}'.format(queue_id))
                 if service_ready:
-                    self.service_queue(trigger_time, task, queue, t)
+                    self.service_queue(trigger_time, queue, t)
+                    print('Servicing at queue: {}'.format(queue_id))
 
             elif 'Departure' in trigger_type:
                 queue.complete_service()
+                print('Complete at queue {}'.format(queue_id))
                 # New queue for current event
                 new_queue_id = event.move_queue()
-                if not new_queue_id:
-                    return
+                if not new_queue_id: # event completed
+                    t += 1
+                    continue
                 new_queue = self.dict_queue[new_queue_id]
                 queue_service = queue.service_rate
                 service_time = expon.rvs(scale=1 / queue_service)
                 service_ready = new_queue.arrival(event_id, trigger_time, service_time=service_time)
+                arrival_trigger = (trigger_time, event_id, 'Arrival')
+                self.event_triggers = insert_event_trigger(self.event_triggers, arrival_trigger)
                 if service_ready:
-                    self.service_queue(trigger_time, task, new_queue, t)
+                    self.service_queue(trigger_time, new_queue, t)
                 # New event for current queue
-                self.service_queue(trigger_time, task, queue, t)
+                self.service_queue(trigger_time, queue, t)
+            t += 1
 
 
-    def service_queue(self, trigger_time, task, queue, t):
+    def service_queue(self, trigger_time, queue, t):
         [_, _, _, d, e] = queue.service_next(trigger_time)
         if e is None:
             return
         event = self.dict_events[e]
+        task = event.current_task
+        print(task)
+        print(event.queues)
         event.departure_times[task] = d
         new_trigger = (d, e, 'Departure')
         nt = t
