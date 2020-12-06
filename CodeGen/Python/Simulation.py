@@ -5,6 +5,7 @@ from networkUtil import *
 import numpy as np
 import random
 from scipy.stats import expon
+np.random.seed(100)
 
 # Random path of a specific length
 def random_path(length):
@@ -29,6 +30,15 @@ class Simulation:
         self.Queues[self.init_q_id] = queue_init
 
         all_events = self.Events_O + self.Events_H
+        # Dictionaries
+        self.dict_events = {}
+        for e in all_events:
+            self.dict_events[e.id] = e
+        self.dict_queue = {}
+        for q in self.Queues:
+            #            self.dict_queue[q] = q
+            self.dict_queue[q] = self.Queues[q]  # This line is redundant; used for now since Queue is passed as dict. May change to array
+
         for e in all_events:
             e.queues.insert(0, self.init_q_id)
             first_arrival = e.arrival_times[0]
@@ -57,32 +67,75 @@ class Simulation:
             self.event_triggers = self.event_triggers[0:insertion_point] + [arrival_trigger] + self.event_triggers[insertion_point:]
 
         # Iterate through arrival times. At each time, simulate the new state
-        #for e in self.event_triggers:
+        for t in range(len(self.event_triggers)):
+            trigger = self.event_triggers[t]
+            print(trigger)
+            trigger_time = trigger[0]
+            event_id = trigger[1]
+            trigger_type = trigger[2]
+            event = self.dict_events[event_id]
+            task = event.current_task
+            queue_id = event.queues[task]
+            queue = self.dict_queue[queue_id]
+            if 'Arrival' in trigger_type:
+                queue_service = queue.service_rate
+                service_time = expon.rvs(scale=1/queue_service)
+                event.current_task += 1
+                service_ready = queue.arrival(event_id, trigger_time, service_time=service_time)
+                if service_ready:
+                    self.service_queue(trigger_time, task, queue, t)
 
+            elif 'Departure' in trigger_type:
+                queue.complete_service()
+                # New queue for current event
+                new_queue_id = event.move_queue()
+                if not new_queue_id:
+                    return
+                new_queue = self.dict_queue[new_queue_id]
+                queue_service = queue.service_rate
+                service_time = expon.rvs(scale=1 / queue_service)
+                service_ready = new_queue.arrival(event_id, trigger_time, service_time=service_time)
+                if service_ready:
+                    self.service_queue(trigger_time, task, new_queue, t)
+                # New event for current queue
+                self.service_queue(trigger_time, task, queue, t)
+
+
+    def service_queue(self, trigger_time, task, queue, t):
+        [_, _, _, d, e] = queue.service_next(trigger_time)
+        if e is None:
+            return
+        event = self.dict_events[e]
+        event.departure_times[task] = d
+        new_trigger = (d, e, 'Departure')
+        nt = t
+        for et in range(t, len(self.event_triggers)):
+            et_time = self.event_triggers[et][0]
+            if et_time < d:
+                nt += 1
+            else:
+                break
+        self.event_triggers = self.event_triggers[0:nt] + [new_trigger] + self.event_triggers[nt:]
+
+
+# TODO Deal with the case where there are no requests left in the queue
 
 
     def queuing_sample(self):
-        Events = merge_events(self.Events_O, self.Events_H)  # Ordered by first arrival time
-        for e in self.Events_H:
-            e.queues.insert(0, self.queue_init)
-            first_arrival = e.arrival_times[0]
-            e.departure_times = np.insert(e.departure_times, 0, first_arrival)
-            # events_first_arrival.append((e.id, e.arrival_times[0])) # First arrival of each event
-        # Get all departure times, in order
-        self.departure_times = []
-        for e in Events:
-            self.departure_times = merge_id(self.departure_times, e.departure_times, e.id, e.queues)
-        # Dictionaries
-        self.dict_events = {}
-        for e in Events:
-            self.dict_events[e.id] = e
-        self.dict_queue = {}
-        for q in self.Queues:
-#            self.dict_queue[q] = q
-            self.dict_queue[q] = self.Queues[q] # This line is redundant; used for now since Queue is passed as dict. May change to array
-        self.service_times = []
-        self.wait_times = []
-        self.execute()
+        pass
+        # Events = merge_events(self.Events_O, self.Events_H)  # Ordered by first arrival time
+        # for e in self.Events_H:
+        #     e.queues.insert(0, self.queue_init)
+        #     first_arrival = e.arrival_times[0]
+        #     e.departure_times = np.insert(e.departure_times, 0, first_arrival)
+        #     # events_first_arrival.append((e.id, e.arrival_times[0])) # First arrival of each event
+        # # Get all departure times, in order
+        # self.departure_times = []
+        # for e in Events:
+        #     self.departure_times = merge_id(self.departure_times, e.departure_times, e.id, e.queues)
+        # self.service_times = []
+        # self.wait_times = []
+        # self.execute()
 
     def update_hidden_events(self, Events_H):
         self.Events_H = Events_H
@@ -160,8 +213,8 @@ class Event:
     # Given an ordered list of queues to visit, leave current queue and move to queue of next
     def move_queue(self):
         self.current_task += 1
-        if self.current_task >= self.tasks:
-            return []
+        if self.current_task > self.tasks:
+            return ''
         else:
             queue_id = self.queues[self.current_task]
             return queue_id # Return id of next queue
@@ -173,28 +226,57 @@ class Queue:
         self.queue_events = []
         self.queue_times_arrival = []
         self.queue_times_departures = []
+        self.queue_times_service = []
         self.prev_dep = 0.0
         self.waiting = 0
+        self.servicing = None
+        self.queue_log = []
 
     # Add an event to FIFO queue, end of line
     # Input:
     ## event_task_id (string) - id of event to add to queue
     ## arrival_time (timestamp) - arrival time of new task
     ## departure_time (timestamp) - departure time of new task
-    def arrival(self, event_task_id, arrival_time, departure_time):
+    # return bool - service_next
+    def arrival(self, event_task_id, arrival_time, departure_time=-1, service_time=-1):
         self.queue_events.append(event_task_id)
         self.queue_times_arrival.append(arrival_time)
-        self.queue_times_departures.append(departure_time)
+        if departure_time >= 0:
+            self.queue_times_departures.append(departure_time)
+        if service_time >= 0:
+            self.queue_times_service.append(service_time)
         self.waiting += 1
+        service_ready = False
+        if self.servicing is None:
+            service_ready = True
+        return service_ready
+
+    def complete_service(self):
+        finished_event = self.servicing
+        self.servicing = None
+        return finished_event
 
     # Given arrival and departure time, calculate service and wait time of current event
-    def service_next(self):
+    def service_next(self, event_time):
+        if len(self.queue_events) < 1:
+            return [None]*5
         event = self.queue_events.pop(0)
         arrival_time = self.queue_times_arrival.pop(0)
-        departure_time = self.queue_times_departures.pop(0)
+        service_time = 0
+        wait_time = 0
+        departure_time = 0
+        self.servicing = event
+        if len(self.queue_times_departures) > 0:
+            departure_time = self.queue_times_departures.pop(0)
+            earliest_service = np.max([arrival_time, self.prev_dep])
+            service_time = departure_time - earliest_service
+            wait_time = departure_time - service_time - arrival_time
+            self.prev_departure = departure_time
+        if len(self.queue_times_service) > 0:
+            service_time = self.queue_times_service.pop(0)
+            wait_time = event_time - arrival_time
+            departure_time = event_time + service_time
         self.waiting -= 1
-        earliest_service = np.max([arrival_time, self.prev_dep])
-        service_time = departure_time - earliest_service
-        wait_time = departure_time - service_time - arrival_time
-        self.prev_departure = departure_time
-        return (service_time, wait_time, event)
+        log = (arrival_time, service_time, wait_time, departure_time, event)
+        self.queue_log.append(log)
+        return log
