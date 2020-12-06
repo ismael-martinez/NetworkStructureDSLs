@@ -124,8 +124,6 @@ class Simulation:
         event = self.dict_events[e]
         queue.servicing = e
         task = event.current_task
-        print(task)
-        print(event.queues)
         event.departure_times[task] = d
         new_trigger = (d, e, 'Departure')
         nt = t
