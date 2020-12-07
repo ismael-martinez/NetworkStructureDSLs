@@ -36,7 +36,7 @@ class Simulation:
         self.Queues = Queues
         # Initial queue
         self.init_q_id = 'init'
-        queue_init = Queue(self.init_q_id, 1)
+        queue_init = Queue(self.init_q_id, 1, 1)
         self.Queues[self.init_q_id] = queue_init
 
         all_events = self.Events_O + self.Events_H
@@ -74,7 +74,6 @@ class Simulation:
         # Iterate through arrival times. At each time, simulate the new state
         t = 0
         while t < len(self.event_triggers):
-            # todo Fix t iteration to be dynamic
             trigger = self.event_triggers[t]
             print(trigger)
             trigger_time = trigger[0]
@@ -94,7 +93,7 @@ class Simulation:
                     print('Servicing event {} at queue: {}'.format(event_id, queue_id))
 
             elif 'Departure' in trigger_type:
-                queue.complete_service()
+                queue.complete_service(event_id)
                 print('Event {} complete at queue {}'.format(event_id, queue_id))
                 # New queue for current event
                 new_queue_id = event.move_queue()
@@ -118,11 +117,12 @@ class Simulation:
 
 
     def service_queue(self, trigger_time, queue, t):
-        [_, _, _, d, e] = queue.service_next(trigger_time)
+        [_, _, _, d, e] = queue.service_metrics(trigger_time)
         if e is None:
             return
+        queue_state = [server.servicing for server in queue.sub_servers]
+        queue.all_servers_occupied = all(queue_state)
         event = self.dict_events[e]
-        queue.servicing = e
         task = event.current_task
         event.departure_times[task] = d
         new_trigger = (d, e, 'Departure')
@@ -134,10 +134,6 @@ class Simulation:
             else:
                 break
         self.event_triggers = self.event_triggers[0:nt] + [new_trigger] + self.event_triggers[nt:]
-
-
-# TODO Deal with the case where there are no requests left in the queue
-
 
     def queuing_sample(self):
         pass
@@ -169,7 +165,7 @@ class Simulation:
             queue_next = self.dict_queue[q_next]
             queue_next.arrival(e_id, dep_time[0], event.departure_times[e_curr])
             queue_prev = self.dict_queue[q_prev]
-            (s,w,e) = queue_prev.service_next()
+            (s,w,e) = queue_prev.service_metrics()
             self.service_times.append((s,e)) # (service_time, e)
             self.wait_times.append((w,e)) # (wait_times, e)
         return [self.service_times, self.wait_times]
@@ -237,8 +233,19 @@ class Event:
             queue_id = self.queues[self.current_task]
             return queue_id # Return id of next queue
 
+class SubQueue:
+    # Input
+    ## sub_id (int) 1...K
+    ## service_rate (float) - Exponential parameter of service
+    def __init__(self, sub_id, service_rate):
+        self.id = sub_id
+        self.service_rate = service_rate
+        self.servicing = None
+
+
 class Queue:
-    def __init__(self, id, service_rate):
+    # K (int) - Number of servers
+    def __init__(self, id, service_rate, K):
         self.id = id
         self.service_rate = service_rate
         self.queue_events = []
@@ -247,8 +254,12 @@ class Queue:
         self.queue_times_service = []
         self.prev_dep = 0.0
         self.waiting = 0
-        self.servicing = None
+        self.all_servers_occupied = False
         self.queue_log = []
+        self.sub_servers = []
+        self.K = K
+        for k in range(K):
+            self.sub_servers.append(SubQueue(k, self.service_rate))
 
     # Add an event to FIFO queue, end of line
     # Input:
@@ -265,17 +276,23 @@ class Queue:
             self.queue_times_service.append(service_time)
         self.waiting += 1
         service_ready = False
-        if self.servicing is None:
+        queue_state = [server.servicing for server in self.sub_servers]
+        self.all_servers_occupied = all(queue_state)
+        if not self.all_servers_occupied:
             service_ready = True
         return service_ready
 
-    def complete_service(self):
-        finished_event = self.servicing
-        self.servicing = None
-        return finished_event
+    def complete_service(self, event_id):
+        for k in range(self.K):
+            if self.sub_servers[k].servicing == event_id:
+                self.sub_servers[k].servicing = None
+                break
+        queue_state = [server.servicing for server in self.sub_servers]
+        self.all_servers_occupied = all(queue_state)
+        return
 
     # Given arrival and departure time, calculate service and wait time of current event
-    def service_next(self, event_time):
+    def service_metrics(self, event_time):
         if len(self.queue_events) < 1:
             return [None]*5
         event = self.queue_events.pop(0)
@@ -283,7 +300,11 @@ class Queue:
         service_time = 0
         wait_time = 0
         departure_time = 0
-        self.servicing = event
+        for k in range(self.K):
+            if not self.sub_servers[k].servicing:
+                self.sub_servers[k].servicing = event
+                break
+        #self.servicing = event
         if len(self.queue_times_departures) > 0:
             departure_time = self.queue_times_departures.pop(0)
             earliest_service = np.max([arrival_time, self.prev_dep])
@@ -295,7 +316,7 @@ class Queue:
             wait_time = event_time - arrival_time
             departure_time = event_time + service_time
         self.waiting -= 1
-        self.servicing = event
+        # self.servicing = event
         log = (arrival_time, service_time, wait_time, departure_time, event)
         self.queue_log.append(log)
         return log

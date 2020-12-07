@@ -13,9 +13,10 @@ p = 0.4
 random.seed(events)
 ns = network_structure.graph.nodes
 queues = {}
+K = 3
 for node in ns:
     service_rate = 5*np.random.random()
-    queues[node] = Queue(node, service_rate)
+    queues[node] = Queue(node, service_rate, K)
 
 arrival_rate = 3
 arrivals = np.zeros(events)
