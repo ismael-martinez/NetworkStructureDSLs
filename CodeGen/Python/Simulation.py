@@ -114,10 +114,8 @@ class Simulation:
                 #     self.service_queue(trigger_time, new_queue, t)
 
 
-
-
     def service_queue(self, trigger_time, queue, t):
-        [_, _, _, d, e] = queue.service_metrics(trigger_time)
+        [_, _, _, d, e, _, _] = queue.service_metrics(trigger_time)
         if e is None:
             return
         queue_state = [server.servicing for server in queue.sub_servers]
@@ -294,15 +292,17 @@ class Queue:
     # Given arrival and departure time, calculate service and wait time of current event
     def service_metrics(self, event_time):
         if len(self.queue_events) < 1:
-            return [None]*5
+            return [None]*7
         event = self.queue_events.pop(0)
         arrival_time = self.queue_times_arrival.pop(0)
         service_time = 0
         wait_time = 0
         departure_time = 0
+        sub_id = 0
         for k in range(self.K):
             if not self.sub_servers[k].servicing:
                 self.sub_servers[k].servicing = event
+                sub_id = k
                 break
         #self.servicing = event
         if len(self.queue_times_departures) > 0:
@@ -317,6 +317,9 @@ class Queue:
             departure_time = event_time + service_time
         self.waiting -= 1
         # self.servicing = event
-        log = (arrival_time, service_time, wait_time, departure_time, event)
+        servicing_state = {}
+        for sq in self.sub_servers:
+            servicing_state[sq.id] = sq.servicing
+        log = (arrival_time, service_time, wait_time, departure_time, event, sub_id, servicing_state)
         self.queue_log.append(log)
         return log
