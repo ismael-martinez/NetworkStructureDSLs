@@ -8,6 +8,8 @@ import numpy as np
 import random
 import copy
 
+DECIMALS = 7
+
 class QueueNetwork:
     def __init__(self, queue_log_dict, K):
         self.K = K
@@ -15,7 +17,7 @@ class QueueNetwork:
         # Trim arrival, wait, service, and destination to 7 decimals
         for q in self.log:
             for i in range(len(self.log[q])):
-                q_times = [round(self.log[q][i][t], 7) for t in range(4)]
+                q_times = [round(self.log[q][i][t], DECIMALS) for t in range(4)]
                 q_log = q_times + list(self.log[q][i][4:])
                 self.log[q][i] = tuple(q_log)
 
@@ -75,8 +77,8 @@ class QueueNetwork:
                         subserver = s
                         break
 
-            waiting_time = round(earliest_service_time - arrival_time, 7)
-            service_time = round(departure_time - arrival_time - waiting_time, 7)
+            waiting_time = round(earliest_service_time - arrival_time, DECIMALS)
+            service_time = round(departure_time - arrival_time - waiting_time, DECIMALS)
             servicing_state_new = {}
             servicing_state_new[subserver] = event_id
             for s in servicing_state:
@@ -174,8 +176,8 @@ class QueueNetwork:
                         argmin_d = k
                         break
             servicing_state[argmin_d] = event_id
-            waiting_time = round(earliest_service - new_arrival, 7)
-            service_time = round(old_departure_time - earliest_service, 7)
+            waiting_time = round(earliest_service - new_arrival, DECIMALS)
+            service_time = round(old_departure_time - earliest_service, DECIMALS)
             new_log = (new_arrival, service_time, waiting_time, old_departure_time, event_id, argmin_d, servicing_state)
             old_log = old_log[0:entry_point] + [new_log] + old_log[entry_point:]
 

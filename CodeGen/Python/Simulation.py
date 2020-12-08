@@ -50,9 +50,11 @@ class Simulation:
             self.dict_queue[q] = self.Queues[q]  # This line is redundant; used for now since Queue is passed as dict. May change to array
 
         for e in all_events:
-            e.queues.insert(0, self.init_q_id)
+            e.queues = [self.init_q_id] + e.queues
             first_arrival = e.arrival_times[0]
+            e.arrival_times = np.insert(e.arrival_times, 0, 0)
             e.departure_times = np.insert(e.departure_times, 0, first_arrival)
+
         self.event_triggers = []
         self.execute_initial()
         #self.update_hidden_events(self.Events_H)
@@ -65,11 +67,11 @@ class Simulation:
         all_Events = self.Events_O + self.Events_H
         # Insert all initial departure times (arrival into the system)
         for e in all_Events:
-            # first arrival
-            arrival_trigger = (e.departure_times[0], e.id, 'Arrival')
-            e.current_task += 1
+            # first departure from init = first arrival to queue
+            initial_departure_trigger = (e.departure_times[0], e.id, 'Departure')
+            #e.current_task += 1
             # insert by timestamp
-            self.event_triggers = insert_event_trigger(self.event_triggers, arrival_trigger)
+            self.event_triggers = insert_event_trigger(self.event_triggers, initial_departure_trigger)
 
         # Iterate through arrival times. At each time, simulate the new state
         t = 0
