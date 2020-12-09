@@ -56,14 +56,7 @@ def probabilisticSchedule(probMap):
 
     distribution = probMap['interarrivalDistribution']
     if 'Exponential' in distribution:
-        exp_lambda_str = ''
-        for i in range(len(distribution)):
-            if distribution[i] == '=':
-                i += 1
-                while distribution[i] != ')':
-                    exp_lambda_str += distribution[i]
-                    i+=1
-                break
+        exp_lambda_str = probMap['lambda']
         exp_lambda = float(exp_lambda_str)
 
         schedule_sec = []
@@ -75,25 +68,8 @@ def probabilisticSchedule(probMap):
         return [schedule_sec, schedule_str]
 
     elif 'Gaussian' in distribution:
-        mu_str = ''
-        var_str = ''
-        for i in range(len(distribution)):
-            if distribution[i] == '(':
-                i += 1
-                begin_idx = i
-                while distribution[i] != ')':
-                    i += 1
-                end_idx = i
-            else:
-                continue
-            params = distribution[begin_idx:end_idx].split(',')
-            for p in params:
-                kv = p.split('=')
-                if 'mu' in kv[0]:
-                    mu_str = kv[1]
-                if 'var' in kv[0]:
-                    var_str = kv[1]
-            break
+        mu_str = probMap['mu']
+        var_str = probMap['var']
         mu = float(mu_str)
         var = float(var_str)
         schedule_sec = []
@@ -134,15 +110,17 @@ def trs_parser(trs_model, location_json):
             schedule_str = requestSchedule.schedule[1:-1].split(',')
             scheule_sec = [timestamp.convert_to_seconds(s) for s in schedule_str]
         elif 'ProbabilisticRequestSchedule' in schedule_type:
+            distribution = str(requestSchedule.interarrivalDistribution)
             probMap = {}
             probMap['start'] = requestSchedule.start
             probMap['end'] = requestSchedule.end
-            probMap['interarrivalDistribution'] = requestSchedule._tx_fqn
-            if 'Exponential' in requestSchedule._tx_fqn:
-                probMap['lambda'] = requestSchedule.lambda_mean
-            elif 'Gaussian' in requestSchedule._tx_fqn:
-                probMap['mu'] = requestSchedule.mu
-                probMap['var'] = requestSchedule.var
+            probMap['interarrivalDistribution'] = distribution
+            if 'Exponential' in distribution:
+                probMap['lambda'] = requestSchedule.interarrivalDistribution.lambda_mean
+            elif 'Gaussian' in distribution:
+                probMap['mu'] = requestSchedule.interarrivalDistribution.mu
+                probMap['var'] = requestSchedule.interarrivalDistribution.var
+            [schedule_sec, schedule_str] = probabilisticSchedule(probMap)
 
         else:
             continue
@@ -368,6 +346,8 @@ def code_gen(trs_model, pns_model, trs_location, nsm_location):
 
     attribute_class_gen = []
     attribute_class_gen.append('from networkStructure import *\n')
+    attribute_class_gen.append('#from CodeGen.Python.networkStructure import *\n')
+
     attribute_class_gen.append(generateThingClasses(trs_model=trs_model))
     [graph_code_gen, graph_name] = generateGraphClasses(pns_model)
     attribute_class_gen.append(graph_code_gen)
