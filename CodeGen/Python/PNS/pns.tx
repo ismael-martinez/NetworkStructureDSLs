@@ -10,6 +10,7 @@ NodeSet:
     ('attributes' '{'
             attributes+=Attribute
         '}')?
+    ('serviceRate' ':' serviceRate=[Attribute])?
     nodes+=Node
 '}'
 ;
@@ -28,6 +29,7 @@ Node:
         ('attributes' '{'
             (attributes=[Attribute] ':' val=BASETYPE)*
         '}')?
+        ('radius' ':' radius=FLOAT)?
         location=LocationReference
     '}'
 ;

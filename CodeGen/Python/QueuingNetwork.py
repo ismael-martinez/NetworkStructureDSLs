@@ -247,6 +247,7 @@ for e in S.Events_O:
 queue_log = {}
 for q in S.Queues:
     print('Queue {}'.format(q))
+    print('Arrival, Service, Wait, Departure, ')
     queue = queues[q]
     queue_log[q] = queue.queue_log
     for l in queue.queue_log: # [arrival, service, wait, departure

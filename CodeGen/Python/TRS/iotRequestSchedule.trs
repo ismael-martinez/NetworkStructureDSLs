@@ -28,7 +28,7 @@ thing t1 {
 
 thing t2 {
 	explicitRequestSchedule{
-		[12:00, 12:03, 14:29]
+		[12:00, 12:03, 13:21, 13:45, 14:29]
 	}
 	location { 
 		["6", "7"]
@@ -52,6 +52,7 @@ thing t3 {
 	location { 
 		["8"]
 	}
+	radius: 300.0
 	attributes {
 		fileSize_mb:85
 		localCPU_ghz:4.6
@@ -63,14 +64,15 @@ thing t3 {
 
 thing t4 {
 	probabilisticRequestSchedule {
-		start:12:00
-		end: 13:00
+		start:10:00
+		end: 15:00
 		interarrivalDistribution: Gaussian(mu=90.0, var=5.0)
 	}
 	
 	location { 
 		["9", "10"]
 	}
+	radius: 500.0
 	attributes {
 		fileSize_mb:64
 		localCPU_ghz:1.3

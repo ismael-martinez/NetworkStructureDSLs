@@ -11,41 +11,41 @@
     edge[dir=black,arrowtail=empty]
 
 
-2316961012352[ label="{ThingSet|name: ID\l}"]
+2318082393960[ label="{ThingSet|name: ID\l}"]
 
-2316961006688[ label="{Attribute|name: ID\ltype: SimpleType\l}"]
+2318082393016[ label="{Attribute|name: ID\ltype: SimpleType\l}"]
 
-2316960995360[ label="{Thing|name: ID\lval: optional\<list[BASETYPE]\>\l}"]
+2318082390184[ label="{Thing|name: ID\lradius: FLOAT\lval: optional\<list[BASETYPE]\>\l}"]
 
-2316961030288[ label="{*RequestSchedule|}"]
+2318082403400[ label="{*RequestSchedule|}"]
 
-2316961033120[ label="{*Distribution|}"]
+2318082411896[ label="{*Distribution|}"]
 
-2316961035008[ label="{Gaussian|mu: FLOAT\lvar: FLOAT\l}"]
+2318082426056[ label="{Gaussian|mu: FLOAT\lvar: FLOAT\l}"]
 
-2316961029344[ label="{Exponential|lambda_mean: FLOAT\l}"]
+2318082418504[ label="{Exponential|lambda_mean: FLOAT\l}"]
 
-2316961042560[ label="{ExplicitRequestSchedule|schedule: Schedule\l}"]
+2318082172120[ label="{ExplicitRequestSchedule|schedule: Schedule\l}"]
 
-2316961047280[ label="{ConsistentRequestSchedule|start: Timestamp\lend: Timestamp\lgap: Timestamp\l}"]
+2318082180616[ label="{ConsistentRequestSchedule|start: Timestamp\lend: Timestamp\lgap: Timestamp\l}"]
 
-2316961079376[ label="{ProbabilisticRequestSchedule|start: Timestamp\lend: Timestamp\l}"]
+2318082188168[ label="{ProbabilisticRequestSchedule|start: Timestamp\lend: Timestamp\l}"]
 
-2316961062384[ label="{LocationReference|loc_ref: optional\<list[INT]\>\l}"]
+2318082185336[ label="{LocationReference|loc_ref: optional\<list[INT]\>\l}"]
 
 
 
-2316961012352 -> 2316961006688[arrowtail=diamond, dir=both, headlabel="attributes 1..*"]
-2316961012352 -> 2316960995360[arrowtail=diamond, dir=both, headlabel="things 1..*"]
-2316960995360 -> 2316961030288[arrowtail=diamond, dir=both, headlabel="requestSchedule "]
-2316960995360 -> 2316961062384[arrowtail=diamond, dir=both, headlabel="location "]
-2316960995360 -> 2316961006688[headlabel="attributes 0..*"]
-2316961030288 -> 2316961042560 [dir=back]
-2316961030288 -> 2316961047280 [dir=back]
-2316961030288 -> 2316961079376 [dir=back]
-2316961033120 -> 2316961035008 [dir=back]
-2316961033120 -> 2316961029344 [dir=back]
-2316961079376 -> 2316961033120[arrowtail=diamond, dir=both, headlabel="interarrivalDistribution "]
+2318082393960 -> 2318082393016[arrowtail=diamond, dir=both, headlabel="attributes 1..*"]
+2318082393960 -> 2318082390184[arrowtail=diamond, dir=both, headlabel="things 1..*"]
+2318082390184 -> 2318082403400[arrowtail=diamond, dir=both, headlabel="requestSchedule "]
+2318082390184 -> 2318082185336[arrowtail=diamond, dir=both, headlabel="location "]
+2318082390184 -> 2318082393016[headlabel="attributes 0..*"]
+2318082403400 -> 2318082172120 [dir=back]
+2318082403400 -> 2318082180616 [dir=back]
+2318082403400 -> 2318082188168 [dir=back]
+2318082411896 -> 2318082426056 [dir=back]
+2318082411896 -> 2318082418504 [dir=back]
+2318082188168 -> 2318082411896[arrowtail=diamond, dir=both, headlabel="interarrivalDistribution "]
 match_rules [ shape=plaintext, label=< <table>
 	<tr>
 		<td><b>Comment</b></td><td>\/\*(.|\n)*?\*\/</td>

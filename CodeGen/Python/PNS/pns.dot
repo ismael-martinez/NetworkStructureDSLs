@@ -11,36 +11,37 @@
     edge[dir=black,arrowtail=empty]
 
 
-2316961078432[ label="{Graph|name: ID\l}"]
+2318082199496[ label="{Graph|name: ID\l}"]
 
-2316961068048[ label="{NodeSet|}"]
+2318082183448[ label="{NodeSet|}"]
 
-2316961087872[ label="{LinkSet|}"]
+2318082218376[ label="{LinkSet|}"]
 
-2316961085984[ label="{Node|name: ID\lval: optional\<list[BASETYPE]\>\l}"]
+2318082220264[ label="{Node|name: ID\lval: optional\<list[BASETYPE]\>\lradius: FLOAT\l}"]
 
-2316961057664[ label="{NodePair|}"]
+2318082225928[ label="{NodePair|}"]
 
-2316961102032[ label="{Link|name: ID\lval: optional\<list[BASETYPE]\>\l}"]
+2318082211768[ label="{Link|name: ID\lval: optional\<list[BASETYPE]\>\l}"]
 
-2316961110528[ label="{Attribute|name: ID\ltype: SimpleType\l}"]
+2318082219320[ label="{Attribute|name: ID\ltype: SimpleType\l}"]
 
-2316961093536[ label="{LocationReference|loc_ref: optional\<list[INT]\>\l}"]
+2318082178728[ label="{LocationReference|loc_ref: optional\<list[INT]\>\l}"]
 
 
 
-2316961078432 -> 2316961068048[arrowtail=diamond, dir=both, headlabel="nodeSet "]
-2316961078432 -> 2316961087872[arrowtail=diamond, dir=both, headlabel="linkSet "]
-2316961068048 -> 2316961110528[arrowtail=diamond, dir=both, headlabel="attributes 1..*"]
-2316961068048 -> 2316961085984[arrowtail=diamond, dir=both, headlabel="nodes 1..*"]
-2316961087872 -> 2316961110528[arrowtail=diamond, dir=both, headlabel="attributes 1..*"]
-2316961087872 -> 2316961102032[arrowtail=diamond, dir=both, headlabel="links 1..*"]
-2316961085984 -> 2316961110528[headlabel="attributes 0..*"]
-2316961085984 -> 2316961093536[arrowtail=diamond, dir=both, headlabel="location "]
-2316961057664 -> 2316961085984[headlabel="nodeSource "]
-2316961057664 -> 2316961085984[headlabel="nodeTarget "]
-2316961102032 -> 2316961110528[headlabel="attributes 0..*"]
-2316961102032 -> 2316961057664[arrowtail=diamond, dir=both, headlabel="nodePair "]
+2318082199496 -> 2318082183448[arrowtail=diamond, dir=both, headlabel="nodeSet "]
+2318082199496 -> 2318082218376[arrowtail=diamond, dir=both, headlabel="linkSet "]
+2318082183448 -> 2318082219320[arrowtail=diamond, dir=both, headlabel="attributes 1..*"]
+2318082183448 -> 2318082219320[headlabel="serviceRate "]
+2318082183448 -> 2318082220264[arrowtail=diamond, dir=both, headlabel="nodes 1..*"]
+2318082218376 -> 2318082219320[arrowtail=diamond, dir=both, headlabel="attributes 1..*"]
+2318082218376 -> 2318082211768[arrowtail=diamond, dir=both, headlabel="links 1..*"]
+2318082220264 -> 2318082219320[headlabel="attributes 0..*"]
+2318082220264 -> 2318082178728[arrowtail=diamond, dir=both, headlabel="location "]
+2318082225928 -> 2318082220264[headlabel="nodeSource "]
+2318082225928 -> 2318082220264[headlabel="nodeTarget "]
+2318082211768 -> 2318082219320[headlabel="attributes 0..*"]
+2318082211768 -> 2318082225928[arrowtail=diamond, dir=both, headlabel="nodePair "]
 match_rules [ shape=plaintext, label=< <table>
 	<tr>
 		<td><b>Comment</b></td><td>\/\*(.|\n)*?\*\/</td>

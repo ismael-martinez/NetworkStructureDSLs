@@ -114,6 +114,13 @@ class timestamp:
                 seconds += float(componenets[2])
         return seconds
 
+    def timestamp_to_seconds(self):
+        time_seconds = self.hour *3600
+        time_seconds += self.minutes*60
+        time_seconds += self.seconds
+        time_seconds += (self.milliseconds)*0.001
+        return  time_seconds
+
 class NetworkStructure:
     def __init__(self, graph, things):
         self.graph = graph

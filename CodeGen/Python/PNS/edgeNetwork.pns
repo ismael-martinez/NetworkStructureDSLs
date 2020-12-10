@@ -5,7 +5,7 @@ Graph Edge
 			key: cpu_ghz, type: float
 			key: memory_mb, type: int
 		}
-
+        serviceRate: cpu_ghz
 		node n1 {
 				attributes {
 					cpu_ghz: 3.2

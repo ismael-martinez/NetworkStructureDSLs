@@ -4,6 +4,7 @@
 
 import json
 from scipy.stats import expon
+import numpy as np
 from numpy.random import normal
 from networkStructure import *
 
@@ -132,6 +133,12 @@ def trs_parser(trs_model, location_json):
             attr_val = thing.val[i]
             thing_attributes[attr.name] = attr_val
 
+        # Radius
+        if thing.radius > 0:
+            instance_code_gen_thing += 'radius = {}\n'.format(thing.radius)
+        else:
+            instance_code_gen_thing += 'radius = np.infty\n'
+
         # Build locations
         thing_location = {}
         loc_refs = thing.location.loc_ref
@@ -153,7 +160,7 @@ def trs_parser(trs_model, location_json):
         for t in range(len(schedule_sec)-1):
             instance_code_gen_thing += 'timestamp({}),'.format(schedule_sec[t])
         instance_code_gen_thing += 'timestamp({})]\n'.format(schedule_sec[-1])
-        instance_code_gen_thing += 'things["{}"] = Thing_{}("{}", schedule, locations, attributes)\n\n'.format(thing_name, thing_type, thing_name)
+        instance_code_gen_thing += 'things["{}"] = Thing_{}("{}", schedule, locations, radius, attributes)\n\n'.format(thing_name, thing_type, thing_name)
 
     return instance_code_gen_thing
 
@@ -186,16 +193,22 @@ def pns_parser(pns_model, location_json, graph_name):
             location_data = location_json[ref_str]
             node_locations[loc_ref] = location_data
 
-            instance_code_gen_graph += 'locations = []\n'
-            for id in node_locations:
-                instance_code_gen_graph += 'locations.append(Locations({}, {}, {}))\n'.format(node_locations[id]['latitude'],
+        instance_code_gen_graph += 'locations = []\n'
+        for id in node_locations:
+            instance_code_gen_graph += 'locations.append(Locations({}, {}, {}))\n'.format(node_locations[id]['latitude'],
                                                                                              node_locations[id]['longitude'],
                                                                                              node_locations[id]['height'])
-            attributes_values = []
-            for id in node_attributes:
-                attributes_values.append(str(node_attributes[id]))
-            instance_code_gen_graph += 'attributes = NodeAttributes_{}({})\n'.format(graph_name,','.join(attributes_values))
-            instance_code_gen_graph += 'nodes["{}"] = Node_{}("{}", locations, attributes)\n\n'.format(node_name, graph_name, node_name)
+        # Radius
+        if node.radius > 0:
+            instance_code_gen_graph += 'radius = {}\n'.format(node.radius)
+        else:
+            instance_code_gen_graph += 'radius = np.infty\n'
+
+        attributes_values = []
+        for id in node_attributes:
+            attributes_values.append(str(node_attributes[id]))
+        instance_code_gen_graph += 'attributes = NodeAttributes_{}({})\n'.format(graph_name,','.join(attributes_values))
+        instance_code_gen_graph += 'nodes["{}"] = Node_{}("{}", locations, attributes, radius)\n\n'.format(node_name, graph_name, node_name)
 
     ## LINK instances
 
@@ -232,7 +245,7 @@ def pns_parser(pns_model, location_json, graph_name):
 ## Generate Things
 
 def generateThingClass(name, attributes):
-    class_gen = 'class Thing_{}(ThingAbstract):\n\tdef __init__(self,id, schedule, locations'.format(name)
+    class_gen = 'class Thing_{}(ThingAbstract):\n\tdef __init__(self, id, schedule, locations, radius'.format(name)
     if len(attributes) > 0:
         class_gen += ',attributes):\n'
     else:
@@ -240,6 +253,7 @@ def generateThingClass(name, attributes):
     class_gen += '\t\tself.id = id\n'
     class_gen += '\t\tself.schedule = schedule\n'
     class_gen += '\t\tself.locations = locations\n'
+    class_gen += '\t\tself.radius = radius\n'
     class_gen += '\t\tself.attributes = attributes\n'
     return class_gen
 
@@ -280,11 +294,12 @@ def generateGraphClass(name):
 
 def generateNodeClass(name, service_attr):
     node_class = 'class Node_{}(NodeAbstract):\n'.format(name)
-    node_class += '\tdef __init__(self, id, locations, attributes):\n'
+    node_class += '\tdef __init__(self, id, locations, attributes, radius = np.infty):\n'
     node_class += '\t\tself.id = id\n'
     node_class += '\t\tself.locations=locations\n'
     node_class += '\t\tself.attributes = attributes\n'
-    node_class += '\t\tself.neighbours = []\n\n'
+    node_class += '\t\tself.radius = radius\n'
+    #node_class += '\t\tself.neighbours = []\n\n'
     node_class += '\tdef service_rate(self):\n'
     if service_attr is not None:
         node_class += '\t\treturn self.attributes.{}\n'.format(service_attr.name)
@@ -350,7 +365,7 @@ def generateGraphClasses(pns_model):
 def code_gen(trs_model, pns_model, trs_location, nsm_location):
 
     attribute_class_gen = []
-    attribute_class_gen.append('from networkStructure import *\n')
+    attribute_class_gen.append('from networkStructure import *\nimport numpy as np\n')
     attribute_class_gen.append('#from CodeGen.Python.networkStructure import *\n')
 
     attribute_class_gen.append(generateThingClasses(trs_model=trs_model))
