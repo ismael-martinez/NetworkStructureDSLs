@@ -70,7 +70,9 @@ def main():
             node_arrival_schedules[node_name] = []
         thing_id = thing_key_index[t]
         n = node_key_dict[node_id]
-        if (distance_matrix[t][n])+1000 <= network_structure.graph.nodes[node_id].radius: # distance matrix in kilometeres. Radius in meters.
+        within_node_radius = (distance_matrix[t][n])*1000 <= network_structure.graph.nodes[node_id].radius
+        within_thing_radius = (distance_matrix[t][n])*1000 <= network_structure.things[thing_id].radius
+        if (within_node_radius and within_thing_radius): # distance matrix in kilometeres. Radius in meters.
             sched = network_structure.things[thing_id].schedule
             old_sched = node_arrival_schedules[node_name]
             new_sched = merge_timestamps(sched, old_sched)
