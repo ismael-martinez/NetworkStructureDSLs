@@ -42,8 +42,12 @@ def main():
     for thing in network_structure.things:
         thing_key_index.append(thing)
     node_key_index = []
+    node_key_dict = {}
+    n = 0
     for node in network_structure.graph.nodes:
         node_key_index.append(node)
+        node_key_dict[node] = n
+        n += 1
 
     t = 0
     for thing in network_structure.things:
@@ -65,10 +69,12 @@ def main():
         if node_name not in node_arrival_schedules.keys():
             node_arrival_schedules[node_name] = []
         thing_id = thing_key_index[t]
-        sched = network_structure.things[thing_id].schedule
-        old_sched = node_arrival_schedules[node_name]
-        new_sched = merge_timestamps(sched, old_sched)
-        node_arrival_schedules[node_name] = new_sched
+        n = node_key_dict[node_id]
+        if (distance_matrix[t][n])+1000 <= network_structure.graph.nodes[node_id].radius: # distance matrix in kilometeres. Radius in meters.
+            sched = network_structure.things[thing_id].schedule
+            old_sched = node_arrival_schedules[node_name]
+            new_sched = merge_timestamps(sched, old_sched)
+            node_arrival_schedules[node_name] = new_sched
 
     # Arrivals per hour
     first_hour_all = 24
@@ -167,10 +173,6 @@ def main():
         ax.set_title('Arrivals per 15 minutes - Node {}'.format(node))
         plt.show()
 
-    graph_img = cv2.imread('graph.dot.png')
-    cv2.imshow('Graph Structure', graph_img)
-    cv2.waitKey(0)
-
     ############################################
     # Queue Simulation
     random.seed(100)
@@ -209,6 +211,9 @@ def main():
 
     ##############################
 
+    graph_img = cv2.imread('graph.dot.png')
+    cv2.imshow('Graph Structure', graph_img)
+    cv2.waitKey(0)
 
 if __name__=="__main__":
     main()
