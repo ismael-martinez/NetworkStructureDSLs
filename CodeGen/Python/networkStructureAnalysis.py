@@ -188,7 +188,7 @@ def main():
         arrivals = [s.timestamp_to_seconds() for s in  node_arrival_schedules[n]]
         events = []
         node = ns[n]
-        service_rate = node.attributes.cpu_ghz
+        service_rate = node.service_rate()
         queues = {n:Queue(n, service_rate, K)}
         for a in range(len(arrivals)):
             id = '{}'.format(a)
@@ -199,7 +199,7 @@ def main():
         queue_log = {}
         for q in S.Queues:
             print('Queue {}'.format(q))
-            print('Arrival, Service, Wait, Departure, ')
+            print('Arrival, Service, Wait, Departure ')
             queue = queues[q]
             queue_log[q] = queue.queue_log
             for l in queue.queue_log:  # [arrival, service, wait, departure

@@ -278,13 +278,18 @@ def generateGraphClass(name):
     graph_class += '\t\tself.paths = depthFirstSearch(self.nodes)\n'
     return graph_class
 
-def generateNodeClass(name):
+def generateNodeClass(name, service_attr):
     node_class = 'class Node_{}(NodeAbstract):\n'.format(name)
     node_class += '\tdef __init__(self, id, locations, attributes):\n'
     node_class += '\t\tself.id = id\n'
     node_class += '\t\tself.locations=locations\n'
     node_class += '\t\tself.attributes = attributes\n'
-    node_class += '\t\tself.neighbours = []\n'
+    node_class += '\t\tself.neighbours = []\n\n'
+    node_class += '\tdef service_rate(self):\n'
+    if service_attr is not None:
+        node_class += '\t\treturn self.attributes.{}\n'.format(service_attr.name)
+    else:
+        node_class += '\t\treturn 0'
     return node_class
 
 def generateLinkClass(name):
@@ -336,7 +341,7 @@ def generateGraphClasses(pns_model):
 
     graph_class_gen = []
     graph_class_gen.append(generateGraphClass(graph_name))
-    graph_class_gen.append(generateNodeClass(graph_name))
+    graph_class_gen.append(generateNodeClass(graph_name, pns_model.nodeSet.serviceRate))
     graph_class_gen.append(generateLinkClass(graph_name))
     graph_class_gen.append(generateNodeAttributes(graph_name, node_set))
     graph_class_gen.append(generateLinkAttributes(graph_name, link_set))
