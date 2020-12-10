@@ -108,7 +108,7 @@ def trs_parser(trs_model, location_json):
             explicitMap = {}
             explicitMap['schedule'] = requestSchedule.schedule
             schedule_str = requestSchedule.schedule[1:-1].split(',')
-            scheule_sec = [timestamp.convert_to_seconds(s) for s in schedule_str]
+            schedule_sec = [timestamp.convert_to_seconds(s) for s in schedule_str]
         elif 'ProbabilisticRequestSchedule' in schedule_type:
             distribution = str(requestSchedule.interarrivalDistribution)
             probMap = {}
