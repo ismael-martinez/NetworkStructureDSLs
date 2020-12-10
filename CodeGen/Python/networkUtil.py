@@ -77,7 +77,7 @@ def merge_id(list_a, list_b, e_id, q_ids):
     i = 0
     j = 0
     while i < len(list_a) and j < len(list_b):
-        if compare_time(list_a[i][0],list_b[j]) > 0:
+        if list_a[i][0] > list_b[j]:
             list_c.append((list_b[j], e_id, q_ids[j]))
             j += 1
         else:
@@ -102,7 +102,7 @@ def merge_events(list_a, list_b):
     i = 0
     j = 0
     while i < len(list_a) and j < len(list_b):
-        if compare_time(list_a[i].arrival_times[0], list_b[j].arrival_times[0]) > 0:
+        if list_a[i].arrival_times[0] > list_b[j].arrival_times[0]:
             list_c.append(list_b[j])
             j += 1
         else:
@@ -115,3 +115,22 @@ def merge_events(list_a, list_b):
         list_c.append(list_b[j])
         j += 1
     return list_c
+
+def merge_timestamps(sched, old_sched):
+    # Merge
+    i, j = 0, 0
+    new_sched = []
+    while i < len(old_sched) and j < len(sched):
+        if compare_time(old_sched[i], sched[j]) < 0:
+            new_sched.append(old_sched[i])
+            i += 1
+        else:
+            new_sched.append(sched[j])
+            j += 1
+    while i < len(old_sched):
+        new_sched.append(old_sched[i])
+        i += 1
+    while j < len(sched):
+        new_sched.append(sched[j])
+        j += 1
+    return new_sched

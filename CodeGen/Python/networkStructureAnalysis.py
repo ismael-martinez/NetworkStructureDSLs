@@ -1,10 +1,13 @@
 from networkStructureAttributesAndInstances import *
+import networkStructure as NS
 from networkUtil import *
+from Simulation import *
+#from CodeGen.Python.networkStructure import *
 #from CodeGen.Python.networkStructureAttributesAndInstances import *
 #from CodeGen.Python.networkUtil import *
 import numpy as np
 import matplotlib.pyplot as plt
-import nxviz as nv
+import random
 import networkx as nx
 import os
 import cv2
@@ -63,27 +66,11 @@ def main():
             node_arrival_schedules[node_name] = []
         thing_id = thing_key_index[t]
         sched = network_structure.things[thing_id].schedule
-        # Merge
-        i, j = 0, 0
-        new_sched = []
         old_sched = node_arrival_schedules[node_name]
-        while i < len(old_sched) and j < len(sched):
-            if compare_time(old_sched[i], sched[j]) < 0:
-                new_sched.append(old_sched[i])
-                i += 1
-            else:
-                new_sched.append(sched[j])
-                j += 1
-        while i < len(old_sched):
-            new_sched.append(old_sched[i])
-            i += 1
-        while j < len(sched):
-            new_sched.append(sched[j])
-            j += 1
+        new_sched = merge_timestamps(sched, old_sched)
         node_arrival_schedules[node_name] = new_sched
 
     # Arrivals per hour
-    min_hour = 0
     first_hour_all = 24
     last_hour_all = 0
     for node in node_arrival_schedules:
@@ -96,17 +83,19 @@ def main():
 
     hours = list(range(first_hour_all, last_hour_all+1))
     arrivals_node = {}
-    max_y = 0
+    for h in hours:
+        arrivals_node[h] = 0
+    #max_y = 0 # Max y-axis value for plot
     for node in node_arrival_schedules:
-        arrivals = [0]*(last_hour_all - first_hour + 1)
+        arrivals = [0]*(last_hour_all - first_hour_all + 1)
         for timestamp in node_arrival_schedules[node]:
             hour = timestamp.hour
             idx = hour - first_hour_all
             arrivals[idx] += 1
         arrivals_node[node] = arrivals
-        for a in arrivals:
-            if a > max_y:
-                max_y = a
+        # for a in arrivals:
+        #     if a > max_y:
+        #         max_y = a
 
     for node in node_arrival_schedules:
         # Plot hourly arrival
@@ -116,12 +105,13 @@ def main():
         hour_str = [str(h) + 'h00' for h in hours]
         ax.set_xticks(hours)
         ax.set_xticklabels(hour_str)
-        ax.set_ylim(0, max_y)
-        ax.set_yticks(list(range(0, max_y+1)))
+        ax.set_xticklabels(hour_str, rotation=45)
+        #ax.set_ylim(0, max_y)
+        #ax.set_yticks(list(range(0, max_y+1)))
         ax.set_xlabel('Hours')
         ax.set_ylabel('Arrivals')
         ax.set_title('Arrivals per hour - Node {}'.format(node))
-        #plt.show()
+        plt.show()
 
     # Arrivals per quarter hour (15)
     quarters = []
@@ -130,9 +120,11 @@ def main():
             quarter_time = h + i*0.25
             quarters.append(quarter_time)
     arrivals_node = {}
-    max_y = 0
+    for h in hours:
+        arrivals_node[h] = 0
+    #max_y = 0
     for node in node_arrival_schedules:
-        arrivals = [0]*(last_hour_all - first_hour + 1)*4
+        arrivals = [0]*(last_hour_all - first_hour_all + 1)*4
         for timestamp in node_arrival_schedules[node]:
             hour = timestamp.hour
             minutes = timestamp.minutes
@@ -145,9 +137,9 @@ def main():
                 idx += 3
             arrivals[idx] += 1
         arrivals_node[node] = arrivals
-        for a in arrivals:
-            if a > max_y:
-                max_y = a
+        # for a in arrivals:
+        #     if a > max_y:
+        #         max_y = a
 
     for node in node_arrival_schedules:
         # Plot quarterly arrival
@@ -167,17 +159,56 @@ def main():
             else:
                 quarter_str.append(str(h) + 'h45')
         ax.set_xticks(quarters)
-        ax.set_xticklabels(quarter_str)
-        ax.set_ylim(0, max_y)
-        ax.set_yticks(list(range(0, max_y+1)))
+        ax.set_xticklabels(quarter_str, rotation=45)
+        #ax.set_ylim(0, max_y)
+        #ax.set_yticks(list(range(0, max_y+1)))
         ax.set_xlabel('Quarter Hours')
         ax.set_ylabel('Arrivals')
         ax.set_title('Arrivals per 15 minutes - Node {}'.format(node))
-        #plt.show()
+        plt.show()
 
     graph_img = cv2.imread('graph.dot.png')
     cv2.imshow('Graph Structure', graph_img)
     cv2.waitKey(0)
+
+    ############################################
+    # Queue Simulation
+    random.seed(100)
+    ns = network_structure.graph.nodes
+    queues = {}
+    K = 1
+
+
+    arrivals = []
+    zero_timestamp = NS.timestamp(0)
+    arrivals.append(zero_timestamp)
+
+
+    for n in ns:
+        arrivals = [s.timestamp_to_seconds() for s in  node_arrival_schedules[n]]
+        events = []
+        node = ns[n]
+        service_rate = node.attributes.cpu_ghz
+        queues = {n:Queue(n, service_rate, K)}
+        for a in range(len(arrivals)):
+            id = '{}'.format(a)
+            events.append(Event(id, [arrivals[a]], [0.0], [n]))
+        # Init calls execution_initial() internally
+        S = Simulation(events, [], queues)
+
+        queue_log = {}
+        for q in S.Queues:
+            print('Queue {}'.format(q))
+            print('Arrival, Service, Wait, Departure, ')
+            queue = queues[q]
+            queue_log[q] = queue.queue_log
+            for l in queue.queue_log:  # [arrival, service, wait, departure
+                arrival = NS.timestamp.convertTime(l[0])
+                departure = NS.timestamp.convertTime(l[3])
+                print([arrival, l[1], l[2], departure])
+
+    ##############################
+
 
 if __name__=="__main__":
     main()
