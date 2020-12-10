@@ -134,9 +134,12 @@ def trs_parser(trs_model, location_json):
             thing_attributes[attr.name] = attr_val
 
         # Radius
-        if thing.radius > 0:
-            instance_code_gen_thing += 'radius = {}\n'.format(thing.radius)
-        else:
+        try:
+            if thing.radius >= 0:
+                instance_code_gen_thing += 'radius = {}\n'.format(thing.radius)
+            else:
+                instance_code_gen_thing += 'radius = np.infty\n'
+        except:
             instance_code_gen_thing += 'radius = np.infty\n'
 
         # Build locations
@@ -199,9 +202,12 @@ def pns_parser(pns_model, location_json, graph_name):
                                                                                              node_locations[id]['longitude'],
                                                                                              node_locations[id]['height'])
         # Radius
-        if node.radius > 0:
-            instance_code_gen_graph += 'radius = {}\n'.format(node.radius)
-        else:
+        try:
+            if node.radius >= 0:
+                instance_code_gen_graph += 'radius = {}\n'.format(node.radius)
+            else:
+                instance_code_gen_graph += 'radius = np.infty\n'
+        except:
             instance_code_gen_graph += 'radius = np.infty\n'
 
         attributes_values = []
@@ -254,7 +260,8 @@ def generateThingClass(name, attributes):
     class_gen += '\t\tself.schedule = schedule\n'
     class_gen += '\t\tself.locations = locations\n'
     class_gen += '\t\tself.radius = radius\n'
-    class_gen += '\t\tself.attributes = attributes\n'
+    if len(attributes) > 0:
+        class_gen += '\t\tself.attributes = attributes\n'
     return class_gen
 
 def generateThingAttributes(name, attributes):
@@ -294,12 +301,12 @@ def generateGraphClass(name):
 
 def generateNodeClass(name, service_attr):
     node_class = 'class Node_{}(NodeAbstract):\n'.format(name)
-    node_class += '\tdef __init__(self, id, locations, attributes, radius = np.infty):\n'
+    node_class += '\tdef __init__(self, id, locations, attributes, radius):\n'
     node_class += '\t\tself.id = id\n'
     node_class += '\t\tself.locations=locations\n'
     node_class += '\t\tself.attributes = attributes\n'
     node_class += '\t\tself.radius = radius\n'
-    #node_class += '\t\tself.neighbours = []\n\n'
+    node_class += '\t\tself.neighbours = []\n\n'
     node_class += '\tdef service_rate(self):\n'
     if service_attr is not None:
         node_class += '\t\treturn self.attributes.{}\n'.format(service_attr.name)
@@ -425,6 +432,29 @@ def main(argv):
             thing_unqiue_attr = list(set(thing.attributes))
             if len(thing_unqiue_attr) != len(thing.attributes):
                 raise Exception("Thing attribubte must be unqiue: Thing {}".format(thing.name))
+        # The value of each thing attribute conforms to the attribute type
+        for thing in trs_model.things:
+            for a in range(len(thing.attributes)):
+                attr_name = thing.attributes[a].name
+                attr_type = thing.attributes[a].type
+                attr_val = thing.val[a]
+                if attr_type == 'int':
+                    if 'int' not in str(type(attr_val)):
+                        raise Exception("Attribute {} must receive a value of type int.".format(attr_name))
+                if attr_type == 'float':
+                    if 'float' not in str(type(attr_val)):
+                        raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
+                if attr_type == 'string':
+                    if 'str' not in str(type(attr_val)):
+                        raise Exception("Attribute {} must receive a value of type str.".format(attr_name))
+                if attr_type == 'bool':
+                    if 'bool' not in str(type(attr_val)):
+                        raise Exception("Attribute {} must receive a value of type bool.".format(attr_name))
+                if attr_type == 'timestamp':
+                    try:
+                        timestamp.convert_to_seconds(attr_val)
+                    except:
+                        raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
     except Exception as e:
         print('Verification Failed: Error in file {}'.format(trs_file))
         print(e)
@@ -456,6 +486,29 @@ def main(argv):
             node_unqiue_attr = list(set(nodeSet.attributes))
             if len(node_unqiue_attr) != len(nodeSet.attributes):
                 raise Exception("Node attribubte must be unqiue: Node {}".format(node.name))
+        # The value of each node attribute conforms to the attribute type
+        for node in nodeSet.nodes:
+            for a in range(len(node.attributes)):
+                attr_name = node.attributes[a].name
+                attr_type = node.attributes[a].type
+                attr_val = node.val[a]
+                if attr_type == 'int':
+                    if 'int' not in str(type(attr_val)):
+                        raise Exception("Attribute {} must receive a value of type int.".format(attr_name))
+                if attr_type == 'float':
+                    if 'float' not in str(type(attr_val)):
+                        raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
+                if attr_type == 'string':
+                    if 'str' not in str(type(attr_val)):
+                        raise Exception("Attribute {} must receive a value of type str.".format(attr_name))
+                if attr_type == 'bool':
+                    if 'bool' not in str(type(attr_val)):
+                        raise Exception("Attribute {} must receive a value of type bool.".format(attr_name))
+                if attr_type == 'timestamp':
+                    try:
+                        timestamp.convert_to_seconds(attr_val)
+                    except:
+                        raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
         ## Links
         linkSet = pns_model.linkSet
         unique_set_link = list(set(linkSet.attributes))
@@ -466,6 +519,30 @@ def main(argv):
             link_unqiue_attr = list(set(linkSet.attributes))
             if len(link_unqiue_attr) != len(linkSet.attributes):
                 raise Exception("Link attribubte must be unqiue: Link {}".format(link.name))
+        # The value of each link attribute conforms to the attribute type
+        for link in linkSet.links:
+            for a in range(len(link.attributes)):
+                attr_name = link.attributes[a].name
+                attr_type = link.attributes[a].type
+                attr_val = link.val[a]
+                if attr_type == 'int':
+                    if 'int' not in str(type(attr_val)):
+                        raise Exception("Attribute {} must receive a value of type int.".format(attr_name))
+                if attr_type == 'float':
+                    if 'float' not in str(type(attr_val)):
+                        raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
+                if attr_type == 'string':
+                    if 'str' not in str(type(attr_val)):
+                        raise Exception("Attribute {} must receive a value of type str.".format(attr_name))
+                if attr_type == 'bool':
+                    if 'bool' not in str(type(attr_val)):
+                        raise Exception("Attribute {} must receive a value of type bool.".format(attr_name))
+                if attr_type == 'timestamp':
+                    try:
+                        timestamp.convert_to_seconds(attr_val)
+                    except:
+                        raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
+
     except Exception as e:
         print('Verification Failed: Error in file {}'.format(pns_file))
         print(e)
