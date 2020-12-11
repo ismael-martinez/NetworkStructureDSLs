@@ -240,7 +240,7 @@ def generate_graph_instances(pns_model, location_json, graph_name):
             attr = link.attributes[i]
             attr_val = link.val[i]
             link_attributes[attr.name] = attr_val
-        for attr in pns_model.nodeSet.attributes:
+        for attr in pns_model.linkSet.attributes:
             if attr.name not in link_attributes:
                 default_val = default_val_by_type(attr.type)
                 link_attributes[attr.name] = default_val
@@ -254,7 +254,7 @@ def generate_graph_instances(pns_model, location_json, graph_name):
         # Set neighbours of nodes based on link definitions
         instance_code_gen_graph += 'nodes["{}"].neighbours.append(("{}", "{}"))\n'.format(node_pair[0], link_name, node_pair[1])
         # Generate instance of link class
-        parameters = ['node_pair'] + [attr.name for attr in pns_model.nodeSet.attributes]
+        parameters = ['node_pair'] + [attr.name for attr in pns_model.linkSet.attributes]
         instance_code_gen_graph += 'links["{}"] = Link_{}("{}", {})\n\n'.format(link_name, graph_name, link_name, ', '.join(parameters))
 
 
