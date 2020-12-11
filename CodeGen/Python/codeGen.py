@@ -248,46 +248,52 @@ def pns_parser(pns_model, location_json, graph_name):
     return instance_code_gen_graph
 
 
-## Generate Things
-
-def generateThingClass(name, attributes):
-    class_gen = 'class Thing_{}(ThingAbstract):\n\tdef __init__(self, id, schedule, locations, radius'.format(name)
-    if len(attributes) > 0:
-        class_gen += ',attributes):\n'
-    else:
-        class_gen += '):\n'
-    class_gen += '\t\tself.id = id\n'
-    class_gen += '\t\tself.schedule = schedule\n'
-    class_gen += '\t\tself.locations = locations\n'
-    class_gen += '\t\tself.radius = radius\n'
-    if len(attributes) > 0:
-        class_gen += '\t\tself.attributes = attributes\n'
-    return class_gen
-
-def generateThingAttributes(name, attributes):
-    param_list = ', '.join(attributes)
-    thing_attributes_class = 'class ThingAttributes_{}:\n\tdef __init__(self'.format(name)
-    if len(param_list) > 0:
-        thing_attributes_class += ', ' + param_list + '):\n'
-    else:
-        thing_attributes_class += '):\n'
-    for attr in attributes:
-        thing_attributes_class += '\t\tself.{} = {}\n'.format(attr, attr)
-
-    attribute_list = ['"' + attr + '"' for attr in attributes]
-    thing_attributes_class += '\tdef listAttributes(self):\n\t\treturn [{}]\n'.format(','.join(attribute_list))
-    return thing_attributes_class
-
-def generateThingClasses(trs_model):
-    thing_name = trs_model.name
-    attributes = []
+## Generate class Thing - includes name, and specified attributes (with default parameters)
+# Input: trs_model (TextX model, conforms to TRS.tx grammar)
+# Output: thing_class_gen (string) - Generated code for 'class Thing'
+def generateThingClass(trs_model):
+    # List of attribute names and types
+    attr_name_list = []
+    default_param_list = []
     for attr in trs_model.attributes:
-        attributes.append(attr.name)
+        attr_name_list.append(attr.name)
+        # Register default value based on attribute type
+        if 'int' in attr.type:
+            default_val = 0
+            default_param = '{} = {}'.format(attr.name, default_val)
+        elif 'float' in attr.type:
+            default_val = 0.0
+            default_param = '{} = {}'.format(attr.name, default_val)
+        elif 'str' in attr.type:
+            default_val = ''
+            default_param = '{} = {}'.format(attr.name, default_val)
+        elif 'bool' in attr.type:
+            default_val = False
+            default_param = '{} = {}'.format(attr.name, default_val)
+        elif 'timestamp' in attr.type:
+            default_val = False
+            default_param = '{} = {}'.format(attr.name, default_val)
+        else:
+            raise Exception('Attribute {} does not have valid type {}'.format(attr.name, attr.type))
+        default_param_list.append(default_param)
 
-    thing_class_gen = generateThingClass(thing_name, attributes)
-    thing_attributes_class = generateThingAttributes(thing_name, attributes)
-    thing_classes = thing_attributes_class + '\n' + thing_class_gen
-    return thing_classes
+    mandatory_param_list = ['self', 'id', 'schedule', 'locations', 'radius']
+    param_list = mandatory_param_list + default_param_list
+    # Generate Thing class __init__() function with all mandatory and optional parameters.
+    # Optional parameters have default value
+    thing_class_gen = 'class Thing_{}(ThingAbstract):\n\tdef __init__({})\n'.format(trs_model.name, ', '.join(param_list))
+
+    # Generate body of __init__() function
+    param_list = mandatory_param_list + attr_name_list
+    for p in param_list:
+        if 'self' in p:
+            continue
+        thing_class_gen += '\t\tself.{} = {}\n'.format(p, p)
+
+    # Generate method to list attributes
+    thing_class_gen += '\tdef listAttributes(self):\n\t\treturn [{}]\n'.format(','.join(attr_name_list))
+    return thing_class_gen
+
 
 ## Generate Graph
 
@@ -375,7 +381,7 @@ def code_gen(trs_model, pns_model, trs_location, nsm_location):
     attribute_class_gen.append('from networkStructure import *\nimport numpy as np\n')
     attribute_class_gen.append('#from CodeGen.Python.networkStructure import *\n')
 
-    attribute_class_gen.append(generateThingClasses(trs_model=trs_model))
+    attribute_class_gen.append(generateThingClass(trs_model=trs_model))
     [graph_code_gen, graph_name] = generateGraphClasses(pns_model)
     attribute_class_gen.append(graph_code_gen)
 
