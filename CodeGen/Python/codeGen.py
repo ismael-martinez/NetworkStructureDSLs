@@ -15,7 +15,8 @@ import sys, getopt
 
 
 
-# Schedules
+### Utility functions to convert non-explicit schedules into explicit schedules ###
+
 ## Convert consistent schedule into explicit shedule
 def convert_consistent_schedule(consistentMap):
     start = consistentMap['start']
@@ -83,7 +84,135 @@ def convert_probabilistic_schedule(probMap):
         return [schedule_sec, schedule_str]
 
 
-# TRS Parser
+
+
+### Utility functions for value assignment and verification of attribute by type ###
+
+# For a given type, return the default parameter
+# Input: string_type (string) - int, string, float, bool, timestamp
+# Output: default_param (string) - form '<attr> = <default_val>'
+def default_val_by_type(string_type):
+    if 'int' in string_type:
+        default_val = 0
+    elif 'float' in string_type:
+        default_val = 0.0
+    elif 'str' in string_type:
+        default_val = "''"
+    elif 'bool' in string_type:
+        default_val = False
+    elif 'timestamp' in string_type:
+        default_val = 'timestamp(0)'
+    else:
+        raise Exception('Type {} is not a valid simple type'.format(string_type))
+    return default_val
+
+# Generates list of attributes and default parameter instantiations for specified attrbutes of TRS or PNS model.
+def attribute_parameters(attributes):
+    # List of attribute names and types
+    attr_name_list = []
+    default_param_list = []
+    for attr in attributes:
+        attr_name_list.append(attr.name)
+        # Register default value based on attribute type
+        default_val = default_val_by_type(attr.type)
+        default_param = '{} = {}'.format(attr.name, default_val)
+        default_param_list.append(default_param)
+    return [attr_name_list, default_param_list]
+
+def attribute_type_valid(attributes, values):
+    for a in range(len(attributes)):
+        attr_name = attributes[a].name
+        attr_type = attributes[a].type
+        attr_val = values[a]
+        if attr_type == 'int':
+            if 'int' not in str(type(attr_val)):
+                raise Exception("Attribute {} must receive a value of type int.".format(attr_name))
+        if attr_type == 'float':
+            if 'float' not in str(type(attr_val)):
+                raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
+        elif attr_type == 'string':
+            if 'str' not in str(type(attr_val)):
+                raise Exception("Attribute {} must receive a value of type str.".format(attr_name))
+        elif attr_type == 'bool':
+            if 'bool' not in str(type(attr_val)):
+                raise Exception("Attribute {} must receive a value of type bool.".format(attr_name))
+        elif attr_type == 'timestamp':
+            try:
+                timestamp.convert_to_seconds(attr_val)
+            except:
+                raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
+    return True
+
+
+### VERIFY TRS AND PNS FILES BEFORE PARSING
+def verify_trs_model(trs_metamodel, trs_file):
+    try:
+        trs_model = trs_metamodel.model_from_file(trs_file)
+        # All attributes are unique
+        unique_set = list(set(trs_model.attributes))
+        if len(trs_model.attributes) != len(unique_set):
+            raise Exception("Clients attributes must be unique: ClientSet {}.".format(trs_model.name))
+        # The attributes of each client is unique
+        for client in trs_model.clients:
+            client_unqiue_attr = list(set(client.attributes))
+            if len(client_unqiue_attr) != len(client.attributes):
+                raise Exception("Client attribubte must be unqiue: Client {}".format(client.name))
+        # The value of each client attribute conforms to the attribute type
+        for client in trs_model.clients:
+            # Verify attribute value matches defined attribute type
+            attribute_type_valid(client.attributes, client.val)
+        print('Verification of file {} succeeded.'.format(trs_file))
+        return trs_model
+    except Exception as e:
+        print('Verification Failed: Error in file {}'.format(trs_file))
+        print(e)
+        exit()
+
+
+def verify_pns_model(pns_metamodel, pns_file):
+    try:
+        pns_model = pns_metamodel.model_from_file(pns_file)
+        # All attributes are unique
+        ## Nodes
+        nodeSet = pns_model.nodeSet
+        unique_set_node = list(set(nodeSet.attributes))
+        if len(nodeSet.attributes) != len(unique_set_node):
+            raise Exception("NodeSet attributes must be unique: Graph {}.".format(pns_model.name))
+        # The attributes of each client is unique
+        for node in nodeSet.nodes:
+            node_unqiue_attr = list(set(nodeSet.attributes))
+            if len(node_unqiue_attr) != len(nodeSet.attributes):
+                raise Exception("Node attribubte must be unqiue: Node {}".format(node.name))
+        # The value of each node attribute conforms to the attribute type
+        for node in nodeSet.nodes:
+            for a in range(len(node.attributes)):
+                # Verify attribute value matches defined attribute type
+                attribute_type_valid(node.attributes, node.val)
+
+        ## Links
+        linkSet = pns_model.linkSet
+        unique_set_link = list(set(linkSet.attributes))
+        if len(linkSet.attributes) != len(unique_set_link):
+            raise Exception("LinkSet attributes must be unique: Graph {}.".format(pns_model.name))
+        # The attributes of each client is unique
+        for link in linkSet.links:
+            link_unqiue_attr = list(set(linkSet.attributes))
+            if len(link_unqiue_attr) != len(linkSet.attributes):
+                raise Exception("Link attribubte must be unqiue: Link {}".format(link.name))
+        # The value of each link attribute conforms to the attribute type
+        for link in linkSet.links:
+            for a in range(len(link.attributes)):
+                # Verify attribute value matches defined attribute type
+                attribute_type_valid(link.attributes, link.val)
+        print('Verification of file {} succeeded.'.format(pns_file))
+        return pns_model
+    except Exception as e:
+        print('Verification Failed: Error in file {}'.format(pns_file))
+        print(e)
+        exit()
+
+
+### GENERATE CLIENT INSTANCES FROM TRS PARSER ###
 # Generate code for Client instances based on TRS file.
 def generate_client_instances(trs_model, location_json):
     client_type = trs_model.name
@@ -175,7 +304,7 @@ def generate_client_instances(trs_model, location_json):
     return instance_code_gen_client
 
 
-# PNS Parser
+### GENERATE Graph INSTANCES FROM PNS PARSER ###
 # Generate instances of Graph = (Nodes, Links) based on PNS file.
 def generate_graph_instances(pns_model, location_json, graph_name):
     instance_code_gen_graph = 'nodes = {}\nlinks={}\n'
@@ -263,36 +392,7 @@ def generate_graph_instances(pns_model, location_json, graph_name):
 
     return instance_code_gen_graph
 
-# For a given type, return the default parameter
-# Input: string_type (string) - int, string, float, bool, timestamp
-# Output: default_param (string) - form '<attr> = <default_val>'
-def default_val_by_type(string_type):
-    if 'int' in string_type:
-        default_val = 0
-    elif 'float' in string_type:
-        default_val = 0.0
-    elif 'str' in string_type:
-        default_val = "''"
-    elif 'bool' in string_type:
-        default_val = False
-    elif 'timestamp' in string_type:
-        default_val = 'timestamp(0)'
-    else:
-        raise Exception('Type {} is not a valid simple type'.format(string_type))
-    return default_val
 
-# Generates list of attributes and default parameter instantiations for specified attrbutes of TRS or PNS model.
-def attribute_parameters(attributes):
-    # List of attribute names and types
-    attr_name_list = []
-    default_param_list = []
-    for attr in attributes:
-        attr_name_list.append(attr.name)
-        # Register default value based on attribute type
-        default_val = default_val_by_type(attr.type)
-        default_param = '{} = {}'.format(attr.name, default_val)
-        default_param_list.append(default_param)
-    return [attr_name_list, default_param_list]
 
 ## Generate class Client - includes name, and specified attributes (with default parameters)
 # Input: trs_model (TextX model, conforms to TRS.tx grammar)
@@ -396,8 +496,7 @@ def generate_graph_classes(pns_model):
     pns_classes.append(generate_link_class(pns_model))
     return '\n'.join(pns_classes)
 
-def code_gen(trs_model, pns_model, trs_location, pns_location):
-
+def code_generation(trs_model, pns_model, trs_location, pns_location):
     attribute_class_gen = []
     # File headers and imports
     attribute_class_gen.append('from networkStructure import *\nimport numpy as np\n')
@@ -441,149 +540,28 @@ def main(argv):
         elif opt in ("-P", "--nodelocation"):
             pns_location_file = arg
 
-    print("TRS file:" + trs_file)
-    #trs_file = 'TRS/iotRequestSchedule.trs'
-    trs_grammar = 'TRS/trs.tx'
-    #trs_location_file = 'TRS/location.json'
 
-    ## Verify TRS file
-    mm_trs = metamodel_from_file(trs_grammar)
+    ### Verify TRS File
+    print("TRS file:" + trs_file)
+    trs_grammar = 'TRS/trs.tx'
+    mm_trs = metamodel_from_file(trs_grammar) # TextX Metamodel
     metamodel_export(mm_trs, 'TRS/trs.dot')
     os.system('dot -Tpng -O  TRS/trs.dot')
-    #os.system('dot -Tpng -O  TRS/trs_grammar.dot') # Creates PNG of metamodel from Grammar
-    try:
-        trs_model = mm_trs.model_from_file(trs_file)
-        # All attributes are unique
-        unique_set = list(set(trs_model.attributes))
-        if len(trs_model.attributes) != len(unique_set):
-            raise Exception("Clients attributes must be unique: ClientSet {}.".format(trs_model.name))
-        # The attributes of each client is unique
-        for client in trs_model.clients:
-            client_unqiue_attr = list(set(client.attributes))
-            if len(client_unqiue_attr) != len(client.attributes):
-                raise Exception("Client attribubte must be unqiue: Client {}".format(client.name))
-        # The value of each client attribute conforms to the attribute type
-        for client in trs_model.clients:
-            for a in range(len(client.attributes)):
-                attr_name = client.attributes[a].name
-                attr_type = client.attributes[a].type
-                attr_val = client.val[a]
-                if attr_type == 'int':
-                    if 'int' not in str(type(attr_val)):
-                        raise Exception("Attribute {} must receive a value of type int.".format(attr_name))
-                if attr_type == 'float':
-                    if 'float' not in str(type(attr_val)):
-                        raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
-                if attr_type == 'string':
-                    if 'str' not in str(type(attr_val)):
-                        raise Exception("Attribute {} must receive a value of type str.".format(attr_name))
-                if attr_type == 'bool':
-                    if 'bool' not in str(type(attr_val)):
-                        raise Exception("Attribute {} must receive a value of type bool.".format(attr_name))
-                if attr_type == 'timestamp':
-                    try:
-                        timestamp.convert_to_seconds(attr_val)
-                    except:
-                        raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
-    except Exception as e:
-        print('Verification Failed: Error in file {}'.format(trs_file))
-        print(e)
-        exit()
-    print('Verification of file {} succeeded.'.format(trs_file))
+    trs_model = verify_trs_model(mm_trs, trs_file)
     with open(trs_location_file) as loc:
         loc_data_trs = json.load(loc)
 
-    generate_client_instances(trs_model, loc_data_trs['location']) #
 
-    #pns_file = 'PNS/edgeNetwork.pns'
-    #pns_location_file = 'PNS/location.json'
+    ### Verify PNS file
     pns_grammar = 'PNS/pns.tx'
-    ## Verify PNM file
-    mm_pns = metamodel_from_file(pns_grammar)
+    mm_pns = metamodel_from_file(pns_grammar) # TextX Metamodel
     metamodel_export(mm_pns, 'PNS/pns.dot')
     os.system('dot -Tpng -O  PNS/pns.dot')
-    #os.system('dot -Tpng -O  TRS/trs_grammar.dot') # Creates PNG of metamodel from Grammar
-    try:
-        pns_model = mm_pns.model_from_file(pns_file)
-        # All attributes are unique
-        ## Nodes
-        nodeSet = pns_model.nodeSet
-        unique_set_node = list(set(nodeSet.attributes))
-        if len(nodeSet.attributes) != len(unique_set_node):
-            raise Exception("NodeSet attributes must be unique: Graph {}.".format(pns_model.name))
-        # The attributes of each client is unique
-        for node in nodeSet.nodes:
-            node_unqiue_attr = list(set(nodeSet.attributes))
-            if len(node_unqiue_attr) != len(nodeSet.attributes):
-                raise Exception("Node attribubte must be unqiue: Node {}".format(node.name))
-        # The value of each node attribute conforms to the attribute type
-        for node in nodeSet.nodes:
-            for a in range(len(node.attributes)):
-                attr_name = node.attributes[a].name
-                attr_type = node.attributes[a].type
-                attr_val = node.val[a]
-                if attr_type == 'int':
-                    if 'int' not in str(type(attr_val)):
-                        raise Exception("Attribute {} must receive a value of type int.".format(attr_name))
-                if attr_type == 'float':
-                    if 'float' not in str(type(attr_val)):
-                        raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
-                if attr_type == 'string':
-                    if 'str' not in str(type(attr_val)):
-                        raise Exception("Attribute {} must receive a value of type str.".format(attr_name))
-                if attr_type == 'bool':
-                    if 'bool' not in str(type(attr_val)):
-                        raise Exception("Attribute {} must receive a value of type bool.".format(attr_name))
-                if attr_type == 'timestamp':
-                    try:
-                        timestamp.convert_to_seconds(attr_val)
-                    except:
-                        raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
-        ## Links
-        linkSet = pns_model.linkSet
-        unique_set_link = list(set(linkSet.attributes))
-        if len(linkSet.attributes) != len(unique_set_link):
-            raise Exception("LinkSet attributes must be unique: Graph {}.".format(pns_model.name))
-        # The attributes of each client is unique
-        for link in linkSet.links:
-            link_unqiue_attr = list(set(linkSet.attributes))
-            if len(link_unqiue_attr) != len(linkSet.attributes):
-                raise Exception("Link attribubte must be unqiue: Link {}".format(link.name))
-        # The value of each link attribute conforms to the attribute type
-        for link in linkSet.links:
-            for a in range(len(link.attributes)):
-                attr_name = link.attributes[a].name
-                attr_type = link.attributes[a].type
-                attr_val = link.val[a]
-                if attr_type == 'int':
-                    if 'int' not in str(type(attr_val)):
-                        raise Exception("Attribute {} must receive a value of type int.".format(attr_name))
-                if attr_type == 'float':
-                    if 'float' not in str(type(attr_val)):
-                        raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
-                if attr_type == 'string':
-                    if 'str' not in str(type(attr_val)):
-                        raise Exception("Attribute {} must receive a value of type str.".format(attr_name))
-                if attr_type == 'bool':
-                    if 'bool' not in str(type(attr_val)):
-                        raise Exception("Attribute {} must receive a value of type bool.".format(attr_name))
-                if attr_type == 'timestamp':
-                    try:
-                        timestamp.convert_to_seconds(attr_val)
-                    except:
-                        raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
-
-    except Exception as e:
-        print('Verification Failed: Error in file {}'.format(pns_file))
-        print(e)
-        exit()
-    print('Verification of file {} succeeded.'.format(pns_file))
-
-
+    pns_model = verify_pns_model(mm_pns, pns_file)
     with open(pns_location_file) as loc:
-        loc_data_nsm = json.load(loc)
+        loc_data_pns = json.load(loc)
 
-    code_gen(trs_model, pns_model, loc_data_trs['location'], loc_data_nsm['location'])
+    code_generation(trs_model, pns_model, loc_data_trs['location'], loc_data_pns['location'])
 
 
 if __name__=="__main__":
