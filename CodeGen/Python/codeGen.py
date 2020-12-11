@@ -1,4 +1,4 @@
-# Generate Node_, NodeAttributes, Thing_, and ThingAttributes classes
+# Generate Node_, NodeAttributes, Client_, and ClientAttributes classes
 
 ## Read parameters from .trs file
 
@@ -6,8 +6,8 @@ import json
 from scipy.stats import expon
 import numpy as np
 from numpy.random import normal
-from networkStructure import *
-
+#from networkStructure import *
+from CodeGen.Python.networkStructure import * # TODO remove at the end
 from textx import metamodel_from_file
 from textx.export import metamodel_export
 import os
@@ -16,8 +16,8 @@ import sys, getopt
 
 
 # Schedules
-
-def consistentSchedule(consistentMap):
+## Convert consistent schedule into explicit shedule
+def convert_consistent_schedule(consistentMap):
     start = consistentMap['start']
     end = consistentMap['end']
     gap = consistentMap['gap']
@@ -41,7 +41,8 @@ def consistentSchedule(consistentMap):
     schedule_str = [str(timestamp(s)) for s in schedule_sec]
     return [schedule_sec, schedule_str]
 
-def probabilisticSchedule(probMap):
+## Convert probabilistic schedule into explicit shedule
+def convert_probabilistic_schedule(probMap):
     start = probMap['start']
     end = probMap['end']
 
@@ -83,27 +84,26 @@ def probabilisticSchedule(probMap):
 
 
 # TRS Parser
+# Generate code for Client instances based on TRS file.
+def generate_client_instances(trs_model, location_json):
+    client_type = trs_model.name
 
-def trs_parser(trs_model, location_json):
-    thing_type = trs_model.name
-
-    # Partition things
-
-    instance_code_gen_thing = '## Thing instances ## \n\nthings = {}\n\n'
-    for thing in trs_model.things:
-        # Get thing ID
-        thing_name = thing.name
+    # Partition clients
+    instance_code_gen_client = '## Client instances ## \n\nclients = {}\n\n'
+    for client in trs_model.clients:
+        # Get client ID
+        client_name = client.name
 
 
-        # Parse requestSchedule
-        requestSchedule = thing.requestSchedule
+        # Parse and convert requestSchedule
+        requestSchedule = client.requestSchedule
         schedule_type =requestSchedule._tx_fqn
         if 'ConsistentRequestSchedule' in schedule_type:
             consistentMap = {}
             consistentMap['start'] = requestSchedule.start
             consistentMap['end'] = requestSchedule.end
             consistentMap['gap'] = requestSchedule.gap
-            [schedule_sec, schedule_str] = consistentSchedule(consistentMap)
+            [schedule_sec, schedule_str] = convert_consistent_schedule(consistentMap)
 
         elif 'ExplicitRequestSchedule' in schedule_type:
             explicitMap = {}
@@ -121,72 +121,85 @@ def trs_parser(trs_model, location_json):
             elif 'Gaussian' in distribution:
                 probMap['mu'] = requestSchedule.interarrivalDistribution.mu
                 probMap['var'] = requestSchedule.interarrivalDistribution.var
-            [schedule_sec, schedule_str] = probabilisticSchedule(probMap)
+            [schedule_sec, schedule_str] = convert_probabilistic_schedule(probMap)
 
         else:
             continue
 
-        # Build Thing attributes
-        thing_attributes = {}
-        for i in range(len(thing.attributes)):
-            attr = thing.attributes[i]
-            attr_val = thing.val[i]
-            thing_attributes[attr.name] = attr_val
+        instance_code_gen_client += '# Instance of Client {}\n'.format(client_name)
+        # Build Client attributes
+        client_attributes = {}
+        for i in range(len(client.attributes)):
+            attr = client.attributes[i]
+            attr_val = client.val[i]
+            client_attributes[attr.name] = attr_val
+        for attr in trs_model.attributes:
+            if attr.name not in client_attributes:
+                default_val = default_val_by_type(attr.type)
+                client_attributes[attr.name] = default_val
+
+        for attr in client_attributes:
+            instance_code_gen_client += '{} = {}\n'.format(attr, client_attributes[attr])
 
         # Radius
         try:
-            if thing.radius >= 0:
-                instance_code_gen_thing += 'radius = {}\n'.format(thing.radius)
+            if client.radius >= 0:
+                instance_code_gen_client += 'radius = {}\n'.format(client.radius)
             else:
-                instance_code_gen_thing += 'radius = np.infty\n'
+                instance_code_gen_client += 'radius = np.infty\n'
         except:
-            instance_code_gen_thing += 'radius = np.infty\n'
+            instance_code_gen_client += 'radius = np.infty\n'
 
         # Build locations
-        thing_location = {}
-        loc_refs = thing.location.loc_ref
+        client_location = {}
+        loc_refs = client.location.loc_ref
         for loc_ref in loc_refs:
             ref_str = str(loc_ref)
             location_data = location_json[ref_str]
-            thing_location[loc_ref] = location_data
+            client_location[loc_ref] = location_data
 
-        instance_code_gen_thing += 'locations = []\n'
-        for id in thing_location:
-            instance_code_gen_thing += 'locations.append(Locations({}, {}, {}))\n'.format(thing_location[id]['latitude'], thing_location[id]['longitude'], thing_location[id]['height'])
-        configurations_values = []
-        for id in thing_attributes:
-            configurations_values.append(str(thing_attributes[id]))
-        instance_code_gen_thing += 'attributes = ThingAttributes_{}({})\n'.format(thing_type, ','.join(configurations_values))
+        instance_code_gen_client += 'locations = []\n'
+        for id in client_location:
+            instance_code_gen_client += 'locations.append(Locations({}, {}, {}))\n'.format(client_location[id]['latitude'], client_location[id]['longitude'], client_location[id]['height'])
+
         # Comment timestamp meaning
-        instance_code_gen_thing += '# schedule_str = {}\n'.format(schedule_str)
-        instance_code_gen_thing += 'schedule = ['
+        instance_code_gen_client += '# schedule_str = {}\n'.format(schedule_str)
+        instance_code_gen_client += 'schedule = ['
         for t in range(len(schedule_sec)-1):
-            instance_code_gen_thing += 'timestamp({}),'.format(schedule_sec[t])
-        instance_code_gen_thing += 'timestamp({})]\n'.format(schedule_sec[-1])
-        instance_code_gen_thing += 'things["{}"] = Thing_{}("{}", schedule, locations, radius, attributes)\n\n'.format(thing_name, thing_type, thing_name)
+            instance_code_gen_client += 'timestamp({}),'.format(schedule_sec[t])
+        instance_code_gen_client += 'timestamp({})]\n'.format(schedule_sec[-1])
 
-    return instance_code_gen_thing
+        parameters = ['schedule', 'locations', 'radius'] + [attr.name for attr in trs_model.attributes]
+        instance_code_gen_client += 'clients["{}"] = Client_{}("{}", {})\n\n'.format(client_name, client_type, client_name, ', '.join(parameters))
+
+    return instance_code_gen_client
 
 
-        #thing_elem = Thing(thing_idx, schedule, locations, configurations)
-        #things_elems.append(thing_elem)
-
-## Read parameters from .NSM file
-
-def pns_parser(pns_model, location_json, graph_name):
+# PNS Parser
+# Generate instances of Graph = (Nodes, Links) based on PNS file.
+def generate_graph_instances(pns_model, location_json, graph_name):
     instance_code_gen_graph = 'nodes = {}\nlinks={}\n'
-
+    graph_name = pns_model.name
     ## Node instances
     instance_code_gen_graph += '## Node Instances \n\n'
     node_set = pns_model.nodeSet.nodes
     for node in node_set:
         node_name = node.name
+
         # Build Node attributes
+        instance_code_gen_graph += '# Instance of Node {}\n'.format(node_name)
         node_attributes = {}
         for i in range(len(node.attributes)):
             attr = node.attributes[i]
             attr_val = node.val[i]
             node_attributes[attr.name] = attr_val
+        for attr in pns_model.nodeSet.attributes:
+            if attr.name not in node_attributes:
+                default_val = default_val_by_type(attr.type)
+                node_attributes[attr.name] = default_val
+
+        for attr in node_attributes:
+            instance_code_gen_graph += '{} = {}\n'.format(attr, node_attributes[attr])
 
         # Build locations
         node_locations = {}
@@ -197,10 +210,10 @@ def pns_parser(pns_model, location_json, graph_name):
             node_locations[loc_ref] = location_data
 
         instance_code_gen_graph += 'locations = []\n'
-        for id in node_locations:
-            instance_code_gen_graph += 'locations.append(Locations({}, {}, {}))\n'.format(node_locations[id]['latitude'],
-                                                                                             node_locations[id]['longitude'],
-                                                                                             node_locations[id]['height'])
+        for attr in node_locations:
+            instance_code_gen_graph += 'locations.append(Locations({}, {}, {}))\n'.format(node_locations[attr]['latitude'],
+                                                                                             node_locations[attr]['longitude'],
+                                                                                             node_locations[attr]['height'])
         # Radius
         try:
             if node.radius >= 0:
@@ -210,11 +223,8 @@ def pns_parser(pns_model, location_json, graph_name):
         except:
             instance_code_gen_graph += 'radius = np.infty\n'
 
-        attributes_values = []
-        for id in node_attributes:
-            attributes_values.append(str(node_attributes[id]))
-        instance_code_gen_graph += 'attributes = NodeAttributes_{}({})\n'.format(graph_name,','.join(attributes_values))
-        instance_code_gen_graph += 'nodes["{}"] = Node_{}("{}", locations, attributes, radius)\n\n'.format(node_name, graph_name, node_name)
+        parameters = ['locations', 'radius'] + [attr.name for attr in pns_model.nodeSet.attributes]
+        instance_code_gen_graph += 'nodes["{}"] = Node_{}("{}", {})\n\n'.format(node_name, graph_name, node_name, ', '.join(parameters))
 
     ## LINK instances
 
@@ -222,172 +232,186 @@ def pns_parser(pns_model, location_json, graph_name):
     link_set = pns_model.linkSet.links
     for link in link_set:
         link_name = link.name
+
         # Build Link attributes
+        instance_code_gen_graph += '# Instance of Link {}\n'.format(link_name)
         link_attributes = {}
         for i in range(len(link.attributes)):
             attr = link.attributes[i]
             attr_val = link.val[i]
             link_attributes[attr.name] = attr_val
+        for attr in pns_model.nodeSet.attributes:
+            if attr.name not in link_attributes:
+                default_val = default_val_by_type(attr.type)
+                link_attributes[attr.name] = default_val
+
+        for attr in link_attributes:
+            instance_code_gen_graph += '{} = {}\n'.format(attr, link_attributes[attr])
 
         # NodePair
         node_pair = [link.nodePair.nodeSource.name, link.nodePair.nodeTarget.name]
-
-
-        attributes_values = []
-        for id in link_attributes:
-            attributes_values.append(str(link_attributes[id]))
         instance_code_gen_graph += 'node_pair = {}\n'.format(node_pair)
+        # Set neighbours of nodes based on link definitions
         instance_code_gen_graph += 'nodes["{}"].neighbours.append(("{}", "{}"))\n'.format(node_pair[0], link_name, node_pair[1])
-        instance_code_gen_graph += 'attributes = LinkAttributes_{}({})\n'.format(graph_name,','.join(attributes_values))
-        instance_code_gen_graph += 'links["{}"] = Link_{}("{}", node_pair, attributes)\n\n'.format(link_name, graph_name, link_name)
+        # Generate instance of link class
+        parameters = ['node_pair'] + [attr.name for attr in pns_model.nodeSet.attributes]
+        instance_code_gen_graph += 'links["{}"] = Link_{}("{}", {})\n\n'.format(link_name, graph_name, link_name, ', '.join(parameters))
 
 
     instance_code_gen_graph += 'graph = Graph_{}("{}", nodes, links)\n'.format(graph_name, graph_name)
-    instance_code_gen_graph += 'network_structure = NetworkStructure(graph, things)'
+    instance_code_gen_graph += 'network_structure = NetworkStructure(graph, clients)'
 
     return instance_code_gen_graph
 
+# For a given type, return the default parameter
+# Input: string_type (string) - int, string, float, bool, timestamp
+# Output: default_param (string) - form '<attr> = <default_val>'
+def default_val_by_type(string_type):
+    if 'int' in string_type:
+        default_val = 0
+    elif 'float' in string_type:
+        default_val = 0.0
+    elif 'str' in string_type:
+        default_val = "''"
+    elif 'bool' in string_type:
+        default_val = False
+    elif 'timestamp' in string_type:
+        default_val = 'timestamp(0)'
+    else:
+        raise Exception('Type {} is not a valid simple type'.format(string_type))
+    return default_val
 
-## Generate class Thing - includes name, and specified attributes (with default parameters)
-# Input: trs_model (TextX model, conforms to TRS.tx grammar)
-# Output: thing_class_gen (string) - Generated code for 'class Thing'
-def generateThingClass(trs_model):
+# Generates list of attributes and default parameter instantiations for specified attrbutes of TRS or PNS model.
+def attribute_parameters(attributes):
     # List of attribute names and types
     attr_name_list = []
     default_param_list = []
-    for attr in trs_model.attributes:
+    for attr in attributes:
         attr_name_list.append(attr.name)
         # Register default value based on attribute type
-        if 'int' in attr.type:
-            default_val = 0
-            default_param = '{} = {}'.format(attr.name, default_val)
-        elif 'float' in attr.type:
-            default_val = 0.0
-            default_param = '{} = {}'.format(attr.name, default_val)
-        elif 'str' in attr.type:
-            default_val = ''
-            default_param = '{} = {}'.format(attr.name, default_val)
-        elif 'bool' in attr.type:
-            default_val = False
-            default_param = '{} = {}'.format(attr.name, default_val)
-        elif 'timestamp' in attr.type:
-            default_val = False
-            default_param = '{} = {}'.format(attr.name, default_val)
-        else:
-            raise Exception('Attribute {} does not have valid type {}'.format(attr.name, attr.type))
+        default_val = default_val_by_type(attr.type)
+        default_param = '{} = {}'.format(attr.name, default_val)
         default_param_list.append(default_param)
+    return [attr_name_list, default_param_list]
+
+## Generate class Client - includes name, and specified attributes (with default parameters)
+# Input: trs_model (TextX model, conforms to TRS.tx grammar)
+# Output: client_class_gen (string) - Generated code for 'class Client'
+def generate_client_class(trs_model):
+    # List of attribute names and types
+    [attr_name_list, default_param_list] = attribute_parameters(trs_model.attributes)
 
     mandatory_param_list = ['self', 'id', 'schedule', 'locations', 'radius']
     param_list = mandatory_param_list + default_param_list
-    # Generate Thing class __init__() function with all mandatory and optional parameters.
+    # Generate Client class __init__() function with all mandatory and optional parameters.
     # Optional parameters have default value
-    thing_class_gen = 'class Thing_{}(ThingAbstract):\n\tdef __init__({})\n'.format(trs_model.name, ', '.join(param_list))
+    client_class_gen = 'class Client_{}(ClientAbstract):\n\tdef __init__({})\n'.format(trs_model.name, ', '.join(param_list))
 
     # Generate body of __init__() function
     param_list = mandatory_param_list + attr_name_list
     for p in param_list:
-        if 'self' in p:
+        if 'self' == p:
             continue
-        thing_class_gen += '\t\tself.{} = {}\n'.format(p, p)
+        client_class_gen += '\t\tself.{} = {}\n'.format(p, p)
 
-    # Generate method to list attributes
-    thing_class_gen += '\tdef listAttributes(self):\n\t\treturn [{}]\n'.format(','.join(attr_name_list))
-    return thing_class_gen
+    ## Generate list_attributes() method which returns a string of attribute names
+    attrs_string = ','.join(["'{}'".format(attr) for attr in attr_name_list])
+    client_class_gen += '\tdef list_attributes(self):\n\t\treturn [{}]\n'.format(attrs_string)
+    return client_class_gen
 
 
-## Generate Graph
+## Generate class Node - includes name, and specified attributes (with default parameters)
+# Input: pns_model (TextX model, conforms to PNS.tx grammar), service_attrs (str)
+# Output: pns_class_gen (string) - Generated code for 'class Node'
+def generate_node_class(pns_model, service_attr):
+    node_class_gen = 'class Node_{}(NodeAbstract):\n'.format(pns_model.name)
+    # List of attribute names and types
+    [attr_name_list, default_param_list] = attribute_parameters(pns_model.nodeSet.attributes)
+    mandatory_param_list = ['self', 'id', 'locations', 'radius']
+    param_list = mandatory_param_list + default_param_list
 
-def generateGraphClass(name):
-    graph_class = 'class Graph_{}(GraphAbstract):\n'.format(name)
-    graph_class += '\tdef __init__(self, id, nodes, links):\n'
-    graph_class += '\t\tself.id= id\n'
-    graph_class += '\t\tself.nodes = nodes\n\t\tself.links=links\n'
-    graph_class += '\t\tself.paths = depthFirstSearch(self.nodes)\n'
-    return graph_class
+    # Generate Node class __init__() function with all mandatory and optional parameters.
+    # Optional parameters have default value
+    node_class_gen += '\tdef __init__({}):\n'.format(','.join(param_list))
+    ## Generate body of __init__() function
+    param_list = mandatory_param_list + attr_name_list
+    for p in param_list:
+        if 'self' == p:
+            continue
+        node_class_gen += '\t\tself.{} = {}\n'.format(p, p)
+    node_class_gen += '\t\tself.neighbours = []\n\n' # Neighbours are a pair (link, neighbour_node)
 
-def generateNodeClass(name, service_attr):
-    node_class = 'class Node_{}(NodeAbstract):\n'.format(name)
-    node_class += '\tdef __init__(self, id, locations, attributes, radius):\n'
-    node_class += '\t\tself.id = id\n'
-    node_class += '\t\tself.locations=locations\n'
-    node_class += '\t\tself.attributes = attributes\n'
-    node_class += '\t\tself.radius = radius\n'
-    node_class += '\t\tself.neighbours = []\n\n'
-    node_class += '\tdef service_rate(self):\n'
+    ## Generate service_rate() method. Defines which attribute corresponds to the service rate.
+    node_class_gen += '\tdef service_rate(self):\n'
     if service_attr is not None:
-        node_class += '\t\treturn self.attributes.{}\n'.format(service_attr.name)
+        node_class_gen += '\t\treturn self.attributes.{}\n'.format(service_attr.name)
     else:
-        node_class += '\t\treturn 0'
-    return node_class
+        node_class_gen += '\t\treturn 0\n' # If service_rate not specified, default to 0
 
-def generateLinkClass(name):
-    link_class = 'class Link_{}(LinkAbstract):\n'.format(name)
-    link_class += '\tdef __init__(self, id, node_pair, attributes):\n'
-    link_class += '\t\tself.id = id\n'
-    link_class += '\t\tself.node_pair=node_pair\n'
-    link_class += '\t\tself.attributes=attributes\n'
-    return link_class
+    ## Generate list_attributes() method which returns a string of attribute names
+    attrs_string = ','.join(["'{}'".format(attr) for attr in attr_name_list])
+    node_class_gen += '\tdef list_attributes(self):\n\t\treturn [{}]\n'.format(attrs_string)
+    return node_class_gen
 
-def generateNodeAttributes(name, node_set):
-    attributes = []
-    for attr in node_set.attributes:
-        attributes.append(attr.name)
 
-    param_list = ', '.join(attributes)
-    nodeAttributesClass = 'class NodeAttributes_{}:\n\tdef __init__(self'.format(name)
-    if len(param_list) > 0:
-        nodeAttributesClass += ', ' + param_list + '):\n'
-    else:
-        nodeAttributesClass += '):\n'
-    for attr in attributes:
-        nodeAttributesClass += '\t\tself.{} = {}\n'.format(attr, attr)
-    attribute_list = ['"' + attr + '"' for attr in attributes]
-    nodeAttributesClass += '\tdef listAttributes(self):\n\t\treturn [{}]\n'.format(','.join(attribute_list))
-    return nodeAttributesClass
 
-def generateLinkAttributes(name, link_set):
-    attributes = []
-    for attr in link_set.attributes:
-        attributes.append(attr.name)
+## Generate class Link - includes name, and specified attributes (with default parameters)
+# Input: pns_model (TextX model, conforms to PNS.tx grammar)
+# Output: pns_class_gen (string) - Generated code for 'class Link'
+def generate_link_class(pns_model):
+    link_class_gen = 'class Link_{}(LinkAbstract):\n'.format(pns_model.name)
+    # List of attribute names and types
+    [attr_name_list, default_param_list] = attribute_parameters(pns_model.linkSet.attributes)
+    mandatory_param_list = ['self', 'id', 'node_pair']
+    param_list = mandatory_param_list + default_param_list
 
-    param_list = ', '.join(attributes)
-    linkAttributesClass = 'class LinkAttributes_{}:\n\tdef __init__(self'.format(name)
-    if len(param_list) > 0:
-        linkAttributesClass += ', ' + param_list + '):\n'
-    else:
-        linkAttributesClass += '):\n'
-    for attr in attributes:
-        linkAttributesClass += '\t\tself.{} = {}\n'.format(attr, attr)
-    attribute_list = ['"' + attr + '"' for attr in attributes]
-    linkAttributesClass += '\tdef listAttributes(self):\n\t\treturn [{}]\n'.format(','.join(attribute_list))
-    return linkAttributesClass
+    # Generate Link class __init__() function with all mandatory and optional parameters.
+    # Optional parameters have default value
+    link_class_gen += '\tdef __init__({}):\n'.format(','.join(param_list))
+    ## Generate body of __init__() function
+    param_list = mandatory_param_list + attr_name_list
+    for p in param_list:
+        if 'self' == p:
+            continue
+        link_class_gen += '\t\tself.{} = {}\n'.format(p, p)
 
-def generateGraphClasses(pns_model):
-    graph_name = pns_model.name
-    node_set = pns_model.nodeSet
-    link_set = pns_model.linkSet
+    ## Generate list_attributes() method which returns a string of attribute names
+    attrs_string = ','.join(["'{}'".format(attr) for attr in attr_name_list])
+    link_class_gen += '\tdef list_attributes(self):\n\t\treturn [{}]\n'.format(attrs_string)
+    return link_class_gen
 
-    graph_class_gen = []
-    graph_class_gen.append(generateGraphClass(graph_name))
-    graph_class_gen.append(generateNodeClass(graph_name, pns_model.nodeSet.serviceRate))
-    graph_class_gen.append(generateLinkClass(graph_name))
-    graph_class_gen.append(generateNodeAttributes(graph_name, node_set))
-    graph_class_gen.append(generateLinkAttributes(graph_name, link_set))
-    return ['\n'.join(graph_class_gen), graph_name]
 
-def code_gen(trs_model, pns_model, trs_location, nsm_location):
+def generate_graph_classes(pns_model):
+    # Generate Graph class and __init__() method
+    graph_class_gen = 'class Graph_{}(GraphAbstract):\n'.format(pns_model.name)
+    graph_class_gen += '\tdef __init__(self, id, nodes, links):\n'
+    graph_class_gen += '\t\tself.id= id\n'
+    graph_class_gen += '\t\tself.nodes = nodes\n\t\tself.links=links\n'
+    graph_class_gen += '\t\tself.paths = depthFirstSearch(self.nodes)\n'
+    pns_classes = [graph_class_gen]
+
+    # Generate Node class
+    pns_classes.append(generate_node_class(pns_model, pns_model.nodeSet.serviceRate))
+    # Generate Link class
+    pns_classes.append(generate_link_class(pns_model))
+    return '\n'.join(pns_classes)
+
+def code_gen(trs_model, pns_model, trs_location, pns_location):
 
     attribute_class_gen = []
+    # File headers and imports
     attribute_class_gen.append('from networkStructure import *\nimport numpy as np\n')
     attribute_class_gen.append('#from CodeGen.Python.networkStructure import *\n')
 
-    attribute_class_gen.append(generateThingClass(trs_model=trs_model))
-    [graph_code_gen, graph_name] = generateGraphClasses(pns_model)
-    attribute_class_gen.append(graph_code_gen)
+    # Generate Client classes
+    attribute_class_gen.append(generate_client_class(trs_model=trs_model))
+    # Generate Graph, Node and Link classes
+    attribute_class_gen.append(generate_graph_classes(pns_model))
 
-    # Instances
-    attribute_class_gen.append(trs_parser(trs_model, trs_location))
-    attribute_class_gen.append(pns_parser(pns_model, nsm_location, graph_name))
+    # Generate client instances
+    attribute_class_gen.append(generate_client_instances(trs_model, trs_location))
+    # Generate node and link instances
+    attribute_class_gen.append(generate_graph_instances(pns_model, pns_location, pns_model.name))
 
     a = open('networkStructureAttributesAndInstances.py', 'w')
     a.write('\n'.join(attribute_class_gen))
@@ -400,19 +424,19 @@ def main(argv):
     trs_location_file = ''
     pns_location_file = ''
     try:
-        opts, args = getopt.getopt(argv, "ht:T:p:P:", ["trsfile=", "pnsfile=", "thinglocation=", "nodelocation="])
+        opts, args = getopt.getopt(argv, "ht:T:p:P:", ["trsfile=", "pnsfile=", "clientlocation=", "nodelocation="])
     except getopt.GetoptError:
-        print('codeGen.py -t <trsfilepath> -T <thinglocationJSON> -p <pnsfilepath> -P <nodelocationJSON>')
+        print('codeGen.py -t <trsfilepath> -T <clientlocationJSON> -p <pnsfilepath> -P <nodelocationJSON>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('codeGen.py -t <trsfilepath> -T <thinglocationJSON> -p <pnsfilepath> -P <nodelocationJSON>')
+            print('codeGen.py -t <trsfilepath> -T <clientlocationJSON> -p <pnsfilepath> -P <nodelocationJSON>')
             sys.exit()
         elif opt in ("-t", "--trsfile"):
             trs_file = arg
         elif opt in ("-p", "--pnsfile"):
             pns_file = arg
-        elif opt in ("-T", "--thinglocation"):
+        elif opt in ("-T", "--clientlocation"):
             trs_location_file = arg
         elif opt in ("-P", "--nodelocation"):
             pns_location_file = arg
@@ -432,18 +456,18 @@ def main(argv):
         # All attributes are unique
         unique_set = list(set(trs_model.attributes))
         if len(trs_model.attributes) != len(unique_set):
-            raise Exception("Things attributes must be unique: ThingSet {}.".format(trs_model.name))
-        # The attributes of each thing is unique
-        for thing in trs_model.things:
-            thing_unqiue_attr = list(set(thing.attributes))
-            if len(thing_unqiue_attr) != len(thing.attributes):
-                raise Exception("Thing attribubte must be unqiue: Thing {}".format(thing.name))
-        # The value of each thing attribute conforms to the attribute type
-        for thing in trs_model.things:
-            for a in range(len(thing.attributes)):
-                attr_name = thing.attributes[a].name
-                attr_type = thing.attributes[a].type
-                attr_val = thing.val[a]
+            raise Exception("Clients attributes must be unique: ClientSet {}.".format(trs_model.name))
+        # The attributes of each client is unique
+        for client in trs_model.clients:
+            client_unqiue_attr = list(set(client.attributes))
+            if len(client_unqiue_attr) != len(client.attributes):
+                raise Exception("Client attribubte must be unqiue: Client {}".format(client.name))
+        # The value of each client attribute conforms to the attribute type
+        for client in trs_model.clients:
+            for a in range(len(client.attributes)):
+                attr_name = client.attributes[a].name
+                attr_type = client.attributes[a].type
+                attr_val = client.val[a]
                 if attr_type == 'int':
                     if 'int' not in str(type(attr_val)):
                         raise Exception("Attribute {} must receive a value of type int.".format(attr_name))
@@ -469,7 +493,7 @@ def main(argv):
     with open(trs_location_file) as loc:
         loc_data_trs = json.load(loc)
 
-    trs_parser(trs_model, loc_data_trs['location']) #
+    generate_client_instances(trs_model, loc_data_trs['location']) #
 
     #pns_file = 'PNS/edgeNetwork.pns'
     #pns_location_file = 'PNS/location.json'
@@ -487,7 +511,7 @@ def main(argv):
         unique_set_node = list(set(nodeSet.attributes))
         if len(nodeSet.attributes) != len(unique_set_node):
             raise Exception("NodeSet attributes must be unique: Graph {}.".format(pns_model.name))
-        # The attributes of each thing is unique
+        # The attributes of each client is unique
         for node in nodeSet.nodes:
             node_unqiue_attr = list(set(nodeSet.attributes))
             if len(node_unqiue_attr) != len(nodeSet.attributes):
@@ -520,7 +544,7 @@ def main(argv):
         unique_set_link = list(set(linkSet.attributes))
         if len(linkSet.attributes) != len(unique_set_link):
             raise Exception("LinkSet attributes must be unique: Graph {}.".format(pns_model.name))
-        # The attributes of each thing is unique
+        # The attributes of each client is unique
         for link in linkSet.links:
             link_unqiue_attr = list(set(linkSet.attributes))
             if len(link_unqiue_attr) != len(linkSet.attributes):
