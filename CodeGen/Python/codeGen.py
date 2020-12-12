@@ -236,10 +236,10 @@ def generate_client_instances(trs_model, location_json):
     client_type = trs_model.name
 
     # Partition clients
-    instance_code_gen_client = ''
+    instance_code_gen_client = '###### All Client instances ######\n\n'
     for client_set in trs_model.clientSet:
-        instance_code_gen_client += '## Client_{} instances ## \n\n'.format(client_set.name)
-        instance_code_gen_client += 'clients = {}\n\n'
+        instance_code_gen_client += '#### Client_{} instances ##### \n\n'.format(client_set.name)
+        instance_code_gen_client += 'clients = Clients()\n\n'
         for client in client_set.clients:
             # Get client ID
             client_name = client.name
@@ -325,7 +325,8 @@ def generate_client_instances(trs_model, location_json):
             instance_code_gen_client += 'timestamp({})]\n'.format(schedule_sec[-1])
 
             parameters = ['schedule', 'locations', 'radius'] + client_set.attributes
-            instance_code_gen_client += 'clients["{}"] = Client_{}("{}", {})\n\n'.format(client_name, client_type, client_name, ', '.join(parameters))
+            instance_code_gen_client += 'client = Client_{}("{}", {})\n'.format(client_type, client_name, ', '.join(parameters))
+            instance_code_gen_client += 'clients.append_client(client)\n\n'
 
     return instance_code_gen_client
 
@@ -333,11 +334,12 @@ def generate_client_instances(trs_model, location_json):
 ### GENERATE Graph INSTANCES FROM PNS PARSER ###
 # Generate instances of Graph = (Nodes, Links) based on PNS file.
 def generate_graph_instances(pns_model, location_json, graph_name):
-    instance_code_gen_graph = 'nodes = {}\nlinks={}\n'
+    instance_code_gen_graph = 'nodes = Nodes()\nlinks=Links()\n'
     graph_name = pns_model.name
     ## Node instances
-    instance_code_gen_graph += '## Node Instances \n\n'
+    instance_code_gen_graph += '###### All Node Instances ###### \n\n'
     for node_set in pns_model.nodeSets:
+        instance_code_gen_graph += '### Node_{} Instances ### \n\n'.format(node_set.name)
         for node in node_set.nodes:
             node_name = node.name
 
@@ -385,13 +387,15 @@ def generate_graph_instances(pns_model, location_json, graph_name):
                 instance_code_gen_graph += 'radius = np.infty\n'
 
             parameters = ['locations', 'radius'] + node_set.attributes
-            instance_code_gen_graph += 'nodes["{}"] = Node_{}("{}", {})\n\n'.format(node_name, node_set.name, node_name, ', '.join(parameters))
+            instance_code_gen_graph += 'node = Node_{}("{}", {})\n'.format(node_set.name, node_name, ', '.join(parameters))
+            instance_code_gen_graph += 'nodes.append_node(node)\n\n'
 
     ## LINK instances
 
-    instance_code_gen_graph += '## Link Instances\n\n'
+    instance_code_gen_graph += '###### All Link Instances ######\n\n'
 
     for link_set in pns_model.linkSets:
+        instance_code_gen_graph += '### Link_{} Instance ###\n\n'.format(link_set.name)
         for link in link_set.links:
             link_name = link.name
 
@@ -423,7 +427,8 @@ def generate_graph_instances(pns_model, location_json, graph_name):
             instance_code_gen_graph += 'nodes["{}"].neighbours.append(("{}", "{}"))\n'.format(node_pair[0], link_name, node_pair[1])
             # Generate instance of link class
             parameters = ['node_pair'] + link_set.attributes
-            instance_code_gen_graph += 'links["{}"] = Link_{}("{}", {})\n\n'.format(link_name, link_set.name, link_name, ', '.join(parameters))
+            instance_code_gen_graph += 'link = Link_{}("{}", {})\n'.format(link_name, link_set.name, link_name, ', '.join(parameters))
+            instance_code_gen_graph += 'links.append_link(link)\n\n'
 
 
     instance_code_gen_graph += 'graph = Graph_{}("{}", nodes, links)\n'.format(graph_name, graph_name)
@@ -438,6 +443,7 @@ def generate_graph_instances(pns_model, location_json, graph_name):
 # Output: client_class_gen (string) - Generated code for 'class Client'
 def generate_client_class(trs_model):
     # List of attribute names and types
+    client_class_gen = '# Client classes\n\n'
     for client_set in trs_model.clientSet:
         attr_name_list = client_set.attributes
         attr_type = {}
@@ -449,12 +455,14 @@ def generate_client_class(trs_model):
         param_list = mandatory_param_list + default_param_list
         # Generate Client class __init__() function with all mandatory and optional parameters.
         # Optional parameters have default value
-        client_class_gen = 'class Client_{}(ClientAbstract):\n\tdef __init__({})\n'.format(client_set.name, ', '.join(param_list))
+        client_class_gen += '## class Client_{}\n'.format(client_set.name)
+        client_class_gen += 'class Client_{}(ClientAbstract):\n\tdef __init__({}):\n'.format(client_set.name, ', '.join(param_list))
 
         # Generate body of __init__() function
         param_list = mandatory_param_list + attr_name_list
         for p in param_list:
             if 'self' == p:
+                client_class_gen += '\t\tself.client_type = "{}"\n'.format(client_set.name)
                 continue
             client_class_gen += '\t\tself.{} = {}\n'.format(p, p)
 
@@ -487,6 +495,7 @@ def generate_node_class(pns_model):
         param_list = mandatory_param_list + attr_name_list
         for p in param_list:
             if 'self' == p:
+                node_class_gen += '\t\tself.node_type = "{}"\n'.format(node_set.name)
                 continue
             node_class_gen += '\t\tself.{} = {}\n'.format(p, p)
         node_class_gen += '\t\tself.neighbours = []\n' # Neighbours are a pair (link, neighbour_node)
@@ -529,6 +538,7 @@ def generate_link_class(pns_model):
         param_list = mandatory_param_list + attr_name_list
         for p in param_list:
             if 'self' == p:
+                link_class_gen += '\t\tself.link_type = "{}"\n'.format(link_set.name)
                 continue
             link_class_gen += '\t\tself.{} = {}\n'.format(p, p)
 
@@ -556,7 +566,7 @@ def generate_graph_classes(pns_model):
 def code_generation(trs_model, pns_model, trs_location, pns_location):
     attribute_class_gen = []
     # File headers and imports
-    attribute_class_gen.append('from networkStructure import *\nimport numpy as np\n')
+    attribute_class_gen.append('from networkStructure import *\nimport numpy as np\nfrom networkUtil import * \n')
     attribute_class_gen.append('#from CodeGen.Python.networkStructure import *\n')
 
     # Generate Client classes
