@@ -73,8 +73,8 @@ def main():
             node_arrival_schedules[node_name] = []
         client_id = client_key_index[t]
         n = node_key_dict[node_id]
-        within_node_radius = (distance_matrix[t][n])*1000 <= network_structure.graph.nodes.get_node(node_id).radius
-        within_thing_radius = (distance_matrix[t][n])*1000 <= network_structure.clients.get_client(client_id).radius
+        within_node_radius = (distance_matrix[t][n])*1000 <= network_structure.graph.nodes.get_node(node_id).get_radius()
+        within_thing_radius = (distance_matrix[t][n])*1000 <= network_structure.clients.get_client(client_id).get_radius()
         if (within_node_radius and within_thing_radius): # distance matrix in kilometeres. Radius in meters.
             sched = network_structure.clients.get_client(client_id).schedule
             old_sched = node_arrival_schedules[node_name]
@@ -197,7 +197,7 @@ def main():
         arrivals = [s.timestamp_to_seconds() for s in  node_arrival_schedules[n]]
         events = []
         node = ns[n]
-        service_rate = node.service_rate()
+        service_rate = node.get_service_rate()
         queues = {n:Queue(n, service_rate, K)}
         for a in range(len(arrivals)):
             id = 't{}'.format(a)
