@@ -54,14 +54,14 @@ def main():
 
     t = 0
     for client in network_structure.clients.get_clients():
-        n = 0
-        for node in network_structure.graph.nodes.get_nodes():
-            client_location = network_structure.clients.get_client(client).locations[0]
-            node_location = network_structure.graph.nodes.get_node(node).locations[0]
-            distance_matrix[t][n] = distance_location(client_location, node_location)
-            if distance_matrix[t][n] < distance_matrix[t][nearest_node[t]]:
-                nearest_node[t] = n
-            n += 1
+        for client_location in network_structure.clients.get_client(client).locations:
+            n = 0
+            for node in network_structure.graph.nodes.get_nodes():
+                for node_location in network_structure.graph.nodes.get_node(node).locations:
+                    distance_matrix[t][n] = distance_location(client_location, node_location)
+                    if distance_matrix[t][n] < distance_matrix[t][nearest_node[t]]:
+                        nearest_node[t] = n
+                n += 1
         t += 1
 
     node_arrival_schedules = {}
