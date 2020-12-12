@@ -205,7 +205,7 @@ class QueueNetwork:
 events = 50
 p = 0.4
 random.seed(events)
-ns = network_structure.graph.nodes
+ns = network_structure.graph.nodes.get_nodes()
 queues = {}
 K = 2
 for node in ns:
