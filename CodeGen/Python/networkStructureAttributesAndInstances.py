@@ -1,10 +1,15 @@
-#from networkStructure import *
+from networkStructure import *
 import numpy as np
+from networkUtil import * 
 
-from CodeGen.Python.networkStructure import *
+#from CodeGen.Python.networkStructure import *
 
+# Client classes
+
+## class Client_IoT
 class Client_IoT(ClientAbstract):
-	def __init__(self, id, schedule, locations, radius, fileSize_mb = 0, localCPU_ghz = 0.0, localProcessing_ms = 0, memoryReq_mb = 0, storageReq_mb = 0)
+	def __init__(self, id, schedule, locations, radius, fileSize_mb = 0, localCPU_ghz = 0.0, localProcessing_ms = 0, memoryReq_mb = 0, storageReq_mb = 0):
+		self.client_type = "IoT"
 		self.id = id
 		self.schedule = schedule
 		self.locations = locations
@@ -22,11 +27,12 @@ class Graph_G(GraphAbstract):
 		self.id= id
 		self.nodes = nodes
 		self.links=links
-		self.paths = depthFirstSearch(self.nodes)
+		self.paths = depthFirstSearch(self.nodes.get_nodes())
 
 # Link classes for specific attribute set
 class Node_Edge(NodeAbstract):
 	def __init__(self,id,locations,radius,storage_mb = 0,cpu_ghz = 0.0,memory_mb = 0):
+		self.node_type = "Edge"
 		self.id = id
 		self.locations = locations
 		self.radius = radius
@@ -35,19 +41,20 @@ class Node_Edge(NodeAbstract):
 		self.memory_mb = memory_mb
 		self.neighbours = []
 	def service_rate(self):
-		return self.attributes.cpu_ghz
+		return self.cpu_ghz
 	def list_attributes(self):
 		return ['storage_mb','cpu_ghz','memory_mb']
 
 class Node_Dormant(NodeAbstract):
 	def __init__(self,id,locations,radius,storage_mb = 0):
+		self.node_type = "Dormant"
 		self.id = id
 		self.locations = locations
 		self.radius = radius
 		self.storage_mb = storage_mb
 		self.neighbours = []
 	def service_rate(self):
-		return self.attributes.storage_mb
+		return self.storage_mb
 	def list_attributes(self):
 		return ['storage_mb']
 
@@ -55,15 +62,18 @@ class Node_Dormant(NodeAbstract):
 # Link classes for specific attribute set
 class Link_Edge(LinkAbstract):
 	def __init__(self,id,node_pair,bandwidth = 0.0):
+		self.link_type = "Edge"
 		self.id = id
 		self.node_pair = node_pair
 		self.bandwidth = bandwidth
 	def list_attributes(self):
 		return ['bandwidth']
 
-## Client_IoT instances ## 
+###### All Client instances ######
 
-clients = {}
+#### Client_IoT instances ##### 
+
+clients = Clients()
 
 # Instance of Client t1
 localCPU_ghz = 3.2
@@ -76,7 +86,8 @@ locations = []
 locations.append(Locations(45.465660936499575, -73.74569047347666, 1))
 # schedule_str = ['12:12:00', '12:27:00', '12:42:00', '12:57:00', '13:12:00', '13:27:00', '13:42:00']
 schedule = [timestamp(43920),timestamp(44820),timestamp(45720),timestamp(46620),timestamp(47520),timestamp(48420),timestamp(49320)]
-clients["t1"] = Client_IoT("t1", schedule, locations, radius, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb)
+client = Client_IoT("t1", schedule, locations, radius, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb)
+clients.append_client(client)
 
 # Instance of Client t2
 fileSize_mb = 64
@@ -90,7 +101,8 @@ locations.append(Locations(45.465678336962135, -73.74567773298384, 1))
 locations.append(Locations(45.46566399333796, -73.74567337439419, 1))
 # schedule_str = ['12:00', '12:03', '13:21', '13:45', '14:29']
 schedule = [timestamp(43200),timestamp(43380),timestamp(48060),timestamp(49500),timestamp(52140)]
-clients["t2"] = Client_IoT("t2", schedule, locations, radius, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb)
+client = Client_IoT("t2", schedule, locations, radius, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb)
+clients.append_client(client)
 
 # Instance of Client t3
 fileSize_mb = 85
@@ -101,9 +113,10 @@ storageReq_mb = 0
 radius = 300.0
 locations = []
 locations.append(Locations(45.465660701358146, -73.74562408880354, 1))
-# schedule_str = ['12:00:00', '12:02:18.365', '12:02:45.461', '12:04:32.461', '12:15:17.155', '12:23:00.340', '12:28:20.234', '12:32:33.276', '12:56:20.782']
-schedule = [timestamp(43200),timestamp(43338.36525495193),timestamp(43365.46180825798),timestamp(43472.461250336164),timestamp(44117.15542552115),timestamp(44580.3407564042),timestamp(44900.234896958595),timestamp(45153.27610028016),timestamp(46580.78299155652)]
-clients["t3"] = Client_IoT("t3", schedule, locations, radius, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb)
+# schedule_str = ['12:00:00', '12:15:45.601', '12:22:35.463', '12:23:07.009', '12:26:12.243', '12:28:40.560', '12:29:20.040', '12:39:32.800', '12:50:21.713', '12:57:54.016']
+schedule = [timestamp(43200),timestamp(44145.601066377974),timestamp(44555.463808660155),timestamp(44587.009630071436),timestamp(44772.24349833289),timestamp(44920.5604273844),timestamp(44960.040082457956),timestamp(45572.80035898734),timestamp(46221.71375529934),timestamp(46674.016393910664)]
+client = Client_IoT("t3", schedule, locations, radius, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb)
+clients.append_client(client)
 
 # Instance of Client t4
 fileSize_mb = 64
@@ -115,9 +128,10 @@ radius = 500.0
 locations = []
 locations.append(Locations(45.465690799452325, -73.745617383281, 1))
 locations.append(Locations(45.465673398993594, -73.74559458450437, 1))
-# schedule_str = ['10:00:00', '10:01:37.352', '10:03:02.266', '10:04:33.281', '10:06:08.010', '10:07:33.505', '10:09:09.945', '10:10:37.934', '10:11:59.909', '10:13:36.407', '10:15:05.867', '10:16:29.453', '10:18:05.160', '10:19:38.513', '10:21:05.623', '10:22:32.739', '10:24:07.441', '10:25:36.898', '10:27:08.395', '10:28:30.070', '10:30:00.911', '10:31:27.925', '10:32:57.641', '10:34:28.828', '10:36:05.233', '10:37:36.077', '10:39:07.289', '10:40:38.774', '10:42:04.158', '10:43:30.065', '10:45:01.565', '10:46:26.053', '10:48:00.055', '10:49:32.068', '10:51:02.844', '10:52:26.317', '10:53:52.433', '10:55:19.661', '10:56:53.928', '10:58:28.420', '10:59:53.198', '11:01:28.976', '11:02:57.247', '11:04:24.860', '11:05:54.905', '11:07:27.196', '11:09:04.645', '11:10:35.066', '11:12:02.250', '11:13:30.569', '11:14:56.492', '11:16:27.560', '11:17:54.802', '11:19:23.330', '11:20:51.330', '11:22:16.912', '11:23:51.992', '11:25:25.967', '11:26:51.554', '11:28:20.745', '11:29:49.706', '11:31:14.442', '11:32:45.818', '11:34:21.743', '11:35:47.595', '11:37:22.144', '11:39:00.649', '11:40:29.518', '11:41:58.605', '11:43:27.750', '11:44:56.926', '11:46:25.620', '11:47:56.388', '11:49:32.848', '11:50:54.529', '11:52:19.434', '11:53:48.905', '11:55:21.492', '11:56:49.299', '11:58:23.331', '11:59:49.652', '12:01:25.844', '12:02:58.360', '12:04:18.659', '12:06:03.079', '12:07:39.928', '12:09:08.213', '12:10:43.697', '12:12:17.258', '12:13:45.799', '12:15:12.740', '12:16:45.351', '12:18:20.594', '12:19:51.033', '12:21:25.052', '12:22:53.799', '12:24:24.719', '12:25:48.729', '12:27:15.807', '12:28:43.968', '12:30:19.063', '12:31:53.035', '12:33:22.813', '12:34:58.813', '12:36:32.848', '12:37:57.977', '12:39:17.391', '12:40:53.030', '12:42:18.904', '12:43:47.543', '12:45:23.867', '12:46:41.759', '12:48:10.090', '12:49:45.725', '12:51:11.990', '12:52:48.062', '12:54:26.217', '12:55:53.561', '12:57:32.564', '12:59:04.795', '13:00:42.220', '13:02:05.800', '13:03:37.605', '13:05:17.908', '13:06:50.276', '13:08:21.722', '13:09:50.855', '13:11:19.626', '13:12:45.621', '13:14:11.455', '13:15:42.870', '13:17:21.222', '13:18:52.580', '13:20:30.345', '13:22:04.448', '13:23:31.088', '13:25:00.893', '13:26:31.120', '13:27:53.475', '13:29:21.815', '13:30:58.296', '13:32:31.879', '13:34:01.625', '13:35:35.313', '13:37:14.245', '13:38:59.630', '13:40:34.599', '13:41:56.755', '13:43:29.800', '13:45:04.453', '13:46:30.244', '13:47:50.833', '13:49:22.623', '13:50:55.558', '13:52:28.246', '13:53:59.179', '13:55:24.327', '13:56:42.525', '13:58:09.534', '13:59:26.008', '14:01:01.739', '14:02:32.657', '14:04:00.307', '14:05:27.102', '14:06:55.410', '14:08:20.775', '14:09:43.453', '14:11:20.515', '14:12:46.030', '14:14:12.205', '14:15:34.867', '14:17:04.159', '14:18:31.432', '14:20:08.174', '14:21:40.729', '14:23:12.904', '14:24:47.340', '14:26:24.296', '14:27:57.761', '14:29:23.187', '14:30:47.179', '14:32:14.999', '14:33:43.344', '14:35:09.314', '14:36:34.967', '14:38:04.608', '14:39:30.163', '14:40:55.791', '14:42:29.357', '14:44:00.599', '14:45:32.959', '14:47:03.795', '14:48:39.051', '14:50:16.892', '14:51:51.360', '14:53:20.722', '14:54:45.236', '14:56:16.401', '14:57:38.983', '14:59:09.980']
-schedule = [timestamp(36000),timestamp(36097.352189420824),timestamp(36182.26699582102),timestamp(36273.28167159032),timestamp(36368.01032294342),timestamp(36453.50560636343),timestamp(36549.945836271116),timestamp(36637.93490834782),timestamp(36719.9090063654),timestamp(36816.40777216527),timestamp(36905.867241340544),timestamp(36989.45339425768),timestamp(37085.16050426803),timestamp(37178.513935252144),timestamp(37265.62378298343),timestamp(37352.739349891504),timestamp(37447.441741034156),timestamp(37536.89869411099),timestamp(37628.39524345305),timestamp(37710.07098733878),timestamp(37800.91132635998),timestamp(37887.92517931784),timestamp(37977.64162842594),timestamp(38068.828361240965),timestamp(38165.23316198008),timestamp(38256.077308890155),timestamp(38347.28910410654),timestamp(38438.77422168217),timestamp(38524.158969003314),timestamp(38610.06562830512),timestamp(38701.565504055514),timestamp(38786.05376097645),timestamp(38880.05556275135),timestamp(38972.0685861986),timestamp(39062.84402430253),timestamp(39146.317753625306),timestamp(39232.433914019966),timestamp(39319.6617595815),timestamp(39413.92805360646),timestamp(39508.42076217224),timestamp(39593.19803791533),timestamp(39688.976899714864),timestamp(39777.247423320834),timestamp(39864.86073637845),timestamp(39954.905491806036),timestamp(40047.19620498793),timestamp(40144.64566011219),timestamp(40235.06668775187),timestamp(40322.25075967414),timestamp(40410.56989974341),timestamp(40496.49214264561),timestamp(40587.56092072193),timestamp(40674.80203122771),timestamp(40763.33018380264),timestamp(40851.3305629668),timestamp(40936.91251281876),timestamp(41031.99255705473),timestamp(41125.967283726946),timestamp(41211.55484314508),timestamp(41300.745134301076),timestamp(41389.70653769521),timestamp(41474.44242994563),timestamp(41565.818339912636),timestamp(41661.7431743044),timestamp(41747.595744650076),timestamp(41842.14468791976),timestamp(41940.64951485754),timestamp(42029.51842562314),timestamp(42118.6056246973),timestamp(42207.75074503298),timestamp(42296.92668570457),timestamp(42385.62025012842),timestamp(42476.388225372386),timestamp(42572.84805882788),timestamp(42654.52964847737),timestamp(42739.43498476064),timestamp(42828.90516798711),timestamp(42921.49257138074),timestamp(43009.29901756862),timestamp(43103.3319193089),timestamp(43189.65213620587),timestamp(43285.844292153),timestamp(43378.36081875529),timestamp(43458.65991742463),timestamp(43563.079353493675),timestamp(43659.92891249817),timestamp(43748.2139527446),timestamp(43843.697949181435),timestamp(43937.25826005459),timestamp(44025.79952231846),timestamp(44112.74069041761),timestamp(44205.35197142094),timestamp(44300.59479348317),timestamp(44391.03327976757),timestamp(44485.05209339065),timestamp(44573.799485340525),timestamp(44664.71904841447),timestamp(44748.729770040474),timestamp(44835.80797797846),timestamp(44923.96856663926),timestamp(45019.063564221586),timestamp(45113.035401952635),timestamp(45202.813787334635),timestamp(45298.81345074863),timestamp(45392.84815790389),timestamp(45477.97701068591),timestamp(45557.3919449692),timestamp(45653.03066879669),timestamp(45738.90458927438),timestamp(45827.5434873061),timestamp(45923.867319630925),timestamp(46001.75934670243),timestamp(46090.09088033356),timestamp(46185.725565902576),timestamp(46271.99096026074),timestamp(46368.06215454129),timestamp(46466.217260587575),timestamp(46553.56160089943),timestamp(46652.56473485637),timestamp(46744.7957920062),timestamp(46842.220700800026),timestamp(46925.80072327142),timestamp(47017.60565849534),timestamp(47117.90897826258),timestamp(47210.27685005468),timestamp(47301.72296805771),timestamp(47390.85564257576),timestamp(47479.62698890365),timestamp(47565.621381495184),timestamp(47651.45537225816),timestamp(47742.870175302676),timestamp(47841.22216354631),timestamp(47932.580119700775),timestamp(48030.34563485882),timestamp(48124.44894703864),timestamp(48211.088579593066),timestamp(48300.893657794746),timestamp(48391.1205387782),timestamp(48473.47521727488),timestamp(48561.81565553687),timestamp(48658.296109313276),timestamp(48751.8795189776),timestamp(48841.62592118501),timestamp(48935.31334001481),timestamp(49034.24530703702),timestamp(49139.6300535938),timestamp(49234.599704720655),timestamp(49316.75558588276),timestamp(49409.80087324988),timestamp(49504.4534710635),timestamp(49590.244041726524),timestamp(49670.83350778238),timestamp(49762.62391132333),timestamp(49855.558305594495),timestamp(49948.2468865367),timestamp(50039.1799959523),timestamp(50124.32731033985),timestamp(50202.5250523108),timestamp(50289.53437163681),timestamp(50366.0086815492),timestamp(50461.739467392355),timestamp(50552.65717171964),timestamp(50640.3071558097),timestamp(50727.10256387195),timestamp(50815.41016023311),timestamp(50900.775687812595),timestamp(50983.45357327403),timestamp(51080.515167434896),timestamp(51166.03065650633),timestamp(51252.205209648244),timestamp(51334.86793239455),timestamp(51424.15963992118),timestamp(51511.43278193237),timestamp(51608.17476955401),timestamp(51700.729641198544),timestamp(51792.904198035125),timestamp(51887.34001728337),timestamp(51984.29653813537),timestamp(52077.761033474395),timestamp(52163.187139353606),timestamp(52247.179481660496),timestamp(52334.999085983145),timestamp(52423.34489808949),timestamp(52509.31485887366),timestamp(52594.967470629286),timestamp(52684.60896003227),timestamp(52770.16302492355),timestamp(52855.79110035378),timestamp(52949.357963606235),timestamp(53040.599415304496),timestamp(53132.95997574556),timestamp(53223.79543011398),timestamp(53319.05106010942),timestamp(53416.89206223536),timestamp(53511.36013790543),timestamp(53600.72271341067),timestamp(53685.23692571303),timestamp(53776.401926831095),timestamp(53858.98311988179),timestamp(53949.980441662425)]
-clients["t4"] = Client_IoT("t4", schedule, locations, radius, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb)
+# schedule_str = ['10:00:00', '10:01:31.500', '10:03:01.696', '10:04:33.404', '10:06:12.096', '10:07:43.060', '10:09:16.658', '10:10:46.927', '10:12:08.682', '10:13:43.043', '10:15:05.765', '10:16:27.592', '10:17:52.170', '10:19:11.731', '10:20:43.208', '10:22:08.396', '10:23:35.342', '10:25:05.563', '10:26:31.974', '10:27:57.514', '10:29:31.367', '10:31:01.865', '10:32:34.541', '10:34:04.017', '10:35:26.545', '10:36:55.730', '10:38:24.238', '10:39:51.430', '10:41:16', '10:42:41.462', '10:44:09.831', '10:45:40.408', '10:47:17.204', '10:48:49.306', '10:50:21.152', '10:51:53.418', '10:53:25.784', '10:55:05.203', '10:56:27.070', '10:57:52.464', '10:59:25.031', '11:00:55.487', '11:02:26.138', '11:04:01.320', '11:05:32.477', '11:07:04.841', '11:08:33.109', '11:10:11.421', '11:11:42.286', '11:13:15.868', '11:14:50.286', '11:16:23.782', '11:17:46.011', '11:19:27.072', '11:20:53.793', '11:22:27.876', '11:23:58.957', '11:25:30.927', '11:26:57.182', '11:28:28.441', '11:29:59.631', '11:31:30.284', '11:32:47.943', '11:34:15.902', '11:35:44.609', '11:37:26.353', '11:38:49.821', '11:40:20.606', '11:41:50.657', '11:43:17.825', '11:44:40.145', '11:46:06.988', '11:47:24.213', '11:48:55.060', '11:50:28.801', '11:51:54.677', '11:53:24.690', '11:55:02.647', '11:56:34.808', '11:58:03.755', '11:59:29.645', '12:01:07.028', '12:02:38.431', '12:04:05.705', '12:05:31.818', '12:07:03.993', '12:08:35.917', '12:09:56.731', '12:11:22.458', '12:12:51.377', '12:14:19.502', '12:15:47.337', '12:17:13.083', '12:18:45.898', '12:20:13.032', '12:21:39.381', '12:23:02.165', '12:24:36.575', '12:26:13.403', '12:27:42.412', '12:29:20.612', '12:30:56.647', '12:32:23.628', '12:33:56.336', '12:35:31.940', '12:37:05.948', '12:38:40.281', '12:40:14.221', '12:41:40.513', '12:43:14.812', '12:44:44.341', '12:46:16.295', '12:47:45.539', '12:49:10.249', '12:50:40.917', '12:52:08.197', '12:53:41.611', '12:55:12.018', '12:56:46.472', '12:58:18.221', '12:59:52.044', '13:01:22.744', '13:02:55.381', '13:04:29.352', '13:06:02.274', '13:07:33.172', '13:09:07.701', '13:10:41.108', '13:12:16.714', '13:13:43.109', '13:15:17.579', '13:16:45.512', '13:18:14.322', '13:19:44.207', '13:21:12.944', '13:22:32.774', '13:23:55.812', '13:25:22.694', '13:26:42.632', '13:28:10.548', '13:29:38.273', '13:31:13.890', '13:32:40.093', '13:34:04.219', '13:35:30.963', '13:37:00.769', '13:38:32.831', '13:40:04.396', '13:41:35.275', '13:43:06.183', '13:44:34.387', '13:46:06.864', '13:47:38.641', '13:49:00.227', '13:50:23.993', '13:51:51.184', '13:53:33.413', '13:54:53.988', '13:56:19.743', '13:57:50.127', '13:59:21.326', '14:00:57.642', '14:02:27.146', '14:04:00.471', '14:05:28.480', '14:06:58.430', '14:08:24.686', '14:09:54.454', '14:11:26.634', '14:12:50.534', '14:14:26.308', '14:15:56.534', '14:17:22.477', '14:18:54.795', '14:20:08.926', '14:21:39.347', '14:23:02.115', '14:24:33.811', '14:26:07.534', '14:27:40.040', '14:29:08.591', '14:30:31.791', '14:32:00.238', '14:33:27.374', '14:34:52.975', '14:36:23.437', '14:37:51.228', '14:39:32.143', '14:41:01.279', '14:42:31.684', '14:43:56.611', '14:45:35.664', '14:47:11.126', '14:48:43.945', '14:50:10.521', '14:51:36.586', '14:53:06.963', '14:54:29.392', '14:56:02.275', '14:57:29.749', '14:58:57.063']
+schedule = [timestamp(36000),timestamp(36091.50080032946),timestamp(36181.69648630683),timestamp(36273.40454727351),timestamp(36372.0969393949),timestamp(36463.060254122174),timestamp(36556.65816065683),timestamp(36646.927878368166),timestamp(36728.68260318382),timestamp(36823.043516741185),timestamp(36905.765904899206),timestamp(36987.59242831772),timestamp(37072.1700922776),timestamp(37151.73110906284),timestamp(37243.20840653612),timestamp(37328.396170648055),timestamp(37415.342028866275),timestamp(37505.56318090227),timestamp(37591.974465815314),timestamp(37677.51407645393),timestamp(37771.36782138462),timestamp(37861.86580365395),timestamp(37954.54136939944),timestamp(38044.01716013113),timestamp(38126.54512280323),timestamp(38215.73010492971),timestamp(38304.23831394887),timestamp(38391.43047015038),timestamp(38476.000269345976),timestamp(38561.46283771834),timestamp(38649.831837782025),timestamp(38740.40860148112),timestamp(38837.20435464053),timestamp(38929.306429824464),timestamp(39021.15233250853),timestamp(39113.418838130536),timestamp(39205.78489892871),timestamp(39305.203415965276),timestamp(39387.070402636324),timestamp(39472.46494672547),timestamp(39565.03143310925),timestamp(39655.487434458555),timestamp(39746.13869862543),timestamp(39841.320211584556),timestamp(39932.47758865917),timestamp(40024.841780868046),timestamp(40113.109556667965),timestamp(40211.42128388892),timestamp(40302.28633175427),timestamp(40395.86876329548),timestamp(40490.286839152606),timestamp(40583.78284278911),timestamp(40666.011576638055),timestamp(40767.07282963009),timestamp(40853.793227683265),timestamp(40947.87666387917),timestamp(41038.957768018845),timestamp(41130.92733113768),timestamp(41217.182265338575),timestamp(41308.44137396549),timestamp(41399.63149567003),timestamp(41490.28440443683),timestamp(41567.943614673444),timestamp(41655.90224487257),timestamp(41744.60961493644),timestamp(41846.353077300344),timestamp(41929.82109960244),timestamp(42020.6067976672),timestamp(42110.65782286445),timestamp(42197.82596853549),timestamp(42280.14544858726),timestamp(42366.9885263034),timestamp(42444.213562145276),timestamp(42535.06061512317),timestamp(42628.80182400189),timestamp(42714.67799921647),timestamp(42804.690808477615),timestamp(42902.6475405047),timestamp(42994.80870856519),timestamp(43083.755636066526),timestamp(43169.6452249394),timestamp(43267.02842384159),timestamp(43358.4310646524),timestamp(43445.705227606886),timestamp(43531.81803629143),timestamp(43623.993525440645),timestamp(43715.91757049136),timestamp(43796.73191355322),timestamp(43882.45893356581),timestamp(43971.3774391801),timestamp(44059.50246834774),timestamp(44147.33774348955),timestamp(44233.08336801572),timestamp(44325.89846551092),timestamp(44413.03201090235),timestamp(44499.38146365586),timestamp(44582.16560369714),timestamp(44676.57552077059),timestamp(44773.40389712843),timestamp(44862.41258289174),timestamp(44960.61212169282),timestamp(45056.64727354774),timestamp(45143.62877004404),timestamp(45236.33675009471),timestamp(45331.94012568272),timestamp(45425.94866011712),timestamp(45520.28183843137),timestamp(45614.221013121816),timestamp(45700.51331250552),timestamp(45794.8127344235),timestamp(45884.34159113055),timestamp(45976.29506614301),timestamp(46065.53976890949),timestamp(46150.24937016098),timestamp(46240.9175795508),timestamp(46328.197470385785),timestamp(46421.611084267446),timestamp(46512.01819548837),timestamp(46606.472295155465),timestamp(46698.22141153476),timestamp(46792.044550583356),timestamp(46882.74405632684),timestamp(46975.38194978496),timestamp(47069.352982148725),timestamp(47162.274915665),timestamp(47253.17265855757),timestamp(47347.70196221949),timestamp(47441.10813741723),timestamp(47536.71450271318),timestamp(47623.10991081746),timestamp(47717.57928595376),timestamp(47805.51248214291),timestamp(47894.32288938353),timestamp(47984.20781255),timestamp(48072.94423778272),timestamp(48152.77494580796),timestamp(48235.81236201567),timestamp(48322.69487326549),timestamp(48402.6323990491),timestamp(48490.54825954512),timestamp(48578.273435608404),timestamp(48673.89023431775),timestamp(48760.093805456265),timestamp(48844.219186853596),timestamp(48930.963151306074),timestamp(49020.769389909285),timestamp(49112.831791623765),timestamp(49204.39657783678),timestamp(49295.275817252375),timestamp(49386.18398707395),timestamp(49474.38772798316),timestamp(49566.864682654494),timestamp(49658.641421931665),timestamp(49740.2270570376),timestamp(49823.99333804306),timestamp(49911.18488712055),timestamp(50013.41331489036),timestamp(50093.98875009568),timestamp(50179.743496000425),timestamp(50270.12722156864),timestamp(50361.32664751323),timestamp(50457.64247836363),timestamp(50547.146628050774),timestamp(50640.471175282175),timestamp(50728.48015921641),timestamp(50818.430204138356),timestamp(50904.68699363435),timestamp(50994.454315283314),timestamp(51086.63448392603),timestamp(51170.53455649616),timestamp(51266.30828698151),timestamp(51356.534030133764),timestamp(51442.47720523609),timestamp(51534.79577142903),timestamp(51608.92699105071),timestamp(51699.34729761835),timestamp(51782.11564255944),timestamp(51873.81162058502),timestamp(51967.53415212716),timestamp(52060.04055283851),timestamp(52148.59197032381),timestamp(52231.79193193829),timestamp(52320.23899926709),timestamp(52407.37491185965),timestamp(52492.975398056384),timestamp(52583.43721875557),timestamp(52671.22820670214),timestamp(52772.14332762377),timestamp(52861.27946734595),timestamp(52951.68484430749),timestamp(53036.61140099355),timestamp(53135.66474821292),timestamp(53231.12632700463),timestamp(53323.94535347488),timestamp(53410.52153028352),timestamp(53496.586581606156),timestamp(53586.96389587757),timestamp(53669.39286083375),timestamp(53762.27552639991),timestamp(53849.74953346346),timestamp(53937.063840823874)]
+client = Client_IoT("t4", schedule, locations, radius, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb)
+clients.append_client(client)
 
 # Instance of Client t5
 fileSize_mb = 543
@@ -128,9 +142,10 @@ storageReq_mb = 0
 radius = np.infty
 locations = []
 locations.append(Locations(45.46570138080979, -73.74552954093576, 1))
-# schedule_str = ['12:00:00', '12:01:22.948', '12:06:14.418', '12:07:56.847', '12:09:16.483', '12:10:59.247', '12:12:01.362', '12:19:31.589', '12:19:59.631', '12:24:03.039', '12:24:10.228', '12:26:29.537', '12:28:11.389', '12:29:05.934', '12:32:33.284', '12:33:19.082', '12:34:33.822', '12:34:38.794', '12:38:16.190', '12:43:58.572', '12:44:42.554', '12:45:31.825', '12:46:31.884', '12:46:37.109', '12:51:43.981', '12:51:47.647', '12:55:27.842', '12:55:46.486', '12:58:17.855', '12:58:37.216', '12:58:40.409']
-schedule = [timestamp(43200),timestamp(43282.94831775457),timestamp(43574.41804031737),timestamp(43676.84725705157),timestamp(43756.48301146178),timestamp(43859.24731713969),timestamp(43921.36275496965),timestamp(44371.5898461825),timestamp(44399.63144669681),timestamp(44643.03939689084),timestamp(44650.22884408248),timestamp(44789.53714062267),timestamp(44891.38948845254),timestamp(44945.93494936443),timestamp(45153.284516692715),timestamp(45199.08290417717),timestamp(45273.82282539886),timestamp(45278.79407235116),timestamp(45496.19065547889),timestamp(45838.57278027507),timestamp(45882.55461920875),timestamp(45931.825184881745),timestamp(45991.88497142817),timestamp(45997.10954055435),timestamp(46303.981801283844),timestamp(46307.64754410242),timestamp(46527.84214369415),timestamp(46546.48624867541),timestamp(46697.85566539626),timestamp(46717.21648783507),timestamp(46720.40930249928)]
-clients["t5"] = Client_IoT("t5", schedule, locations, radius, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb)
+# schedule_str = ['12:00:00', '12:05:38.406', '12:07:28.133', '12:08:47.283', '12:09:21.045', '12:10:10.954', '12:12:09.252', '12:18:24.615', '12:19:05.274', '12:21:36.734', '12:23:13.766', '12:26:33.411', '12:29:04.526', '12:30:09.362', '12:34:52.171', '12:36:36.442', '12:44:44.656', '12:47:30.853', '12:58:29.421', '12:59:57.598']
+schedule = [timestamp(43200),timestamp(43538.4060906739),timestamp(43648.13326601374),timestamp(43727.28314328495),timestamp(43761.04518651285),timestamp(43810.95410319881),timestamp(43929.252063523854),timestamp(44304.61571001099),timestamp(44345.274075832036),timestamp(44496.7348766724),timestamp(44593.76673434996),timestamp(44793.411562201094),timestamp(44944.52615864378),timestamp(45009.362785840334),timestamp(45292.17175506001),timestamp(45396.44246803827),timestamp(45884.65659116279),timestamp(46050.85376747628),timestamp(46709.42129535153),timestamp(46797.59803071608)]
+client = Client_IoT("t5", schedule, locations, radius, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb)
+clients.append_client(client)
 
 # Instance of Client t6
 fileSize_mb = 5
@@ -141,9 +156,10 @@ storageReq_mb = 0
 radius = np.infty
 locations = []
 locations.append(Locations(45.465699734820994, -73.7455637391007, 1))
-# schedule_str = ['12:00:00', '12:02:05.127', '12:04:10.876', '12:06:12.277', '12:07:44.898', '12:09:40.540', '12:11:37.037', '12:13:26.260', '12:15:37.287', '12:17:35.526', '12:19:22.182', '12:20:56.680', '12:22:33.894', '12:24:40.916', '12:26:07.563', '12:27:56.668', '12:30:19.806', '12:32:24.727', '12:34:49.485', '12:36:59.025', '12:39:19.313', '12:41:09.561', '12:43:02.068', '12:44:55.054', '12:46:59.570', '12:48:59.505', '12:50:57.437', '12:52:34.807', '12:54:47.881', '12:56:56.588', '12:59:08.417']
-schedule = [timestamp(43200),timestamp(43325.127068043104),timestamp(43450.87603221221),timestamp(43572.27767164931),timestamp(43664.89817485018),timestamp(43780.54001848875),timestamp(43897.03750841419),timestamp(44006.26041989362),timestamp(44137.287098001216),timestamp(44255.52610479244),timestamp(44362.18265210639),timestamp(44456.68033869297),timestamp(44553.894752829845),timestamp(44680.916967117155),timestamp(44767.563769271714),timestamp(44876.668492665565),timestamp(45019.806237624594),timestamp(45144.72746527769),timestamp(45289.48544329688),timestamp(45419.02500009678),timestamp(45559.3135566065),timestamp(45669.56131189897),timestamp(45782.0683690115),timestamp(45895.05455696045),timestamp(46019.57003119776),timestamp(46139.5051455767),timestamp(46257.43752796193),timestamp(46354.807661258244),timestamp(46487.881563858195),timestamp(46616.58807525592),timestamp(46748.417085999085)]
-clients["t6"] = Client_IoT("t6", schedule, locations, radius, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb)
+# schedule_str = ['12:00:00', '12:01:58.262', '12:03:49.685', '12:06:02.228', '12:08:15.084', '12:10:30.298', '12:12:56.897', '12:14:32.346', '12:16:43.045', '12:18:27.215', '12:20:14.267', '12:22:22.971', '12:24:42.886', '12:26:39.595', '12:28:59.845', '12:30:42.510', '12:32:43.194', '12:34:50.396', '12:36:48.519', '12:38:40.787', '12:40:57.270', '12:42:44.878', '12:44:29.234', '12:46:17.894', '12:48:33.498', '12:50:29.333', '12:52:40.684', '12:54:41.903', '12:56:59.862', '12:58:42.860']
+schedule = [timestamp(43200),timestamp(43318.262425452944),timestamp(43429.685430293954),timestamp(43562.22858169921),timestamp(43695.08462599575),timestamp(43830.298704993664),timestamp(43976.89729488285),timestamp(44072.34613208988),timestamp(44203.04536046253),timestamp(44307.21562426573),timestamp(44414.26731274997),timestamp(44542.97120535374),timestamp(44682.88696771354),timestamp(44799.59515004746),timestamp(44939.84504633896),timestamp(45042.510638389074),timestamp(45163.194816044306),timestamp(45290.39675652414),timestamp(45408.51973652265),timestamp(45520.78757421759),timestamp(45657.270650957165),timestamp(45764.87884345888),timestamp(45869.234993978134),timestamp(45977.89406668655),timestamp(46113.49834119763),timestamp(46229.333744431155),timestamp(46360.68499516425),timestamp(46481.90385459863),timestamp(46619.862217655915),timestamp(46722.860367631554)]
+client = Client_IoT("t6", schedule, locations, radius, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb)
+clients.append_client(client)
 
 # Instance of Client t7
 fileSize_mb = 79
@@ -157,12 +173,15 @@ locations.append(Locations(45.46563554122027, -73.74553524062992, 1))
 locations.append(Locations(45.4656552931052, -73.74553758756281, 1))
 # schedule_str = ['12:00:00']
 schedule = [timestamp(43200)]
-clients["t7"] = Client_IoT("t7", schedule, locations, radius, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb)
+client = Client_IoT("t7", schedule, locations, radius, fileSize_mb, localCPU_ghz, localProcessing_ms, memoryReq_mb, storageReq_mb)
+clients.append_client(client)
 
 
-nodes = {}
-links={}
-## Node Instances 
+nodes = Nodes()
+links=Links()
+###### All Node Instances ###### 
+
+### Node_Edge Instances ### 
 
 # Instance of Node n1
 cpu_ghz = 3.2
@@ -171,7 +190,8 @@ storage_mb = 512
 locations = []
 locations.append(Locations(45.465664933903625, -73.7456826990701, 1))
 radius = np.infty
-nodes["n1"] = Node_Edge("n1", locations, radius, storage_mb, cpu_ghz, memory_mb)
+node = Node_Edge("n1", locations, radius, storage_mb, cpu_ghz, memory_mb)
+nodes.append_node(node)
 
 # Instance of Node n2
 cpu_ghz = 2.8
@@ -180,7 +200,8 @@ storage_mb = 128
 locations = []
 locations.append(Locations(45.46566563932783, -73.74562006549, 1))
 radius = np.infty
-nodes["n2"] = Node_Edge("n2", locations, radius, storage_mb, cpu_ghz, memory_mb)
+node = Node_Edge("n2", locations, radius, storage_mb, cpu_ghz, memory_mb)
+nodes.append_node(node)
 
 # Instance of Node n3
 cpu_ghz = 1.6
@@ -189,7 +210,8 @@ storage_mb = 32
 locations = []
 locations.append(Locations(45.46569244544138, -73.74554328725696, 1))
 radius = np.infty
-nodes["n3"] = Node_Edge("n3", locations, radius, storage_mb, cpu_ghz, memory_mb)
+node = Node_Edge("n3", locations, radius, storage_mb, cpu_ghz, memory_mb)
+nodes.append_node(node)
 
 # Instance of Node n4
 cpu_ghz = 2.9
@@ -198,34 +220,50 @@ storage_mb = 4096
 locations = []
 locations.append(Locations(45.46563906834305, -73.74555032805563, 1))
 radius = np.infty
-nodes["n4"] = Node_Edge("n4", locations, radius, storage_mb, cpu_ghz, memory_mb)
+node = Node_Edge("n4", locations, radius, storage_mb, cpu_ghz, memory_mb)
+nodes.append_node(node)
+
+### Node_Dormant Instances ### 
 
 # Instance of Node n5
 storage_mb = 512
 locations = []
 locations.append(Locations(45.465664933903625, -73.7456826990701, 1))
 radius = np.infty
-nodes["n5"] = Node_Dormant("n5", locations, radius, storage_mb)
+node = Node_Dormant("n5", locations, radius, storage_mb)
+nodes.append_node(node)
 
-## Link Instances
+###### All Link Instances ######
+
+### Link_Edge Instance ###
 
 # Instance of Link l1
 bandwidth = 3.5
 node_pair = ['n1', 'n2']
-nodes["n1"].neighbours.append(("l1", "n2"))
-links["l1"] = Link_Edge("l1", node_pair, bandwidth)
+nodes.get_node("n1").neighbours.append(("l1", "n2"))
+link = Link_Edge("l1", node_pair, bandwidth)
+links.append_link(link)
 
 # Instance of Link l2
 bandwidth = 8.1
 node_pair = ['n2', 'n3']
-nodes["n2"].neighbours.append(("l2", "n3"))
-links["l2"] = Link_Edge("l2", node_pair, bandwidth)
+nodes.get_node("n2").neighbours.append(("l2", "n3"))
+link = Link_Edge("l2", node_pair, bandwidth)
+links.append_link(link)
 
 # Instance of Link l3
 bandwidth = 7.3
 node_pair = ['n2', 'n4']
-nodes["n2"].neighbours.append(("l3", "n4"))
-links["l3"] = Link_Edge("l3", node_pair, bandwidth)
+nodes.get_node("n2").neighbours.append(("l3", "n4"))
+link = Link_Edge("l3", node_pair, bandwidth)
+links.append_link(link)
+
+# Instance of Link l4
+bandwidth = 3.3
+node_pair = ['n2', 'n5']
+nodes.get_node("n2").neighbours.append(("l4", "n5"))
+link = Link_Edge("l4", node_pair, bandwidth)
+links.append_link(link)
 
 graph = Graph_G("G", nodes, links)
 network_structure = NetworkStructure(graph, clients)

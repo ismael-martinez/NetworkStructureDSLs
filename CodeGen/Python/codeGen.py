@@ -424,10 +424,10 @@ def generate_graph_instances(pns_model, location_json, graph_name):
             node_pair = [link.nodePair.nodeSource.name, link.nodePair.nodeTarget.name]
             instance_code_gen_graph += 'node_pair = {}\n'.format(node_pair)
             # Set neighbours of nodes based on link definitions
-            instance_code_gen_graph += 'nodes["{}"].neighbours.append(("{}", "{}"))\n'.format(node_pair[0], link_name, node_pair[1])
+            instance_code_gen_graph += 'nodes.get_node("{}").neighbours.append(("{}", "{}"))\n'.format(node_pair[0], link_name, node_pair[1])
             # Generate instance of link class
             parameters = ['node_pair'] + link_set.attributes
-            instance_code_gen_graph += 'link = Link_{}("{}", {})\n'.format(link_name, link_set.name, link_name, ', '.join(parameters))
+            instance_code_gen_graph += 'link = Link_{}("{}", {})\n'.format(link_set.name, link_name, ', '.join(parameters))
             instance_code_gen_graph += 'links.append_link(link)\n\n'
 
 
@@ -504,7 +504,7 @@ def generate_node_class(pns_model):
         service_attr = node_set.serviceRate
         node_class_gen += '\tdef service_rate(self):\n'
         if service_attr is not None:
-            node_class_gen += '\t\treturn self.attributes.{}\n'.format(service_attr)
+            node_class_gen += '\t\treturn self.{}\n'.format(service_attr)
         else:
             node_class_gen += '\t\treturn 0\n' # If service_rate not specified, default to 0
 
@@ -554,7 +554,7 @@ def generate_graph_classes(pns_model):
     graph_class_gen += '\tdef __init__(self, id, nodes, links):\n'
     graph_class_gen += '\t\tself.id= id\n'
     graph_class_gen += '\t\tself.nodes = nodes\n\t\tself.links=links\n'
-    graph_class_gen += '\t\tself.paths = depthFirstSearch(self.nodes)\n'
+    graph_class_gen += '\t\tself.paths = depthFirstSearch(self.nodes.get_nodes())\n'
     pns_classes = [graph_class_gen]
 
     # Generate Node class

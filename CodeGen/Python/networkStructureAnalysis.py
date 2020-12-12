@@ -16,17 +16,20 @@ import math
 
 def main():
     print('*** ATTRIBUTES ***')
-    print('Node Attributes: ' + str(network_structure.listNodeAttributes()))
-    print('Thing Attributes: ' + str(network_structure.listThingAttributes()))
-    print('Link Attributes: ' + str(network_structure.listLinkAttributes()) + '\n')
+    for client_set in network_structure.clients.attributes:
+        print('Client type {} : {}'.format(client_set, network_structure.clients.attributes[client_set]))
+    for node_set in network_structure.graph.nodes.attributes:
+        print('Node type {} : {}'.format(node_set, network_structure.graph.nodes.attributes[node_set]))
+    for link_set in network_structure.graph.links.attributes:
+        print('Link type {} : {}'.format(link_set, network_structure.graph.links.attributes[link_set]))
 
     # Show Network Structure
     G = nx.DiGraph()
     ns_graph = network_structure.graph
-    for node_id in ns_graph.nodes:
+    for node_id in ns_graph.nodes.get_nodes():
         G.add_node(node_id)
-    for link_id in ns_graph.links:
-        [n_source, n_target] = ns_graph.links[link_id].node_pair
+    for link_id in ns_graph.links.get_links():
+        [n_source, n_target] = ns_graph.links.get_link(link_id).node_pair
         G.add_edge(n_source, n_target)
 
     A = nx.nx_pydot.write_dot(G, 'graph.dot')
@@ -34,28 +37,28 @@ def main():
 
 
     # Handshake -- create a distance matrix between every 'thing' and 'node'
-    T = len(network_structure.things)
-    N = len(network_structure.graph.nodes)
+    T = len(network_structure.clients.get_clients())
+    N = len(network_structure.graph.nodes.get_nodes())
     distance_matrix = np.zeros((T, N))
     nearest_node = [0]*T
-    thing_key_index = []
-    for thing in network_structure.things:
-        thing_key_index.append(thing)
+    client_key_index = []
+    for client in network_structure.clients.get_clients():
+        client_key_index.append(client)
     node_key_index = []
     node_key_dict = {}
     n = 0
-    for node in network_structure.graph.nodes:
+    for node in network_structure.graph.nodes.get_nodes():
         node_key_index.append(node)
         node_key_dict[node] = n
         n += 1
 
     t = 0
-    for thing in network_structure.things:
+    for client in network_structure.clients.get_clients():
         n = 0
-        for node in network_structure.graph.nodes:
-            thing_location = network_structure.things[thing].locations[0]
-            node_location = network_structure.graph.nodes[node].locations[0]
-            distance_matrix[t][n] = distance_location(thing_location, node_location)
+        for node in network_structure.graph.nodes.get_nodes():
+            client_location = network_structure.clients.get_client(client).locations[0]
+            node_location = network_structure.graph.nodes.get_node(node).locations[0]
+            distance_matrix[t][n] = distance_location(client_location, node_location)
             if distance_matrix[t][n] < distance_matrix[t][nearest_node[t]]:
                 nearest_node[t] = n
             n += 1
@@ -65,15 +68,15 @@ def main():
 
     for t in range(T):
         node_id = node_key_index[nearest_node[t]]
-        node_name = network_structure.graph.nodes[node_id].id
+        node_name = network_structure.graph.nodes.get_node(node_id).id
         if node_name not in node_arrival_schedules.keys():
             node_arrival_schedules[node_name] = []
-        thing_id = thing_key_index[t]
+        client_id = client_key_index[t]
         n = node_key_dict[node_id]
-        within_node_radius = (distance_matrix[t][n])*1000 <= network_structure.graph.nodes[node_id].radius
-        within_thing_radius = (distance_matrix[t][n])*1000 <= network_structure.things[thing_id].radius
+        within_node_radius = (distance_matrix[t][n])*1000 <= network_structure.graph.nodes.get_node(node_id).radius
+        within_thing_radius = (distance_matrix[t][n])*1000 <= network_structure.clients.get_client(client_id).radius
         if (within_node_radius and within_thing_radius): # distance matrix in kilometeres. Radius in meters.
-            sched = network_structure.things[thing_id].schedule
+            sched = network_structure.clients.get_client(client_id).schedule
             old_sched = node_arrival_schedules[node_name]
             new_sched = merge_timestamps(sched, old_sched)
             node_arrival_schedules[node_name] = new_sched
@@ -178,7 +181,7 @@ def main():
     ############################################
     # Queue Simulation
     random.seed(100)
-    ns = network_structure.graph.nodes
+    ns = network_structure.graph.nodes.get_nodes()
     queues = {}
     K = 1
 
@@ -189,20 +192,24 @@ def main():
 
 
     for n in ns:
+        if n not in node_arrival_schedules:
+            continue
         arrivals = [s.timestamp_to_seconds() for s in  node_arrival_schedules[n]]
         events = []
         node = ns[n]
         service_rate = node.service_rate()
         queues = {n:Queue(n, service_rate, K)}
         for a in range(len(arrivals)):
-            id = '{}'.format(a)
+            id = 't{}'.format(a)
             events.append(Event(id, [arrivals[a]], [0.0], [n]))
         # Init calls execution_initial() internally
         S = Simulation(events, [], queues)
 
         queue_log = {}
         for q in S.Queues:
-            print('Queue {}'.format(q))
+            if q == 'init':
+                continue
+            print('\nQueue {}'.format(q))
             print('Arrival, Service, Wait, Departure ')
             queue = queues[q]
             queue_log[q] = queue.queue_log

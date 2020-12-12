@@ -1,36 +1,127 @@
 from abc import ABC, abstractmethod
+from networkUtil import *
 import math
 
-def depthFirstSearch(nodes):
-    all_paths = []
-    node_visited_map = {}
-    for node in nodes:
-        node_visited_map[node] = False
 
-    node_visited = [node_visited_map[key] for key in node_visited_map]
-    for node in nodes:
-        if all(node_visited):
-            break
-        [node_visited_map, _, all_paths] = depthFirstSearch_rec(nodes, node, node_visited_map, all_paths)
-        node_visited = [node_visited_map[key] for key in node_visited_map]
-    return all_paths
-
-def depthFirstSearch_rec(nodes, root, node_visited_map, all_paths):
-    root_paths = []
-    if node_visited_map[root]:
-        return [node_visited_map, []]
-    node_visited_map[root] = True
-    node = root
-    root_paths.append([root])
-    for nb in nodes[node].neighbours:
-        [node_visited_map, paths, all_paths] = depthFirstSearch_rec(nodes, nb[1], node_visited_map, all_paths)
-        for p in paths:
-            root_paths.append([root] + p)
-    for p in root_paths:
-        all_paths.append(p)
-    return [node_visited_map, root_paths, all_paths]
+class NetworkStructure:
+    def __init__(self, graph, clients):
+        self.graph = graph
+        self.clients = clients
 
 
+class Clients:
+    def __init__(self):
+        self.attributes = {}
+        self.client_set = {}
+    def append_client(self, client):
+        client_type = client.client_type
+        if client_type not in self.client_set:
+            self.client_set[client_type] = {}
+        self.client_set[client_type][client.id] = client
+        if client_type not in self.attributes:
+            self.attributes[client_type] = client.list_attributes()
+    def get_client(self, client_id):
+        for client_type in self.client_set:
+            if client_id in self.client_set[client_type]:
+                return self.client_set[client_type][client_id]
+    def get_clients(self):
+        clients = {}
+        for client_type in self.client_set:
+            client_set = self.client_set[client_type]
+            for client_id in client_set:
+                client = client_set[client_id]
+                clients[client_id] = client
+        return clients
+    def list_attributes(self, client_type):
+        return self.attributes[client_type]
+
+
+class Nodes:
+    def __init__(self):
+        self.attributes = {}
+        self.node_set = {}
+    def append_node(self, node):
+        node_type = node.node_type
+        if node_type not in self.node_set:
+            self.node_set[node_type] = {}
+        self.node_set[node_type][node.id] = node
+        if node_type not in self.attributes:
+            self.attributes[node_type] = node.list_attributes()
+    def get_node(self, node_id):
+        for node_type in self.node_set:
+            if node_id in self.node_set[node_type]:
+                return self.node_set[node_type][node_id]
+    def get_nodes(self):
+        nodes = {}
+        for node_type in self.node_set:
+            node_set = self.node_set[node_type]
+            for node_id in node_set:
+                node = node_set[node_id]
+                nodes[node_id] = node
+        return nodes
+    def list_attributes(self, node_type):
+        return self.attributes[node_type]
+
+class Links:
+    def __init__(self):
+        self.attributes = {}
+        self.link_set = {}
+    def append_link(self, link):
+        link_type = link.link_type
+        if link_type not in self.link_set:
+            self.link_set[link_type] = {}
+        self.link_set[link_type][link.id] = link
+        if link_type not in self.attributes:
+            self.attributes[link_type] = link.list_attributes()
+    def get_link(self, link_id):
+        for link_type in self.link_set:
+            if link_id in self.link_set[link_type]:
+                return self.link_set[link_type][link_id]
+    def get_links(self):
+        links = {}
+        for link_type in self.link_set:
+            link_set = self.link_set[link_type]
+            for link_id in link_set:
+                link = link_set[link_id]
+                links[link_id] = link
+        return links
+    def list_attributes(self, link_type):
+        return self.attributes[link_type]
+
+
+class NodeAbstract(ABC):
+    def __init__(self, id, locations):
+        self.id = id
+        self.locations = locations
+        self.neighbours = []
+
+class LinkAbstract(ABC):
+    def __init__(self, id, node_pair):
+        self.id = id
+        self.node_pair = node_pair
+
+class GraphAbstract(ABC):
+    def __init__(self, id, nodes, links):
+        self.id = id
+        self.nodes = nodes
+        self.links = links
+        self.paths = depthFirstSearch(self.nodes)
+
+class ClientAbstract(ABC):
+    def __init__(self, id, schedule, locations):
+        self.id = id
+        self.schedule = schedule
+        self.locations = locations
+
+
+class Locations:
+    def __init__(self, latitude, longitude, height=1):
+        self.latitude = latitude
+        self.longitude = longitude
+        self.height = height
+
+
+## Timestamp class and functions ##
 class timestamp:
     def __init__(self, time_seconds):
         time_remaining = time_seconds
@@ -120,64 +211,3 @@ class timestamp:
         time_seconds += self.seconds
         time_seconds += (self.milliseconds)*0.001
         return  time_seconds
-
-class NetworkStructure:
-    def __init__(self, graph, things):
-        self.graph = graph
-        self.things = things
-
-
-    def listNodeAttributes(self):
-        for node in self.graph.nodes:
-            attr = self.graph.nodes[node].attributes.listAttributes()
-            break
-        return attr
-
-    def listLinkAttributes(self):
-        for link in self.graph.links:
-            attr = self.graph.links[link].attributes.listAttributes()
-            break
-        return attr
-
-    def listThingAttributes(self):
-        for thing in self.things:
-            attr = self.things[thing].attributes.listAttributes()
-            break
-        return attr
-
-
-
-
-class NodeAbstract(ABC):
-    def __init__(self, id, locations, attributes):
-        self.id = id
-        self.locations = locations
-        self.attributes = attributes
-        self.neighbours = []
-
-class LinkAbstract(ABC):
-    def __init__(self, id, attributes, node_pair):
-        self.id = id
-        self.attributes = attributes
-        self.node_pair = node_pair
-
-class GraphAbstract(ABC):
-    def __init__(self, id, nodes, links):
-        self.id = id
-        self.nodes = nodes
-        self.links = links
-        self.paths = depthFirstSearch(self.nodes)
-
-class ThingAbstract(ABC):
-    def __init__(self, id, schedule, locations, attributes):
-        self.id = id
-        self.schedule = schedule
-        self.locations = locations
-        self.attributes = attributes
-
-class Locations:
-    def __init__(self, latitude, longitude, height=1):
-        self.latitude = latitude
-        self.longitude = longitude
-        self.height = height
-
