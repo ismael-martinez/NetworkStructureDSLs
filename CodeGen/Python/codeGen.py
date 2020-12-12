@@ -107,13 +107,16 @@ def default_val_by_type(string_type):
     return default_val
 
 # Generates list of attributes and default parameter instantiations for specified attrbutes of TRS or PNS model.
-def attribute_parameters(attributes, attr_type_dict):
+def attribute_parameters(attributes, attr_type_dict, radius_attr):
     # List of attribute names and types
     default_param_list = []
     for attr in attributes:
-        # Register default value based on attribute type
-        attr_type = attr_type_dict[attr]
-        default_val = default_val_by_type(attr_type)
+        if attr == radius_attr:
+            default_val = 'np.infty'
+        else:
+            # Register default value based on attribute type
+            attr_type = attr_type_dict[attr]
+            default_val = default_val_by_type(attr_type)
         default_param = '{} = {}'.format(attr, default_val)
         default_param_list.append(default_param)
     return default_param_list
@@ -130,7 +133,7 @@ def attribute_type_valid(attributes, values, types_dict):
             if 'int' not in str(type(attr_val)):
                 raise Exception("Attribute {} must receive a value of type int.".format(attr_name))
         if attr_type == 'float':
-            if 'float' not in str(type(attr_val)):
+            if not any([numerical not in str(type(attr_val)) for numerical in ['int', 'float']]):
                 raise Exception("Attribute {} must receive a value of type float.".format(attr_name))
         elif attr_type == 'string':
             if 'str' not in str(type(attr_val)):
@@ -155,7 +158,7 @@ def verify_trs_model(trs_metamodel, trs_file):
             # All attributes are unique
             unique_set = list(set(client_set.attributes))
             if len(client_set.attributes) != len(unique_set):
-                raise Exception("Clients attributes must be unique: ClientSet {}.".format(client_set.name))
+                raise Exception("Clients attributes must be unique: ClientType {}.".format(client_set.name))
             # The attributes of each client is unique
             for client in client_set.clients:
                 client_unqiue_attr = list(set(client.attributes))
@@ -170,6 +173,18 @@ def verify_trs_model(trs_metamodel, trs_file):
                 # Verify attribute value matches defined attribute type
                 attribute_type_valid(client.attributes, client.val, attr_type)
             print('Verification of file {} succeeded.'.format(trs_file))
+            # The radius attribute is a valid attribute
+            radius = client_set.radius
+            if radius and radius not in attr_type:
+                raise Exception('Radius of ClientType {} is not a valid attributes'.format(client_set.name))
+            # The radius attribute is non-negative for all clients
+            for client in client_set.clients:
+                for a in range(len(client.attributes)):
+                    if client.attributes[a] == radius:
+                        if client.val[a] < 0:
+                            raise Exception('Radius of client {} must be non-negative'.format(client.name))
+                        break
+
             return trs_model
     except Exception as e:
         print('Verification Failed: Error in file {}'.format(trs_file))
@@ -185,7 +200,7 @@ def verify_pns_model(pns_metamodel, pns_file):
         for node_set in pns_model.nodeSets:
             unique_set_node = list(set(node_set.attributes))
             if len(node_set.attributes) != len(unique_set_node):
-                raise Exception("NodeSet attributes must be unique: Graph {}.".format(pns_model.name))
+                raise Exception("NodeType attributes must be unique: Graph {}.".format(pns_model.name))
             # The attributes of each client is unique
             for node in node_set.nodes:
                 node_unqiue_attr = list(set(node_set.attributes))
@@ -201,19 +216,28 @@ def verify_pns_model(pns_metamodel, pns_file):
                     attribute_type_valid(node.attributes, node.val, attr_type)
             # The service_rate attribute is a valid attribute
             service_rate = node_set.serviceRate
-            if service_rate not in attr_type:
-                raise Exception('Service rate of NodeSet {} is not a valid attributes'.format(nose_set.name))
-
+            if service_rate and service_rate not in attr_type:
+                raise Exception('Service rate of NodeType {} is not a valid attributes'.format(node_set.name))
+            # The radius attribute is a valid attribute
+            radius = node_set.radius
+            if radius and radius not in attr_type:
+                raise Exception('Radius of NodeType {} is not a valid attributes'.format(node_set.name))
+            # The radius attribute is non-negative for all clients
+            for node in node_set.nodes:
+                for a in range(len(node.attributes)):
+                    if node.attributes[a] == radius:
+                        if node.val[a] < 0:
+                            raise Exception('Radius of node {} must be non-negative'.format(node.name))
         ## Links
         for link_set in pns_model.linkSets:
             unique_set_link = list(set(link_set.attributes))
             if len(link_set.attributes) != len(unique_set_link):
-                raise Exception("LinkSet attributes must be unique: Graph {}.".format(pns_model.name))
+                raise Exception("LinkType attributes must be unique: Graph {}.".format(pns_model.name))
             # The attributes of each client is unique
             for link in link_set.links:
                 link_unqiue_attr = list(set(link_set.attributes))
                 if len(link_unqiue_attr) != len(link_set.attributes):
-                    raise Exception("Link attribute must be unqiue: Link {}".format(link.name))
+                    raise Exception("Link attribute must be unique: Link {}".format(link.name))
             # The value of each link attribute conforms to the attribute type
             attr_type = {}
             for a in range(len(link_set.attributes)):
@@ -289,21 +313,15 @@ def generate_client_instances(trs_model, location_json):
                 attr_type_dict[attr] = type
             for attr in client_set.attributes:
                 if attr not in client_attributes:
-                    attr_type = attr_type_dict[attr]
-                    default_val = default_val_by_type(attr_type)
+                    if attr == client_set.radius:
+                        default_val = 'np.infty'
+                    else:
+                        attr_type = attr_type_dict[attr]
+                        default_val = default_val_by_type(attr_type)
                     client_attributes[attr] = default_val
 
             for attr in client_attributes:
                 instance_code_gen_client += '{} = {}\n'.format(attr, client_attributes[attr])
-
-            # Radius
-            try:
-                if client.radius >= 0:
-                    instance_code_gen_client += 'radius = {}\n'.format(client.radius)
-                else:
-                    instance_code_gen_client += 'radius = np.infty\n'
-            except:
-                instance_code_gen_client += 'radius = np.infty\n'
 
             # Build locations
             client_location = {}
@@ -324,7 +342,7 @@ def generate_client_instances(trs_model, location_json):
                 instance_code_gen_client += 'timestamp({}),'.format(schedule_sec[t])
             instance_code_gen_client += 'timestamp({})]\n'.format(schedule_sec[-1])
 
-            parameters = ['schedule', 'locations', 'radius'] + client_set.attributes
+            parameters = ['schedule', 'locations'] + client_set.attributes
             instance_code_gen_client += 'client = Client_{}("{}", {})\n'.format(client_type, client_name, ', '.join(parameters))
             instance_code_gen_client += 'clients.append_client(client)\n\n'
 
@@ -357,8 +375,11 @@ def generate_graph_instances(pns_model, location_json, graph_name):
                 node_type_dict[attr] = type
             for attr in node_set.attributes:
                 if attr not in node_attributes:
-                    attr_type = node_type_dict[attr]
-                    default_val = default_val_by_type(attr_type)
+                    if attr == node_set.radius:
+                        default_val = 'np.infty'
+                    else:
+                        attr_type = node_type_dict[attr]
+                        default_val = default_val_by_type(attr_type)
                     node_attributes[attr.name] = default_val
 
             for attr in node_attributes:
@@ -377,16 +398,8 @@ def generate_graph_instances(pns_model, location_json, graph_name):
                 instance_code_gen_graph += 'locations.append(Locations({}, {}, {}))\n'.format(node_locations[attr]['latitude'],
                                                                                                  node_locations[attr]['longitude'],
                                                                                                  node_locations[attr]['height'])
-            # Radius
-            try:
-                if node.radius >= 0:
-                    instance_code_gen_graph += 'radius = {}\n'.format(node.radius)
-                else:
-                    instance_code_gen_graph += 'radius = np.infty\n'
-            except:
-                instance_code_gen_graph += 'radius = np.infty\n'
 
-            parameters = ['locations', 'radius'] + node_set.attributes
+            parameters = ['locations'] + node_set.attributes
             instance_code_gen_graph += 'node = Node_{}("{}", {})\n'.format(node_set.name, node_name, ', '.join(parameters))
             instance_code_gen_graph += 'nodes.append_node(node)\n\n'
 
@@ -449,9 +462,9 @@ def generate_client_class(trs_model):
         attr_type = {}
         for a in range(len(client_set.attributes)):
             attr_type[client_set.attributes[a]] = client_set.type[a]
-        default_param_list = attribute_parameters(attr_name_list, attr_type)
+        default_param_list = attribute_parameters(attr_name_list, attr_type, client_set.radius)
 
-        mandatory_param_list = ['self', 'id', 'schedule', 'locations', 'radius']
+        mandatory_param_list = ['self', 'id', 'schedule', 'locations']
         param_list = mandatory_param_list + default_param_list
         # Generate Client class __init__() function with all mandatory and optional parameters.
         # Optional parameters have default value
@@ -466,8 +479,18 @@ def generate_client_class(trs_model):
                 continue
             client_class_gen += '\t\tself.{} = {}\n'.format(p, p)
 
+        ## Generate radius() method. Defines which attribute corresponds to the service rate.
+        radius_attr = client_set.radius
+        client_class_gen += '\n# Defines the attribute that represents the radius (in metres), if any.\n'
+        client_class_gen += '\tdef get_radius(self):\n'
+        if radius_attr is not None:
+            client_class_gen += '\t\treturn self.{}\n'.format(radius_attr)
+        else:
+            client_class_gen += '\t\treturn np.infty\n'  # If service_rate not specified, default to 0
+
         ## Generate list_attributes() method which returns a string of attribute names
         attrs_string = ','.join(["'{}'".format(attr) for attr in attr_name_list])
+        client_class_gen += '\n# List the available attributes\n'
         client_class_gen += '\tdef list_attributes(self):\n\t\treturn [{}]\n'.format(attrs_string)
     return client_class_gen
 
@@ -484,8 +507,8 @@ def generate_node_class(pns_model):
         attr_type = {}
         for a in range(len(node_set.attributes)):
             attr_type[node_set.attributes[a]] = node_set.type[a]
-        default_param_list = attribute_parameters(attr_name_list, attr_type)
-        mandatory_param_list = ['self', 'id', 'locations', 'radius']
+        default_param_list = attribute_parameters(attr_name_list, attr_type, node_set.radius)
+        mandatory_param_list = ['self', 'id', 'locations']
         param_list = mandatory_param_list + default_param_list
 
         # Generate Node class __init__() function with all mandatory and optional parameters.
@@ -502,14 +525,25 @@ def generate_node_class(pns_model):
 
         ## Generate service_rate() method. Defines which attribute corresponds to the service rate.
         service_attr = node_set.serviceRate
-        node_class_gen += '\tdef service_rate(self):\n'
+        node_class_gen += '\n# Defines the attribute that represents the service rate, if any.\n'
+        node_class_gen += '\tdef get_service_rate(self):\n'
         if service_attr is not None:
             node_class_gen += '\t\treturn self.{}\n'.format(service_attr)
         else:
             node_class_gen += '\t\treturn 0\n' # If service_rate not specified, default to 0
 
+        ## Generate radius() method. Defines which attribute corresponds to the service rate.
+        radius_attr = node_set.radius
+        node_class_gen += '\n# Defines the attribute that represents the radius (in metres), if any.\n'
+        node_class_gen += '\tdef get_radius(self):\n'
+        if radius_attr:
+            node_class_gen += '\t\treturn self.{}\n'.format(radius_attr)
+        else:
+            node_class_gen += '\t\treturn np.infty\n'  # If service_rate not specified, default to 0
+
         ## Generate list_attributes() method which returns a string of attribute names
         attrs_string = ','.join(["'{}'".format(attr) for attr in attr_name_list])
+        node_class_gen += '\n# List the available attributes\n'
         node_class_gen += '\tdef list_attributes(self):\n\t\treturn [{}]\n\n'.format(attrs_string)
     return node_class_gen
 
@@ -527,7 +561,7 @@ def generate_link_class(pns_model):
         attr_type = {}
         for a in range(len(link_set.attributes)):
             attr_type[link_set.attributes[a]] = link_set.type[a]
-        default_param_list = attribute_parameters(attr_name_list, attr_type)
+        default_param_list = attribute_parameters(attr_name_list, attr_type, '')
         mandatory_param_list = ['self', 'id', 'node_pair']
         param_list = mandatory_param_list + default_param_list
 
@@ -544,6 +578,7 @@ def generate_link_class(pns_model):
 
         ## Generate list_attributes() method which returns a string of attribute names
         attrs_string = ','.join(["'{}'".format(attr) for attr in attr_name_list])
+        link_class_gen += '\n# List the available attributes\n'
         link_class_gen += '\tdef list_attributes(self):\n\t\treturn [{}]\n'.format(attrs_string)
     return link_class_gen
 
