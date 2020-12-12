@@ -481,11 +481,13 @@ def generate_client_class(trs_model):
 
         ## Generate radius() method. Defines which attribute corresponds to the service rate.
         radius_attr = client_set.radius
-        client_class_gen += '\n# Defines the attribute that represents the radius (in metres), if any.\n'
+        client_class_gen += '# Defines the attribute that represents the radius (in metres), if any.\n'
         client_class_gen += '\tdef get_radius(self):\n'
         if radius_attr is not None:
+            client_class_gen += '\n# The {} attribute represents the radius.\n'.format(radius_attr)
             client_class_gen += '\t\treturn self.{}\n'.format(radius_attr)
         else:
+            client_class_gen += '# No attribute defines the radius.\n'
             client_class_gen += '\t\treturn np.infty\n'  # If service_rate not specified, default to 0
 
         ## Generate list_attributes() method which returns a string of attribute names
@@ -528,17 +530,21 @@ def generate_node_class(pns_model):
         node_class_gen += '\n# Defines the attribute that represents the service rate, if any.\n'
         node_class_gen += '\tdef get_service_rate(self):\n'
         if service_attr is not None:
+            node_class_gen += '# The {} attribute represents the service rate.\n'.format(service_attr)
             node_class_gen += '\t\treturn self.{}\n'.format(service_attr)
         else:
+            node_class_gen += '# No attribute defines the service rate.\n'
             node_class_gen += '\t\treturn 0\n' # If service_rate not specified, default to 0
 
         ## Generate radius() method. Defines which attribute corresponds to the service rate.
         radius_attr = node_set.radius
-        node_class_gen += '\n# Defines the attribute that represents the radius (in metres), if any.\n'
+        node_class_gen += '# Defines the attribute that represents the radius (in metres), if any.\n'
         node_class_gen += '\tdef get_radius(self):\n'
         if radius_attr:
+            node_class_gen += '# The {} attribute represents the radius.\n'.format(radius_attr)
             node_class_gen += '\t\treturn self.{}\n'.format(radius_attr)
         else:
+            node_class_gen += '\n# No attribute defines the radius.\n'
             node_class_gen += '\t\treturn np.infty\n'  # If service_rate not specified, default to 0
 
         ## Generate list_attributes() method which returns a string of attribute names
