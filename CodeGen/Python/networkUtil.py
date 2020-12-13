@@ -134,3 +134,34 @@ def merge_timestamps(sched, old_sched):
         new_sched.append(sched[j])
         j += 1
     return new_sched
+
+# DepthFirstSearch
+# nodes (dict of node ids)
+def depthFirstSearch(nodes):
+    all_paths = []
+    node_visited_map = {}
+    for node in nodes:
+        node_visited_map[node] = False
+
+    node_visited = [node_visited_map[key] for key in node_visited_map]
+    for node in nodes:
+        if all(node_visited):
+            break
+        [node_visited_map, _, all_paths] = depthFirstSearch_rec(nodes, node, node_visited_map, all_paths)
+        node_visited = [node_visited_map[key] for key in node_visited_map]
+    return all_paths
+
+def depthFirstSearch_rec(nodes, root, node_visited_map, all_paths):
+    root_paths = []
+    if node_visited_map[root]:
+        return [node_visited_map, [], all_paths]
+    node_visited_map[root] = True
+    node = root
+    root_paths.append([root])
+    for nb in nodes[node].neighbours:
+        [node_visited_map, paths, all_paths] = depthFirstSearch_rec(nodes, nb[1], node_visited_map, all_paths)
+        for p in paths:
+            root_paths.append([root] + p)
+    for p in root_paths:
+        all_paths.append(p)
+    return [node_visited_map, root_paths, all_paths]
