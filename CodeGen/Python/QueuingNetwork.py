@@ -21,9 +21,32 @@ class QueueNetwork:
                 q_log = q_times + list(self.log[q][i][4:])
                 self.log[q][i] = tuple(q_log)
 
+    # For an event in a queue, return all required information.
+    # Input
+    ## event_id (string), id of Event
+    ## queue_id (string), id of Queue
+    # Return info dictionary()
+    def event_log_dict(self, event_id, queue_id):
+        old_log = self.log[queue_id]
+        log_id = 0
 
-#    def earliest
-
+        # Find index of log_entry
+        while log_id < len(self.log[queue_id]):
+            log_entry = self.log[queue_id][log_id]
+            if log_entry[4] == event_id:
+                break
+            log_id += 1
+        if log_id >= len(self.log[queue_id]):
+            print('Event not found in queue {}'.format(queue_id))
+            return
+        event_log = self.log[queue_id][log_id]
+        event_log_dict = {}
+        event_log_dict['arrival_time'] = event_log[0]
+        event_log_dict['service_time'] = event_log[1]
+        event_log_dict['wait_time'] = event_log[2]
+        event_log_dict['departure_time'] = event_log[3]
+        event_log_dict['earliest_service_time'] = event_log[0] + event_log[2]
+        return event_log_dict
 
     def update_deparrture_time(self, new_departure, event_id, queue_id):
         old_log = self.log[queue_id]
@@ -265,8 +288,7 @@ for q in S.Queues:
     print('\n')
 
 queue_network = QueueNetwork(queue_log, K)
-queue_network.update_deparrture_time(2.32, 'e10', 'n1')
-queue_network.update_arrival_time(2.32, 'e10', 'n2')
+queue_network.event_log_dict('e10', 'n1')
 
 # Copy the hidden events with real values for testing. Deep copy creates new objects with their own references
 events_H_actual = copy.deepcopy(events_H)
