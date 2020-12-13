@@ -1,8 +1,8 @@
-from CodeGen.Python.networkStructureAttributesAndInstances import *
-from CodeGen.Python.networkUtil import *
-#from networkStructureAttributesAndInstances import *
-#from networkUtil import *
-from CodeGen.Python.Simulation import *
+#from CodeGen.Python.networkStructureAttributesAndInstances import *
+#from CodeGen.Python.networkUtil import *
+from networkStructureAttributesAndInstances import *
+from networkUtil import *
+#from CodeGen.Python.Simulation import *
 from Simulation import *
 import numpy as np
 import random
@@ -22,6 +22,7 @@ class QueueNetwork:
                 self.log[q][i] = tuple(q_log)
 
 
+#    def earliest
 
 
     def update_deparrture_time(self, new_departure, event_id, queue_id):
@@ -29,17 +30,20 @@ class QueueNetwork:
         log_id = 0
         departure_times_subserver = {}
 
+        # Find index of log_entry
         while log_id < len(self.log[queue_id]):
             log_entry = self.log[queue_id][log_id]
             departure_times_subserver[log_entry[4]] = log_entry[3]  # event_id : departure_time
             if log_entry[4] == event_id:
-                log_id += 1
                 break
+            log_id += 1
         if log_id >= len(self.log[queue_id]):
             print('Event not found in queue {}'.format(queue_id))
             return
+
         log_tuple = self.log[queue_id][log_id]
-        servicing_state = log_tuple[6]
+        servicing_state = log_tuple[6] # Dict representing which subqueues are servicing which events
+        # Create new log_entry with new departure
         self.log[queue_id][log_id] = (
         log_tuple[0], log_tuple[1], log_tuple[2], new_departure, log_tuple[4], log_tuple[5], servicing_state)
         departure_times_subserver[log_tuple[4]] = new_departure
