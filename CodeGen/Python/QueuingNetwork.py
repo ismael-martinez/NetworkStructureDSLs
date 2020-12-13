@@ -29,12 +29,15 @@ class QueueNetwork:
         log_id = 0
         departure_times_subserver = {}
 
-        for i in range(len(self.log[queue_id])):
-            log_entry = self.log[queue_id][i]
+        while log_id < len(self.log[queue_id]):
+            log_entry = self.log[queue_id][log_id]
             departure_times_subserver[log_entry[4]] = log_entry[3]  # event_id : departure_time
             if log_entry[4] == event_id:
-                log_id = i
+                log_id += 1
                 break
+        if log_id >= len(self.log[queue_id]):
+            print('Event not found in queue {}'.format(queue_id))
+            return
         log_tuple = self.log[queue_id][log_id]
         servicing_state = log_tuple[6]
         self.log[queue_id][log_id] = (
@@ -140,6 +143,9 @@ class QueueNetwork:
                     break
                 else:
                     delete_point += 1
+            if delete_point >= len(old_log):
+                print('Event not found in queue {}'.format(queue_id))
+                return
             delete_log = old_log[delete_point]
             old_departure_time = old_log[delete_point][3]
             old_log = old_log[0:delete_point] + old_log[delete_point+1:] # Remove old log entry
