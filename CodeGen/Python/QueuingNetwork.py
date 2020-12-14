@@ -449,9 +449,27 @@ for q in S_no_assist.Queues:
     #print('\n')
 
 
+random.seed(50)
+events_O_copy = copy.deepcopy(events_O)
+events_H_copy = copy.deepcopy(events_H)
+queues_copy = copy.deepcopy(queues)
+S_w_assist = Simulation(events_O_copy, events_H_copy, queues_copy, 'assistComplete')
+for q in S_w_assist.Queues:
+    q_log = S_w_assist.Queues[q].queue_log
+    service_mean = 1/S_w_assist.Queues[q].service_rate
+    service_times = []
+    for log in q_log:
+        service_times.append(log[1])
+    plt.boxplot(service_times)
+    plt.axhline(service_mean, color='r', label='Expected service time')
+    plt.title('Service gains from assisted processing')
+    plt.ylabel('Service time')
+    plt.xticks([1], [q])
+    plt.legend()
+    plt.show()
 
 
-# Plots
+# Plots Histograms
 no_assist_service = {}
 w_assist_service = {}
 true_service = {}
@@ -508,20 +526,23 @@ for key in no_assist_service:
     queue_keys.append(key)
 for key in queue_keys:
     service_estimations_no_assist = no_assist_service[key]
-    plt.hist(service_estimations_no_assist, bins='auto')
-    ymax = 31
+    hist, bin_edges = np.histogram(service_estimations_no_assist)
+    plt.hist(service_estimations_no_assist, bins = bin_edges[:-1])
+    ymax = max(hist)
     plt.vlines(true_service[key], ymin=0, ymax=ymax, color='red', label='True service rate')
     plt.legend()
-    plt.yticks(range(0, ymax, 5))
+    plt.yticks(range(0, ymax+1, 5))
     plt.title('Service time estimation, standard processing; Queue {}'.format(key))
     plt.xlabel('Service time estimation')
     plt.show()
 
     service_estimations_w_assist = w_assist_service[key]
-    plt.hist(service_estimations_w_assist, bins='auto')
+    hist, bin_edges = np.histogram(service_estimations_w_assist)
+    plt.hist(service_estimations_w_assist, bins=bin_edges[:-1])
+    ymax = max(hist)
     plt.vlines(true_service[key], ymin=0, ymax=ymax, color='red', label='True service rate')
     plt.legend()
-    plt.yticks(range(0, ymax, 5))
+    plt.yticks(range(0, ymax+1, 5))
     plt.title('Service time estimation, assisted processing; Queue {}'.format(key))
     plt.xlabel('Service time estimation')
     plt.show()
