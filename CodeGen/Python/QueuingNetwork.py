@@ -235,9 +235,117 @@ class QueueNetwork:
                 new_arrival = old_log[entry_point][0]
         self.log[queue_id] = old_log
 
+    def gibbs_sampling_update(self, Events_H):
+        # order all event arrival time
+        arrival_times = []
+        event_list = []
+        uniq_id = 0
+        for queue_id, queue_events in self.log.items():
+            for event_log in queue_events:
+                event_log_and_queue = [l for l in event_log]
+                event_log_and_queue.append(queue_id)
+                event_log_and_queue.append(uniq_id)
+                event_list.append(event_log_and_queue)
+                uniq_id += 1
+                # print(event_log_and_queue)
 
+        # find next queue for each events : sorted by event_id and by reverse arrival time to retreive next queue
+        event_list_ordered_by_event_id = sorted(event_list, key=lambda x: (x[4], -x[0]), reverse=False)
+        none_list = [None, None, None, None, None, None, None, None, None]
+        next_event_log = none_list
+        next_event_dict = {}
+        for event_log in event_list_ordered_by_event_id:
+            uniq_id = event_log[8]
+            if next_event_log[4] == event_log[4]:
+                next_event_dict[uniq_id] = next_event_log
+            else:
+                next_event_dict[uniq_id] = none_list
+            next_event_log = event_log
+            # print(next_event_dict[uniq_id])
 
+        # find within queue next events : sorted by queue_id and by reverse arrival time to retreive next queue
+        event_list_ordered_by_queue_id = sorted(event_list, key=lambda x: (x[7], -x[0]), reverse=False)
+        next_event_log = none_list
+        wq_next_event_dict = {}
+        for event_log in event_list_ordered_by_queue_id:
+            uniq_id = event_log[8]
+            if next_event_log[7] == event_log[7]:
+                wq_next_event_dict[uniq_id] = next_event_log
+            else:
+                wq_next_event_dict[uniq_id] = none_list
+            next_event_log = event_log
+            # print(wq_next_event_dict[uniq_id])
 
+        # find within queue last events : sorted by queue_id and by arrival time to retreive last queue
+        event_list_ordered_by_queue_id = sorted(event_list, key=lambda x: (x[7], x[0]), reverse=False)
+        last_event_log = none_list
+        wq_last_event_dict = {}
+        for event_log in event_list_ordered_by_queue_id:
+            uniq_id = event_log[8]
+            if last_event_log[7] == event_log[7]:
+                wq_last_event_dict[uniq_id] = last_event_log
+            else:
+                wq_last_event_dict[uniq_id] = none_list
+            last_event_log = event_log
+            # print(wq_last_event_dict[uniq_id])
+
+        # find next queue next events : sorted by queue_id and by reverse arrival time to retreive last queue
+        event_list_ordered_by_queue_id = sorted(event_list, key=lambda x: (x[7], -x[0]), reverse=False)
+        next_event_log = none_list
+        nq_next_event_dict = {}
+        for e in event_list:
+            uniq_id = e[8]
+            nq_event = next_event_dict[uniq_id]
+            nq_event_uniq_id = nq_event[8]
+            for event_log in event_list_ordered_by_queue_id:
+                nq_next_event_uniq_id = event_log[8]
+                if next_event_log[7] == event_log[7] and nq_next_event_uniq_id == nq_event_uniq_id:
+                    nq_next_event_dict[uniq_id] = next_event_log
+                    break
+                else:
+                    nq_next_event_dict[uniq_id] = none_list
+                next_event_log = event_log
+            # print(nq_next_event_dict[uniq_id])
+
+        # find next queue last events : sorted by queue_id and by arrival time to retreive last queue
+        event_list_ordered_by_queue_id = sorted(event_list, key=lambda x: (x[7], x[0]), reverse=False)
+        last_event_log = none_list
+        nq_last_event_dict = {}
+        for e in event_list:
+            uniq_id = e[8]
+            nq_event = next_event_dict[uniq_id]
+            nq_event_uniq_id = nq_event[8]
+            for event_log in event_list_ordered_by_queue_id:
+                nq_last_event_uniq_id = event_log[8]
+                if last_event_log[7] == event_log[7] and nq_last_event_uniq_id == nq_event_uniq_id:
+                    nq_last_event_dict[uniq_id] = last_event_log
+                    break
+                else:
+                    nq_last_event_dict[uniq_id] = none_list
+                last_event_log = event_log
+            # print(nq_last_event_dict[uniq_id])
+
+        event_list_ordered_by_arrival = sorted(event_list, key=lambda x: x[0], reverse=False)
+        # sample for each event ordered by arrival
+        for e in event_list_ordered_by_arrival:
+            arrival_time, service_time, waiting_time, departure_time, event_id, argmin_d, servicing_state, queue_id, uniq_id = e
+            next_arrival_time, next_service_time, next_waiting_time, next_departure_time, next_event_id, next_argmin_d, next_servicing_state, next_queue_id, next_uniq_id = \
+            next_event_dict[uniq_id]
+            wq_next_arrival_time, wq_next_service_time, wq_next_waiting_time, wq_next_departure_time, wq_next_event_id, wq_next_argmin_d, wq_next_servicing_state, wq_next_queue_id, wq_next_uniq_id = \
+            wq_next_event_dict[uniq_id]
+            wq_last_arrival_time, wq_last_service_time, wq_last_waiting_time, wq_last_departure_time, wq_last_event_id, wq_last_argmin_d, wq_last_servicing_state, wq_last_queue_id, wq_last_uniq_id = \
+            wq_last_event_dict[uniq_id]
+            nq_next_arrival_time, nq_next_service_time, nq_next_waiting_time, nq_next_departure_time, nq_next_event_id, nq_next_argmin_d, nq_next_servicing_state, nq_next_queue_id, nq_next_uniq_id = \
+            nq_next_event_dict[uniq_id]
+            nq_last_arrival_time, nq_last_service_time, nq_last_waiting_time, nq_last_departure_time, nq_last_event_id, nq_last_argmin_d, nq_last_servicing_state, nq_last_queue_id, nq_last_uniq_id = \
+            nq_last_event_dict[uniq_id]
+            print(uniq_id)
+            print(e)
+            print(next_event_dict[uniq_id])
+            print(wq_next_event_dict[uniq_id])
+            print(wq_last_event_dict[uniq_id])
+            print(nq_next_event_dict[uniq_id])
+            print(nq_last_event_dict[uniq_id])
 
 
 events = 500
@@ -274,16 +382,25 @@ for e in range(events):
     else:
         events_O.append(Event(id, arrival_event, departure_event, event_path))
 # Init calls execution_initial() internally
-S = Simulation(events_O, events_H, queues, 'assistComplete')
+
+events_O_copy = copy.deepcopy(events_O)
+events_H_copy = copy.deepcopy(events_H)
+queues_copy = copy.deepcopy(queues)
+random.seed(events)
+S_no_assist = Simulation(events_O_copy, events_H_copy, queues_copy)
+random.seed(events)
+S_w_assist = Simulation(events_O_copy, events_H_copy, queues_copy, 'assistComplete')
 # for e in S.event_triggers:
 #     print(e[0])
 print('\nDeparture times')
-for e in S.Events_O:
+for e in S_no_assist.Events_O:
     print(e.id)
     print(e.departure_times)
 
 queue_log = {}
-for q in S.Queues:
+for q in S_no_assist.Queues:
+    if q == 'init':
+        continue
     print('Queue {}'.format(q))
     print('Arrival, Service, Wait, Departure, ')
     queue = queues[q]
@@ -311,7 +428,7 @@ runs = 10
     # Use S.joint_density_log()
 
 # M - Step
-for q in S.Queues:
+for q in S_no_assist.Queues:
     if q == 'init':
         continue
     print('Queue {}'.format(q))
@@ -325,7 +442,64 @@ for q in S.Queues:
         sum_service_times += service_time*k_servers
         sum_servicers += 1./k_servers
     N = len(queue.queue_log)
-    print(sum_servicers / sum_service_times)
-    print(N / sum_service_times)
-    print(queue.service_rate)
-    print('\n')
+    #print(sum_servicers / sum_service_times)
+    #print(N / sum_service_times)
+    #print(queue.service_rate)
+    #print('\n')
+
+
+
+
+# Plots
+no_assist_service = {}
+w_assist_service = {}
+true_service = {}
+
+for i in range(100):
+    events_O_copy = copy.deepcopy(events_O)
+    events_H_copy = copy.deepcopy(events_H)
+    queues_copy = copy.deepcopy(queues)
+    random.seed(i)
+    S_no_assist = Simulation(events_O_copy, events_H_copy, queues_copy)
+    random.seed(i)
+    events_O_copy = copy.deepcopy(events_O)
+    events_H_copy = copy.deepcopy(events_H)
+    queues_copy = copy.deepcopy(queues)
+    S_w_assist = Simulation(events_O_copy, events_H_copy, queues_copy, 'assistComplete')
+
+    for q in S_w_assist.Queues:
+        if q == 'init':
+            continue
+        print('Queue {}'.format(q))
+        queue = S_w_assist.Queues[q]
+        true_service[q] = queue.service_rate
+        if q not in w_assist_service:
+            w_assist_service[q] = []
+        # Modified congestion
+        sum_service_times = 0
+        sum_servicers = 0
+        for log in queue.queue_log: # [arrival, service, wait, departure
+            k_servers = log[7]
+            service_time = log[1]
+            sum_service_times += service_time*k_servers
+            sum_servicers += 1./k_servers
+        mod_rate_estimator = sum_servicers / sum_service_times
+        w_assist_service[q].append(mod_rate_estimator)
+
+    for q in S_no_assist.Queues:
+        if q == 'init':
+            continue
+        print('Queue {}'.format(q))
+        queue = S_no_assist.Queues[q]
+        # standard congestion
+        if q not in no_assist_service:
+            no_assist_service[q] = []
+        sum_service_times = 0
+        for log in queue.queue_log: # [arrival, service, wait, departure
+            service_time = log[1]
+            sum_service_times += service_time
+        mod_rate_estimator = len(queue.queue_log) / sum_service_times
+        no_assist_service[q].append(mod_rate_estimator)
+
+print(no_assist_service)
+print(w_assist_service)
