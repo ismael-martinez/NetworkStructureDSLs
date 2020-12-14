@@ -40,7 +40,8 @@ class QueueNetwork:
                 q_times = [round(self.log[q][i][t], DECIMALS) for t in range(4)]
                 q_log = q_times + list(self.log[q][i][4:])
                 self.log[q][i] = tuple(q_log)
-        self.log[q] = self.queue_logs_scramble_initial()
+        #self.update_arrival_time('')
+        self.gibbs_sampling_update(initial=True)
     # For an event in a queue, return all required information.
     # Input
     ## event_id (string), id of Event
@@ -68,16 +69,6 @@ class QueueNetwork:
         event_log_dict['earliest_service_time'] = event_log[0] + event_log[2]
         return event_log_dict
 
-    # Scramble the initial queue logs to have a starting point
-    def queue_logs_scramble_initial(self):
-        for q in self.log:
-            for r in self.log[q]:
-                current_processing = r[1]
-                new_processing = np.random.random()*current_processing
-                new_departure = r[0] + r[2] + new_processing # TODO Very naive. Needs to sample between L and U randomly
-                next_q = self.event_transition[(r[4],  q)]
-                self.update_departure_time(new_departure, r[4], q)
-                self.update_arrival_time(new_departure, r[4], next_q)
     def update_departure_time(self, new_departure, event_id, queue_id):
         old_log = self.log[queue_id]
         log_id = 0
@@ -272,7 +263,7 @@ class QueueNetwork:
                 new_arrival = old_log[entry_point][0]
         self.log[queue_id] = old_log
 
-    def gibbs_sampling_update(self, Events_H):
+    def gibbs_sampling_update(self, initial = False):
         # order all event arrival time
         arrival_times = []
         event_list = []
@@ -364,21 +355,21 @@ class QueueNetwork:
 
         event_list_ordered_by_arrival = sorted(event_list, key=lambda x: x[0], reverse=False)
         # sample for each hidden event ordered by arrival
-        hidden_ids = [e.id for e in Events_H]
+        hidden_ids = self.hidden_ids # [e.id for e in Events_H]
         print(hidden_ids)
         for e in event_list_ordered_by_arrival:
             event_id = e[4]
             if event_id in hidden_ids:
-                arrival_time, service_time, waiting_time, departure_time, event_id, argmin_d, servicing_state, queue_id, uniq_id = e
-                next_arrival_time, next_service_time, next_waiting_time, next_departure_time, next_event_id, next_argmin_d, next_servicing_state, next_queue_id, next_uniq_id = \
+                arrival_time, service_time, waiting_time, departure_time, event_id, argmin_d, servicing_state, queue_id, uniq_id, _ = e
+                next_arrival_time, next_service_time, next_waiting_time, next_departure_time, next_event_id, next_argmin_d, next_servicing_state, next_queue_id, next_uniq_id, _ = \
                 next_event_dict[uniq_id]
-                wq_next_arrival_time, wq_next_service_time, wq_next_waiting_time, wq_next_departure_time, wq_next_event_id, wq_next_argmin_d, wq_next_servicing_state, wq_next_queue_id, wq_next_uniq_id = \
+                wq_next_arrival_time, wq_next_service_time, wq_next_waiting_time, wq_next_departure_time, wq_next_event_id, wq_next_argmin_d, wq_next_servicing_state, wq_next_queue_id, wq_next_uniq_id, _ = \
                 wq_next_event_dict[uniq_id]
-                wq_last_arrival_time, wq_last_service_time, wq_last_waiting_time, wq_last_departure_time, wq_last_event_id, wq_last_argmin_d, wq_last_servicing_state, wq_last_queue_id, wq_last_uniq_id = \
+                wq_last_arrival_time, wq_last_service_time, wq_last_waiting_time, wq_last_departure_time, wq_last_event_id, wq_last_argmin_d, wq_last_servicing_state, wq_last_queue_id, wq_last_uniq_id, _ = \
                 wq_last_event_dict[uniq_id]
-                nq_next_arrival_time, nq_next_service_time, nq_next_waiting_time, nq_next_departure_time, nq_next_event_id, nq_next_argmin_d, nq_next_servicing_state, nq_next_queue_id, nq_next_uniq_id = \
+                nq_next_arrival_time, nq_next_service_time, nq_next_waiting_time, nq_next_departure_time, nq_next_event_id, nq_next_argmin_d, nq_next_servicing_state, nq_next_queue_id, nq_next_uniq_id, _ = \
                 nq_next_event_dict[uniq_id]
-                nq_last_arrival_time, nq_last_service_time, nq_last_waiting_time, nq_last_departure_time, nq_last_event_id, nq_last_argmin_d, nq_last_servicing_state, nq_last_queue_id, nq_last_uniq_id = \
+                nq_last_arrival_time, nq_last_service_time, nq_last_waiting_time, nq_last_departure_time, nq_last_event_id, nq_last_argmin_d, nq_last_servicing_state, nq_last_queue_id, nq_last_uniq_id, _ = \
                 nq_last_event_dict[uniq_id]
                 print(uniq_id)
                 print(e)
@@ -395,6 +386,18 @@ class QueueNetwork:
                 A_bound = self.max_min_queue_grid(wq_next_arrival_time, nq_last_departure_time, maximum=0)
                 B_bound = self.max_min_queue_grid(wq_next_arrival_time, nq_last_departure_time, maximum=1)
 
+                # Sample
+                if initial:
+                    # Sample from uniform across [L, U]
+                    d = Lower_bound + np.random.random() * (upper_bound - Lower_bound)
+                else:
+                    # Gibbs sampling
+                    pass
+                    # TODO
+                    # sample_trancated_exponential(rate, start, end)
+                    # self.event_transition[(event_id, queue_id)] this function gives the next queue for an event
+
+
     def max_min_queue_grid(self, *argv, maximum=1):
         # print("call",maximum)
         bound = 0.0 if maximum == 1 else np.infty
@@ -404,6 +407,8 @@ class QueueNetwork:
                 bound = max(bound, arg) if maximum == 1 else min(bound, arg)
                 # print("max:",maximum,"bound:", bound)
         return bound
+
+
 
 events = 500
 p = 0.4
@@ -476,7 +481,7 @@ queue_network = QueueNetwork(queue_log, hidden_ids, S.event_triggers, K)
 
 runs = 10
 for i in range(runs):
-    queue_network.gibbs_sampling_update(events_H)
+    queue_network.gibbs_sampling_update()
 
     # M - Step
     for q in S.Queues:
