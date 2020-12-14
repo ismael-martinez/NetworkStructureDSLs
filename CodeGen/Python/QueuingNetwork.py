@@ -40,7 +40,7 @@ class QueueNetwork:
                 q_times = [round(self.log[q][i][t], DECIMALS) for t in range(4)]
                 q_log = q_times + list(self.log[q][i][4:])
                 self.log[q][i] = tuple(q_log)
-            self.log[q] = self.queue_logs_scramble_initial()
+        self.log[q] = self.queue_logs_scramble_initial()
     # For an event in a queue, return all required information.
     # Input
     ## event_id (string), id of Event
@@ -74,10 +74,10 @@ class QueueNetwork:
             for r in self.log[q]:
                 current_processing = r[1]
                 new_processing = np.random.random()*current_processing
-                new_departure = r[0] + r[2] + new_processing
-                next_q = self.event_transition[(r[0],  q)]
+                new_departure = r[0] + r[2] + new_processing # TODO Very naive. Needs to sample between L and U randomly
+                next_q = self.event_transition[(r[4],  q)]
                 self.update_departure_time(new_departure, r[4], q)
-                self.update_departure_time(new_departure, r[4], next_q)
+                self.update_arrival_time(new_departure, r[4], next_q)
     def update_departure_time(self, new_departure, event_id, queue_id):
         old_log = self.log[queue_id]
         log_id = 0
@@ -107,7 +107,7 @@ class QueueNetwork:
         log_tuple[0], new_departure - earliest_service , log_tuple[2], new_departure, log_tuple[4], log_tuple[5], servicing_state, log_tuple[7])
         departure_times_subserver[log_tuple[4]] = new_departure
         print(self.log[queue_id][log_id])
-        print(departure_times_subserver)
+        print('Dep ' + str(departure_times_subserver))
         queue_events = []
         servicing = [servicing_state[q] for q in servicing_state if servicing_state[q]]
         if all(servicing):
@@ -157,7 +157,7 @@ class QueueNetwork:
                     servicing_state_new[s] = None
 
             new_log = (
-            arrival_time, service_time, waiting_time, departure_time, event_id, subserver, servicing_state_new)
+            arrival_time, service_time, waiting_time, departure_time, event_id, subserver, servicing_state_new, log_tuple[7])
             print('Old ' + str(old_log[i]))
             print('New ' + str(new_log))
 
@@ -219,6 +219,7 @@ class QueueNetwork:
             departure_servicing = {}
             for k in range(self.K):
                 servicing_state[k] = None
+                departure_servicing[k] = None
             if entry_point > 0:
                 servicing_state = old_log[entry_point - 1][6]
             for log in old_log[0:entry_point]:
@@ -249,11 +250,14 @@ class QueueNetwork:
             servicing_state[argmin_d] = event_id
             waiting_time = round(earliest_service - new_arrival, DECIMALS)
             service_time = round(old_departure_time - earliest_service, DECIMALS)
-            new_log = (new_arrival, service_time, waiting_time, old_departure_time, event_id, argmin_d, servicing_state)
+            if service_time < 0:
+                raise Exception('Service time must be non-negative')
+            k_servers = delete_log[7]
+            new_log = (new_arrival, service_time, waiting_time, old_departure_time, event_id, argmin_d, servicing_state, k_servers)
             old_log = old_log[0:entry_point] + [new_log] + old_log[entry_point:]
 
-            print(new_log)
-            print(delete_log)
+            print('Old ' + str(delete_log))
+            print('New ' + str(new_log))
             compare = [new_log[t] == delete_log[t] for t in range(len(new_log))]
 
             # Compare new_log with old_log
@@ -452,27 +456,24 @@ queue_network = QueueNetwork(queue_log, hidden_ids, S.event_triggers, K)
 
 runs = 10
 for i in range(runs):
-    pass
+    queue_network.gibbs_sampling_update(events_H)
 
-# M - Step
-for q in S.Queues:
-    if q == 'init':
-        continue
-    print('Queue {}'.format(q))
-    queue = queues[q]
+    # M - Step
+    for q in S.Queues:
+        if q == 'init':
+            continue
+        print('Queue {}'.format(q))
+        queue = queues[q]
 
-    sum_service_times = 0
-    sum_servicers = 0
-    for log in queue.queue_log: # [arrival, service, wait, departure
-        k_servers = log[7]
-        service_time = log[1]
-        sum_service_times += service_time*k_servers
-        sum_servicers += 1./k_servers
-    N = len(queue.queue_log)
-    #print(sum_servicers / sum_service_times)
-    #print(N / sum_service_times)
-    #print(queue.service_rate)
-    #print('\n')
+        sum_service_times = 0
+        sum_servicers = 0
+        for log in queue.queue_log: # [arrival, service, wait, departure
+            k_servers = log[7]
+            service_time = log[1]
+            sum_service_times += service_time*k_servers
+
+        N = len(queue.queue_log)
+        queue_network.service_rates[q] = N / sum_service_times # M step update
 
 
 

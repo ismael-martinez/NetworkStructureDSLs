@@ -72,7 +72,7 @@ class Simulation:
         # Insert all initial departure times (arrival into the system)
         for e in all_Events:
             # first departure from init = first arrival to queue
-            initial_departure_trigger = (e.departure_times[0], e.id, 'Departure')
+            initial_departure_trigger = (e.departure_times[0], e.id, 'Departure', 'init')
             #e.current_task += 1
             # insert by timestamp
             self.event_triggers = insert_event_trigger(self.event_triggers, initial_departure_trigger)
@@ -117,7 +117,7 @@ class Simulation:
                 new_queue_id = event.move_queue()
                 if new_queue_id: # event completed
                     # add trigger for current event, new queue
-                    arrival_trigger = (trigger_time, event_id, 'Arrival')
+                    arrival_trigger = (trigger_time, event_id, 'Arrival', new_queue_id)
                     self.event_triggers = insert_event_trigger(self.event_triggers, arrival_trigger)
 
                 # New event for current queue
@@ -132,6 +132,9 @@ class Simulation:
                 #     self.service_queue(trigger_time, new_queue, t)
 
 
+    def get_queue(self, queue_id):
+        return self.Queues(queue_id)
+
     def service_queue(self, trigger_time, queue, t):
         [_, _, _, d, e, _, _, _] = queue.service_metrics(trigger_time, self.assist_style)
         if e is None:
@@ -141,7 +144,7 @@ class Simulation:
         event = self.dict_events[e]
         task = event.current_task
         event.departure_times[task] = d
-        new_trigger = (d, e, 'Departure')
+        new_trigger = (d, e, 'Departure', queue.id)
         nt = t
         for et in range(t, len(self.event_triggers)):
             et_time = self.event_triggers[et][0]
