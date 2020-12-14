@@ -7,6 +7,7 @@ from Simulation import *
 import numpy as np
 import random
 import copy
+import matplotlib.pyplot as plt
 
 DECIMALS = 7
 
@@ -482,8 +483,7 @@ for i in range(100):
             k_servers = log[7]
             service_time = log[1]
             sum_service_times += service_time*k_servers
-            sum_servicers += 1./k_servers
-        mod_rate_estimator = sum_servicers / sum_service_times
+        mod_rate_estimator = len(queue.queue_log) / sum_service_times
         w_assist_service[q].append(mod_rate_estimator)
 
     for q in S_no_assist.Queues:
@@ -503,3 +503,25 @@ for i in range(100):
 
 print(no_assist_service)
 print(w_assist_service)
+queue_keys = []
+for key in no_assist_service:
+    queue_keys.append(key)
+for key in queue_keys:
+    service_estimations_no_assist = no_assist_service[key]
+    plt.hist(service_estimations_no_assist, bins='auto')
+    ymax = 31
+    plt.vlines(true_service[key], ymin=0, ymax=ymax, color='red', label='True service rate')
+    plt.legend()
+    plt.yticks(range(0, ymax, 5))
+    plt.title('Service time estimation, standard processing; Queue {}'.format(key))
+    plt.xlabel('Service time estimation')
+    plt.show()
+
+    service_estimations_w_assist = w_assist_service[key]
+    plt.hist(service_estimations_w_assist, bins='auto')
+    plt.vlines(true_service[key], ymin=0, ymax=ymax, color='red', label='True service rate')
+    plt.legend()
+    plt.yticks(range(0, ymax, 5))
+    plt.title('Service time estimation, assisted processing; Queue {}'.format(key))
+    plt.xlabel('Service time estimation')
+    plt.show()
