@@ -12,16 +12,21 @@ import matplotlib.pyplot as plt
 DECIMALS = 7
 
 class QueueNetwork:
-    def __init__(self, queue_log_dict, K):
+    def __init__(self, queue_log_dict, hidden_ids, K):
         self.K = K
         self.log = queue_log_dict
+        self.hidden_ids = hidden_ids
+        self.queue_ids = []
+        self.service_rates = {}
         # Trim arrival, wait, service, and destination to 7 decimals
         for q in self.log:
+            self.queue_ids.append(q)
+            self.service_rates[q] = 0
             for i in range(len(self.log[q])):
                 q_times = [round(self.log[q][i][t], DECIMALS) for t in range(4)]
                 q_log = q_times + list(self.log[q][i][4:])
                 self.log[q][i] = tuple(q_log)
-
+            self.log[q] = self.queue_logs_scramble_initial()
     # For an event in a queue, return all required information.
     # Input
     ## event_id (string), id of Event
@@ -49,6 +54,14 @@ class QueueNetwork:
         event_log_dict['earliest_service_time'] = event_log[0] + event_log[2]
         return event_log_dict
 
+    # Scramble the initial queue logs to have a starting point
+    def queue_logs_scramble_initial(self):
+        for q in self.log:
+            for r in self.log[q]:
+                current_processing = r[1]
+                new_processing = np.random.random()*current_processing
+                new_departure = r[0] + r[2] + new_processing
+                self.update_departure_time(new_departure, r[4], q)
 
     def update_departure_time(self, new_departure, event_id, queue_id):
         old_log = self.log[queue_id]
@@ -73,8 +86,10 @@ class QueueNetwork:
             raise Exception('Departure time is invalid.')
 
         # Create new log_entry with new departure
+
+        earliest_service = log_tuple[0] + log_tuple[2]
         self.log[queue_id][log_id] = (
-        log_tuple[0], log_tuple[1], log_tuple[2], new_departure, log_tuple[4], log_tuple[5], servicing_state)
+        log_tuple[0], new_departure - earliest_service , log_tuple[2], new_departure, log_tuple[4], log_tuple[5], servicing_state, log_tuple[7])
         departure_times_subserver[log_tuple[4]] = new_departure
         print(self.log[queue_id][log_id])
         print(departure_times_subserver)
@@ -128,23 +143,25 @@ class QueueNetwork:
 
             new_log = (
             arrival_time, service_time, waiting_time, departure_time, event_id, subserver, servicing_state_new)
-            print(new_log)
-            print(old_log[i])
+            print('Old ' + str(old_log[i]))
+            print('New ' + str(new_log))
+
             compare = [new_log[t] == old_log[i][t] for t in range(len(new_log))]
 
             # Compare new_log with old_log
-            if all(compare):
+            if all(compare) and i > self.K:
                 print('Stable')
                 self.log[queue_id] = old_log
                 return
             else:
                 old_log[i] = new_log
                 # Reconstruct relevant info from newest log
-                log_tuple = new_log
+                log_tuple = old_log[i] #new_log
+                new_departure = log_tuple[3]
                 servicing_state = log_tuple[6]
                 self.log[queue_id][log_id] = (
                     log_tuple[0], log_tuple[1], log_tuple[2], new_departure, log_tuple[4], log_tuple[5],
-                    servicing_state)
+                    servicing_state, log_tuple[7])
                 departure_times_subserver[log_tuple[4]] = new_departure
                 queue_events = []
                 servicing = [servicing_state[q] for q in servicing_state if servicing_state[q]]
@@ -356,7 +373,7 @@ ns = network_structure.graph.nodes.get_nodes()
 queues = {}
 K = 2
 for node in ns:
-    service_rate = 5*np.random.random()
+    service_rate = 3*np.random.random()
     queues[node] = Queue(node, service_rate, K)
 
 arrival_rate = 3
@@ -370,6 +387,7 @@ all_events = []
 events_O = []
 events_H = []
 
+# Build events
 for e in range(events):
     tasks = np.random.randint(1, 3)
     event_path = list(random_path(tasks)) # Make copy
@@ -383,53 +401,46 @@ for e in range(events):
     else:
         events_O.append(Event(id, arrival_event, departure_event, event_path))
 # Init calls execution_initial() internally
-
 events_O_copy = copy.deepcopy(events_O)
 events_H_copy = copy.deepcopy(events_H)
 queues_copy = copy.deepcopy(queues)
 random.seed(events)
-S_no_assist = Simulation(events_O_copy, events_H_copy, queues_copy)
-random.seed(events)
-S_w_assist = Simulation(events_O_copy, events_H_copy, queues_copy, 'assistComplete')
+S = Simulation(events_O_copy, events_H_copy, queues_copy)
+# Copy the hidden events with real values for testing. Deep copy creates new objects with their own references
+events_H_actual = copy.deepcopy(events_H)
+hidden_ids = []
+for h in events_H_actual:
+    hidden_ids.append(h.id)
 # for e in S.event_triggers:
 #     print(e[0])
-print('\nDeparture times')
-for e in S_no_assist.Events_O:
-    print(e.id)
-    print(e.departure_times)
+# print('\nDeparture times')
+# for e in S_no_assist.Events_O:
+#     print(e.id)
+#     print(e.departure_times)
 
 queue_log = {}
-for q in S_no_assist.Queues:
+for q in S.Queues:
     if q == 'init':
         continue
     print('Queue {}'.format(q))
     print('Arrival, Service, Wait, Departure, ')
-    queue = queues[q]
+    queue = S.Queues[q]
     queue_log[q] = queue.queue_log[0:-1]
     for l in queue.queue_log: # [arrival, service, wait, departure
         print(l)
     print('\n')
 
-queue_network = QueueNetwork(queue_log, K)
-#queue_network.update_departure_time(2.00, 'e10', 'n1')
-#queue_network.event_log_dict('e10', 'n1')
+queue_network = QueueNetwork(queue_log, hidden_ids, K)
 
-# Copy the hidden events with real values for testing. Deep copy creates new objects with their own references
-events_H_actual = copy.deepcopy(events_H)
 
-# TODO - Bass
-# Init simulation
-#S = Simulation()
+
+
 runs = 10
-#for i in range(runs):
-    # Build sample d [departure_times]
-
-    #[service_times, wait_times] = S.update_hidden_events(events_H)
-    # Gibbs sampling from metrics
-    # Use S.joint_density_log()
+for i in range(runs):
+    pass
 
 # M - Step
-for q in S_no_assist.Queues:
+for q in S.Queues:
     if q == 'init':
         continue
     print('Queue {}'.format(q))
@@ -449,100 +460,106 @@ for q in S_no_assist.Queues:
     #print('\n')
 
 
-random.seed(50)
-events_O_copy = copy.deepcopy(events_O)
-events_H_copy = copy.deepcopy(events_H)
-queues_copy = copy.deepcopy(queues)
-S_w_assist = Simulation(events_O_copy, events_H_copy, queues_copy, 'assistComplete')
-for q in S_w_assist.Queues:
-    q_log = S_w_assist.Queues[q].queue_log
-    service_mean = 1/S_w_assist.Queues[q].service_rate
-    service_times = []
-    for log in q_log:
-        service_times.append(log[1])
-    plt.boxplot(service_times)
-    plt.axhline(service_mean, color='r', label='Expected service time')
-    plt.title('Service gains from assisted processing')
-    plt.ylabel('Service time')
-    plt.xticks([1], [q])
-    plt.legend()
-    plt.show()
 
 
-# Plots Histograms
-no_assist_service = {}
-w_assist_service = {}
-true_service = {}
+def plot_service_time_histograms(events_O, events_H, queues):
 
-for i in range(100):
-    events_O_copy = copy.deepcopy(events_O)
-    events_H_copy = copy.deepcopy(events_H)
-    queues_copy = copy.deepcopy(queues)
-    random.seed(i)
-    S_no_assist = Simulation(events_O_copy, events_H_copy, queues_copy)
-    random.seed(i)
+    random.seed(50)
     events_O_copy = copy.deepcopy(events_O)
     events_H_copy = copy.deepcopy(events_H)
     queues_copy = copy.deepcopy(queues)
     S_w_assist = Simulation(events_O_copy, events_H_copy, queues_copy, 'assistComplete')
-
     for q in S_w_assist.Queues:
-        if q == 'init':
-            continue
-        print('Queue {}'.format(q))
-        queue = S_w_assist.Queues[q]
-        true_service[q] = queue.service_rate
-        if q not in w_assist_service:
-            w_assist_service[q] = []
-        # Modified congestion
-        sum_service_times = 0
-        sum_servicers = 0
-        for log in queue.queue_log: # [arrival, service, wait, departure
-            k_servers = log[7]
-            service_time = log[1]
-            sum_service_times += service_time*k_servers
-        mod_rate_estimator = len(queue.queue_log) / sum_service_times
-        w_assist_service[q].append(mod_rate_estimator)
+        q_log = S_w_assist.Queues[q].queue_log
+        service_mean = 1/S_w_assist.Queues[q].service_rate
+        service_times = []
+        for log in q_log:
+            service_times.append(log[1])
+        plt.boxplot(service_times)
+        plt.axhline(service_mean, color='r', label='Expected service time {}'.format(q))
+        plt.title('Service gains from assisted processing')
+        plt.ylabel('Service time')
+        plt.xticks([1], [q])
+        plt.legend()
+        plt.show()
 
-    for q in S_no_assist.Queues:
-        if q == 'init':
-            continue
-        print('Queue {}'.format(q))
-        queue = S_no_assist.Queues[q]
-        # standard congestion
-        if q not in no_assist_service:
-            no_assist_service[q] = []
-        sum_service_times = 0
-        for log in queue.queue_log: # [arrival, service, wait, departure
-            service_time = log[1]
-            sum_service_times += service_time
-        mod_rate_estimator = len(queue.queue_log) / sum_service_times
-        no_assist_service[q].append(mod_rate_estimator)
 
-print(no_assist_service)
-print(w_assist_service)
-queue_keys = []
-for key in no_assist_service:
-    queue_keys.append(key)
-for key in queue_keys:
-    service_estimations_no_assist = no_assist_service[key]
-    hist, bin_edges = np.histogram(service_estimations_no_assist)
-    plt.hist(service_estimations_no_assist, bins = bin_edges[:-1])
-    ymax = max(hist)
-    plt.vlines(true_service[key], ymin=0, ymax=ymax, color='red', label='True service rate')
-    plt.legend()
-    plt.yticks(range(0, ymax+1, 5))
-    plt.title('Service time estimation, standard processing; Queue {}'.format(key))
-    plt.xlabel('Service time estimation')
+    # Plots Histograms
+    no_assist_service = {}
+    w_assist_service = {}
+    true_service = {}
+
+    for i in range(100):
+        events_O_copy = copy.deepcopy(events_O)
+        events_H_copy = copy.deepcopy(events_H)
+        queues_copy = copy.deepcopy(queues)
+        random.seed(i)
+        S_no_assist = Simulation(events_O_copy, events_H_copy, queues_copy)
+        random.seed(i)
+        events_O_copy = copy.deepcopy(events_O)
+        events_H_copy = copy.deepcopy(events_H)
+        queues_copy = copy.deepcopy(queues)
+        S_w_assist = Simulation(events_O_copy, events_H_copy, queues_copy, 'assistComplete')
+
+        for q in S_w_assist.Queues:
+            if q == 'init':
+                continue
+            print('Queue {}'.format(q))
+            queue = S_w_assist.Queues[q]
+            true_service[q] = queue.service_rate
+            if q not in w_assist_service:
+                w_assist_service[q] = []
+            # Modified congestion
+            sum_service_times = 0
+            sum_servicers = 0
+            for log in queue.queue_log: # [arrival, service, wait, departure
+                k_servers = log[7]
+                service_time = log[1]
+                sum_service_times += service_time*k_servers
+            mod_rate_estimator = len(queue.queue_log) / sum_service_times
+            w_assist_service[q].append(mod_rate_estimator)
+
+        for q in S_no_assist.Queues:
+            if q == 'init':
+                continue
+            print('Queue {}'.format(q))
+            queue = S_no_assist.Queues[q]
+            # standard congestion
+            if q not in no_assist_service:
+                no_assist_service[q] = []
+            sum_service_times = 0
+            for log in queue.queue_log: # [arrival, service, wait, departure
+                service_time = log[1]
+                sum_service_times += service_time
+            mod_rate_estimator = len(queue.queue_log) / sum_service_times
+            no_assist_service[q].append(mod_rate_estimator)
+
+    print(no_assist_service)
+    print(w_assist_service)
+    queue_keys = []
+    for key in no_assist_service:
+        queue_keys.append(key)
+    for key in queue_keys:
+        service_estimations_no_assist = no_assist_service[key]
+        hist, bin_edges = np.histogram(service_estimations_no_assist)
+        plt.hist(service_estimations_no_assist, bins = bin_edges[:-1])
+        ymax = max(hist)+1
+        plt.vlines(true_service[key], ymin=0, ymax=ymax, color='red', label='True service rate')
+        plt.legend()
+        plt.yticks(range(0, ymax+1, 5))
+        plt.title('Service time estimation, standard processing; Queue {}'.format(key))
+        plt.xlabel('Service time estimation')
+        plt.show()
+
+        service_estimations_w_assist = w_assist_service[key]
+        hist, bin_edges = np.histogram(service_estimations_w_assist)
+        plt.hist(service_estimations_w_assist, bins=bin_edges[:-1])
+        ymax = max(hist)+1
+        plt.vlines(true_service[key], ymin=0, ymax=ymax, color='red', label='True service rate')
+        plt.legend()
+        plt.yticks(range(0, ymax+1, 5))
+        plt.title('Service time estimation, assisted processing; Queue {}'.format(key))
+        plt.xlabel('Service time estimation')
     plt.show()
 
-    service_estimations_w_assist = w_assist_service[key]
-    hist, bin_edges = np.histogram(service_estimations_w_assist)
-    plt.hist(service_estimations_w_assist, bins=bin_edges[:-1])
-    ymax = max(hist)
-    plt.vlines(true_service[key], ymin=0, ymax=ymax, color='red', label='True service rate')
-    plt.legend()
-    plt.yticks(range(0, ymax+1, 5))
-    plt.title('Service time estimation, assisted processing; Queue {}'.format(key))
-    plt.xlabel('Service time estimation')
-    plt.show()
+# plot_service_time_histograms(events_O, events_H, queues)
