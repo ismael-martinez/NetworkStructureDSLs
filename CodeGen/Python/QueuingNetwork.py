@@ -363,34 +363,54 @@ class QueueNetwork:
             # print(nq_last_event_dict[uniq_id])
 
         event_list_ordered_by_arrival = sorted(event_list, key=lambda x: x[0], reverse=False)
-        # sample for each event ordered by arrival
+        # sample for each hidden event ordered by arrival
+        hidden_ids = [e.id for e in Events_H]
+        print(hidden_ids)
         for e in event_list_ordered_by_arrival:
-            arrival_time, service_time, waiting_time, departure_time, event_id, argmin_d, servicing_state, queue_id, uniq_id = e
-            next_arrival_time, next_service_time, next_waiting_time, next_departure_time, next_event_id, next_argmin_d, next_servicing_state, next_queue_id, next_uniq_id = \
-            next_event_dict[uniq_id]
-            wq_next_arrival_time, wq_next_service_time, wq_next_waiting_time, wq_next_departure_time, wq_next_event_id, wq_next_argmin_d, wq_next_servicing_state, wq_next_queue_id, wq_next_uniq_id = \
-            wq_next_event_dict[uniq_id]
-            wq_last_arrival_time, wq_last_service_time, wq_last_waiting_time, wq_last_departure_time, wq_last_event_id, wq_last_argmin_d, wq_last_servicing_state, wq_last_queue_id, wq_last_uniq_id = \
-            wq_last_event_dict[uniq_id]
-            nq_next_arrival_time, nq_next_service_time, nq_next_waiting_time, nq_next_departure_time, nq_next_event_id, nq_next_argmin_d, nq_next_servicing_state, nq_next_queue_id, nq_next_uniq_id = \
-            nq_next_event_dict[uniq_id]
-            nq_last_arrival_time, nq_last_service_time, nq_last_waiting_time, nq_last_departure_time, nq_last_event_id, nq_last_argmin_d, nq_last_servicing_state, nq_last_queue_id, nq_last_uniq_id = \
-            nq_last_event_dict[uniq_id]
-            print(uniq_id)
-            print(e)
-            print(next_event_dict[uniq_id])
-            print(wq_next_event_dict[uniq_id])
-            print(wq_last_event_dict[uniq_id])
-            print(nq_next_event_dict[uniq_id])
-            print(nq_last_event_dict[uniq_id])
+            event_id = e[4]
+            if event_id in hidden_ids:
+                arrival_time, service_time, waiting_time, departure_time, event_id, argmin_d, servicing_state, queue_id, uniq_id = e
+                next_arrival_time, next_service_time, next_waiting_time, next_departure_time, next_event_id, next_argmin_d, next_servicing_state, next_queue_id, next_uniq_id = \
+                next_event_dict[uniq_id]
+                wq_next_arrival_time, wq_next_service_time, wq_next_waiting_time, wq_next_departure_time, wq_next_event_id, wq_next_argmin_d, wq_next_servicing_state, wq_next_queue_id, wq_next_uniq_id = \
+                wq_next_event_dict[uniq_id]
+                wq_last_arrival_time, wq_last_service_time, wq_last_waiting_time, wq_last_departure_time, wq_last_event_id, wq_last_argmin_d, wq_last_servicing_state, wq_last_queue_id, wq_last_uniq_id = \
+                wq_last_event_dict[uniq_id]
+                nq_next_arrival_time, nq_next_service_time, nq_next_waiting_time, nq_next_departure_time, nq_next_event_id, nq_next_argmin_d, nq_next_servicing_state, nq_next_queue_id, nq_next_uniq_id = \
+                nq_next_event_dict[uniq_id]
+                nq_last_arrival_time, nq_last_service_time, nq_last_waiting_time, nq_last_departure_time, nq_last_event_id, nq_last_argmin_d, nq_last_servicing_state, nq_last_queue_id, nq_last_uniq_id = \
+                nq_last_event_dict[uniq_id]
+                print(uniq_id)
+                print(e)
+                print(next_event_dict[uniq_id])
+                print(wq_next_event_dict[uniq_id])
+                print(wq_last_event_dict[uniq_id])
+                print(nq_next_event_dict[uniq_id])
+                print(nq_last_event_dict[uniq_id])
+                # if wq_next_queue_id is not None:
+                Lower_bound = self.max_min_queue_grid(departure_time, wq_last_departure_time, nq_last_arrival_time,
+                                                      maximum=1, )
+                upper_bound = self.max_min_queue_grid(next_departure_time, nq_next_arrival_time, wq_next_departure_time,
+                                                      maximum=0)
+                A_bound = self.max_min_queue_grid(wq_next_arrival_time, nq_last_departure_time, maximum=0)
+                B_bound = self.max_min_queue_grid(wq_next_arrival_time, nq_last_departure_time, maximum=1)
 
+    def max_min_queue_grid(self, *argv, maximum=1):
+        # print("call",maximum)
+        bound = 0.0 if maximum == 1 else np.infty
+        for arg in argv:
+            # print("another arg through *argv:", arg)
+            if arg is not None:
+                bound = max(bound, arg) if maximum == 1 else min(bound, arg)
+                # print("max:",maximum,"bound:", bound)
+        return bound
 
 events = 500
 p = 0.4
 random.seed(events)
 ns = network_structure.graph.nodes.get_nodes()
 queues = {}
-K = 2
+K = 1
 for node in ns:
     service_rate = 3*np.random.random()
     queues[node] = Queue(node, service_rate, K)
