@@ -12,12 +12,26 @@ import matplotlib.pyplot as plt
 DECIMALS = 7
 
 class QueueNetwork:
-    def __init__(self, queue_log_dict, hidden_ids, K):
+    def __init__(self, queue_log_dict, hidden_ids, event_triggers, K):
         self.K = K
         self.log = queue_log_dict
         self.hidden_ids = hidden_ids
         self.queue_ids = []
         self.service_rates = {}
+        # Construct event tuples from event trigger list:
+        self.event_transition = {}
+        for i in range(len(event_triggers)):
+            e = event_triggers[i]
+            if 'Arrival' in e[2]:
+                continue
+            if 'Departure' in e[2]:
+                curr_queue = e[3]
+                if i+1 < len(event_triggers) and 'Arrival' in event_triggers[i+1][2]:
+                    next_queue = event_triggers[i+1][3]
+                else:
+                    next_queue = None
+                event_id = e[1]
+                self.event_transition[(event_id, curr_queue)] = next_queue
         # Trim arrival, wait, service, and destination to 7 decimals
         for q in self.log:
             self.queue_ids.append(q)
@@ -61,8 +75,9 @@ class QueueNetwork:
                 current_processing = r[1]
                 new_processing = np.random.random()*current_processing
                 new_departure = r[0] + r[2] + new_processing
+                next_q = self.event_transition[(r[0],  q)]
                 self.update_departure_time(new_departure, r[4], q)
-
+                self.update_departure_time(new_departure, r[4], next_q)
     def update_departure_time(self, new_departure, event_id, queue_id):
         old_log = self.log[queue_id]
         log_id = 0
@@ -430,7 +445,7 @@ for q in S.Queues:
         print(l)
     print('\n')
 
-queue_network = QueueNetwork(queue_log, hidden_ids, K)
+queue_network = QueueNetwork(queue_log, hidden_ids, S.event_triggers, K)
 
 
 
