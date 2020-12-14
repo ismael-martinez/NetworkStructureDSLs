@@ -48,7 +48,8 @@ class QueueNetwork:
         event_log_dict['earliest_service_time'] = event_log[0] + event_log[2]
         return event_log_dict
 
-    def update_deparrture_time(self, new_departure, event_id, queue_id):
+
+    def update_departure_time(self, new_departure, event_id, queue_id):
         old_log = self.log[queue_id]
         log_id = 0
         departure_times_subserver = {}
@@ -66,6 +67,10 @@ class QueueNetwork:
 
         log_tuple = self.log[queue_id][log_id]
         servicing_state = log_tuple[6] # Dict representing which subqueues are servicing which events
+        # Chech new departure is valid
+        if new_departure < log_tuple[0] + log_tuple[2]:
+            raise Exception('Departure time is invalid.')
+
         # Create new log_entry with new departure
         self.log[queue_id][log_id] = (
         log_tuple[0], log_tuple[1], log_tuple[2], new_departure, log_tuple[4], log_tuple[5], servicing_state)
@@ -194,7 +199,7 @@ class QueueNetwork:
                         if servicing_state[k] == ev_id:
                             departure_servicing[k] = log[3]
             next_deps = [departure_servicing[k] for k in range(self.K)]
-
+            argmin_d = 0
             if all(next_deps):
                 earliest_service = next_deps[0]
                 argmin_d = 0
@@ -235,7 +240,7 @@ class QueueNetwork:
 
 
 
-events = 50
+events = 500
 p = 0.4
 random.seed(events)
 ns = network_structure.graph.nodes.get_nodes()
@@ -269,7 +274,7 @@ for e in range(events):
     else:
         events_O.append(Event(id, arrival_event, departure_event, event_path))
 # Init calls execution_initial() internally
-S = Simulation(events_O, events_H, queues)
+S = Simulation(events_O, events_H, queues, 'assistComplete')
 # for e in S.event_triggers:
 #     print(e[0])
 print('\nDeparture times')
@@ -282,13 +287,14 @@ for q in S.Queues:
     print('Queue {}'.format(q))
     print('Arrival, Service, Wait, Departure, ')
     queue = queues[q]
-    queue_log[q] = queue.queue_log
+    queue_log[q] = queue.queue_log[0:-1]
     for l in queue.queue_log: # [arrival, service, wait, departure
         print(l)
     print('\n')
 
 queue_network = QueueNetwork(queue_log, K)
-queue_network.event_log_dict('e10', 'n1')
+#queue_network.update_departure_time(2.00, 'e10', 'n1')
+#queue_network.event_log_dict('e10', 'n1')
 
 # Copy the hidden events with real values for testing. Deep copy creates new objects with their own references
 events_H_actual = copy.deepcopy(events_H)
@@ -303,3 +309,23 @@ runs = 10
     #[service_times, wait_times] = S.update_hidden_events(events_H)
     # Gibbs sampling from metrics
     # Use S.joint_density_log()
+
+# M - Step
+for q in S.Queues:
+    if q == 'init':
+        continue
+    print('Queue {}'.format(q))
+    queue = queues[q]
+
+    sum_service_times = 0
+    sum_servicers = 0
+    for log in queue.queue_log: # [arrival, service, wait, departure
+        k_servers = log[7]
+        service_time = log[1]
+        sum_service_times += service_time*k_servers
+        sum_servicers += 1./k_servers
+    N = len(queue.queue_log)
+    print(sum_servicers / sum_service_times)
+    print(N / sum_service_times)
+    print(queue.service_rate)
+    print('\n')
