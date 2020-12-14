@@ -279,7 +279,7 @@ class QueueNetwork:
 
         # find next queue for each events : sorted by event_id and by reverse arrival time to retreive next queue
         event_list_ordered_by_event_id = sorted(event_list, key=lambda x: (x[4], -x[0]), reverse=False)
-        none_list = [None, None, None, None, None, None, None, None, None]
+        none_list = [None]*10
         next_event_log = none_list
         next_event_dict = {}
         for event_log in event_list_ordered_by_event_id:
@@ -383,20 +383,39 @@ class QueueNetwork:
                                                       maximum=1, )
                 upper_bound = self.max_min_queue_grid(next_departure_time, nq_next_arrival_time, wq_next_departure_time,
                                                       maximum=0)
+                if upper_bound < Lower_bound:
+                    continue
                 A_bound = self.max_min_queue_grid(wq_next_arrival_time, nq_last_departure_time, maximum=0)
                 B_bound = self.max_min_queue_grid(wq_next_arrival_time, nq_last_departure_time, maximum=1)
 
+                # Get all current queue next arrivals, and next queue prev_event departures
+                partition_points = []
+                for e in event_list_ordered_by_arrival:
+                    if (e[0] >= Lower_bound and e[0] <= upper_bound) or (e[3] >= Lower_bound and e[3] <= upper_bound):
+                        # Check if it's valid
+                        if e[8] == queue_id and (e[3] >= Lower_bound and e[3] <= upper_bound):
+                            partition_points.append(e[0])
+                        elif e[8] == next_queue_id and (e[0] >= Lower_bound and e[0] <= upper_bound):
+                            partition_points.append(e[0])
+                partition_points.append(Lower_bound)
+                partition_points.append(upper_bound)
+                partition_points.sort()
                 # Sample
                 if initial:
                     # Sample from uniform across [L, U]
                     d = Lower_bound + np.random.random() * (upper_bound - Lower_bound)
                 else:
-                    # Gibbs sampling
+                    #### Gibbs sampling
+                    ## Choose an interval
+                    service_rate = self.service_rates[queue_id]
+                    next_service_rate = self.service_rates[next_queue_id]
+                    
                     pass
                     # TODO
                     # sample_trancated_exponential(rate, start, end)
                     # self.event_transition[(event_id, queue_id)] this function gives the next queue for an event
-
+                self.update_departure_time(d, event_id, queue_id)
+                self.update_arrival_time(d, event_id, next_queue_id)
 
     def max_min_queue_grid(self, *argv, maximum=1):
         # print("call",maximum)
