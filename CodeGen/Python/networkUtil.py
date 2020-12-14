@@ -165,3 +165,15 @@ def depthFirstSearch_rec(nodes, root, node_visited_map, all_paths):
     for p in root_paths:
         all_paths.append(p)
     return [node_visited_map, root_paths, all_paths]
+
+# Sample from a truncated exponential
+# Input
+## param_lambda (float > 0) - exponential parameter
+## start (float) - beginning of interval
+## end (float) - end of interval
+def sample_trancated_exponential(param_lambda, start, end):
+    norm_constant = np.exp(-param_lambda * start) - np.exp(-param_lambda * end)
+    cdf_start = 1 - np.exp(-param_lambda*start)
+    u = np.random.random() * norm_constant + cdf_start
+    inv_exp_sample = - np.log( 1 - norm_constant * u) / param_lambda
+    return inv_exp_sample
