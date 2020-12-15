@@ -175,5 +175,19 @@ def sample_trancated_exponential(param_lambda, start, end):
     norm_constant = np.exp(-param_lambda * start) - np.exp(-param_lambda * end)
     cdf_start = 1 - np.exp(-param_lambda*start)
     u = np.random.random() * norm_constant + cdf_start
-    inv_exp_sample = - np.log( 1 - norm_constant * u) / param_lambda
+    inv_exp_sample = end +  np.log( 1 - norm_constant * u) / param_lambda
+    return inv_exp_sample
+
+def sample_truncated_exponential_right_fixed(param_lambda, start, end):
+    norm_constant = np.exp(-param_lambda * (end - start)) - 1
+    cdf_start = 1 - np.exp(-param_lambda * (end - start))
+    u = np.random.random() * norm_constant + cdf_start
+    inv_exp_sample =  np.log(1 - norm_constant * u) / param_lambda + end
+    return inv_exp_sample
+
+def sample_truncated_exponential_left_fixed(param_lambda, start, end):
+    norm_constant = 1 - np.exp(-param_lambda * (end-start))
+    cdf_start = 0
+    u = np.random.random() * norm_constant + cdf_start
+    inv_exp_sample = - np.log(1 - norm_constant * u) / param_lambda + start
     return inv_exp_sample
