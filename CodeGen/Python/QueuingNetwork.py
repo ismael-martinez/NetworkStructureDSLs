@@ -263,7 +263,10 @@ class QueueNetwork:
                 new_arrival = old_log[entry_point][0]
         self.log[queue_id] = old_log
 
-    def gibbs_sampling_update(self, initial = False):
+    def gibbs_sampling_update(self, initial=False):
+        uniq_id_column = 9
+        queue_column = 8
+        event_column = 4
         # order all event arrival time
         arrival_times = []
         event_list = []
@@ -278,13 +281,13 @@ class QueueNetwork:
                 # print(event_log_and_queue)
 
         # find next queue for each events : sorted by event_id and by reverse arrival time to retreive next queue
-        event_list_ordered_by_event_id = sorted(event_list, key=lambda x: (x[4], -x[0]), reverse=False)
-        none_list = [None]*10
+        event_list_ordered_by_event_id = sorted(event_list, key=lambda x: (x[event_column], -x[0]), reverse=False)
+        none_list = [None] * 10
         next_event_log = none_list
         next_event_dict = {}
         for event_log in event_list_ordered_by_event_id:
-            uniq_id = event_log[8]
-            if next_event_log[4] == event_log[4]:
+            uniq_id = event_log[uniq_id_column]
+            if next_event_log[event_column] == event_log[event_column]:
                 next_event_dict[uniq_id] = next_event_log
             else:
                 next_event_dict[uniq_id] = none_list
@@ -292,12 +295,12 @@ class QueueNetwork:
             # print(next_event_dict[uniq_id])
 
         # find within queue next events : sorted by queue_id and by reverse arrival time to retreive next queue
-        event_list_ordered_by_queue_id = sorted(event_list, key=lambda x: (x[7], -x[0]), reverse=False)
+        event_list_ordered_by_queue_id = sorted(event_list, key=lambda x: (x[queue_column], -x[0]), reverse=False)
         next_event_log = none_list
         wq_next_event_dict = {}
         for event_log in event_list_ordered_by_queue_id:
-            uniq_id = event_log[8]
-            if next_event_log[7] == event_log[7]:
+            uniq_id = event_log[uniq_id_column]
+            if next_event_log[queue_column] == event_log[queue_column]:
                 wq_next_event_dict[uniq_id] = next_event_log
             else:
                 wq_next_event_dict[uniq_id] = none_list
@@ -305,29 +308,31 @@ class QueueNetwork:
             # print(wq_next_event_dict[uniq_id])
 
         # find within queue last events : sorted by queue_id and by arrival time to retreive last queue
-        event_list_ordered_by_queue_id = sorted(event_list, key=lambda x: (x[7], x[0]), reverse=False)
+        event_list_ordered_by_queue_id = sorted(event_list, key=lambda x: (x[queue_column], x[0]), reverse=False)
         last_event_log = none_list
         wq_last_event_dict = {}
         for event_log in event_list_ordered_by_queue_id:
-            uniq_id = event_log[8]
-            if last_event_log[7] == event_log[7]:
+            uniq_id = event_log[uniq_id_column]
+            if last_event_log[queue_column] == event_log[queue_column]:
                 wq_last_event_dict[uniq_id] = last_event_log
             else:
                 wq_last_event_dict[uniq_id] = none_list
             last_event_log = event_log
+            # print(event_log)
             # print(wq_last_event_dict[uniq_id])
 
         # find next queue next events : sorted by queue_id and by reverse arrival time to retreive last queue
-        event_list_ordered_by_queue_id = sorted(event_list, key=lambda x: (x[7], -x[0]), reverse=False)
+        event_list_ordered_by_queue_id = sorted(event_list, key=lambda x: (x[queue_column], -x[0]), reverse=False)
         next_event_log = none_list
         nq_next_event_dict = {}
         for e in event_list:
-            uniq_id = e[8]
+            uniq_id = e[uniq_id_column]
             nq_event = next_event_dict[uniq_id]
-            nq_event_uniq_id = nq_event[8]
+            nq_event_uniq_id = nq_event[uniq_id_column]
             for event_log in event_list_ordered_by_queue_id:
-                nq_next_event_uniq_id = event_log[8]
-                if next_event_log[7] == event_log[7] and nq_next_event_uniq_id == nq_event_uniq_id:
+                nq_next_event_uniq_id = event_log[uniq_id_column]
+                if next_event_log[queue_column] == event_log[
+                    queue_column] and nq_next_event_uniq_id == nq_event_uniq_id:
                     nq_next_event_dict[uniq_id] = next_event_log
                     break
                 else:
@@ -336,16 +341,17 @@ class QueueNetwork:
             # print(nq_next_event_dict[uniq_id])
 
         # find next queue last events : sorted by queue_id and by arrival time to retreive last queue
-        event_list_ordered_by_queue_id = sorted(event_list, key=lambda x: (x[7], x[0]), reverse=False)
+        event_list_ordered_by_queue_id = sorted(event_list, key=lambda x: (x[queue_column], x[0]), reverse=False)
         last_event_log = none_list
         nq_last_event_dict = {}
         for e in event_list:
-            uniq_id = e[8]
+            uniq_id = e[uniq_id_column]
             nq_event = next_event_dict[uniq_id]
-            nq_event_uniq_id = nq_event[8]
+            nq_event_uniq_id = nq_event[uniq_id_column]
             for event_log in event_list_ordered_by_queue_id:
-                nq_last_event_uniq_id = event_log[8]
-                if last_event_log[7] == event_log[7] and nq_last_event_uniq_id == nq_event_uniq_id:
+                nq_last_event_uniq_id = event_log[uniq_id_column]
+                if last_event_log[queue_column] == event_log[
+                    queue_column] and nq_last_event_uniq_id == nq_event_uniq_id:
                     nq_last_event_dict[uniq_id] = last_event_log
                     break
                 else:
@@ -355,22 +361,22 @@ class QueueNetwork:
 
         event_list_ordered_by_arrival = sorted(event_list, key=lambda x: x[0], reverse=False)
         # sample for each hidden event ordered by arrival
-        hidden_ids = self.hidden_ids # [e.id for e in Events_H]
-        print(hidden_ids)
+        hidden_ids = self.hidden_ids  # [e.id for e in Events_H]
+        # print(hidden_ids)
         for e in event_list_ordered_by_arrival:
-            event_id = e[4]
+            event_id = e[event_column]
             if event_id in hidden_ids:
-                arrival_time, service_time, waiting_time, departure_time, event_id, argmin_d, servicing_state, queue_id, uniq_id, _ = e
-                next_arrival_time, next_service_time, next_waiting_time, next_departure_time, next_event_id, next_argmin_d, next_servicing_state, next_queue_id, next_uniq_id, _ = \
-                next_event_dict[uniq_id]
-                wq_next_arrival_time, wq_next_service_time, wq_next_waiting_time, wq_next_departure_time, wq_next_event_id, wq_next_argmin_d, wq_next_servicing_state, wq_next_queue_id, wq_next_uniq_id, _ = \
-                wq_next_event_dict[uniq_id]
-                wq_last_arrival_time, wq_last_service_time, wq_last_waiting_time, wq_last_departure_time, wq_last_event_id, wq_last_argmin_d, wq_last_servicing_state, wq_last_queue_id, wq_last_uniq_id, _ = \
-                wq_last_event_dict[uniq_id]
-                nq_next_arrival_time, nq_next_service_time, nq_next_waiting_time, nq_next_departure_time, nq_next_event_id, nq_next_argmin_d, nq_next_servicing_state, nq_next_queue_id, nq_next_uniq_id, _ = \
-                nq_next_event_dict[uniq_id]
-                nq_last_arrival_time, nq_last_service_time, nq_last_waiting_time, nq_last_departure_time, nq_last_event_id, nq_last_argmin_d, nq_last_servicing_state, nq_last_queue_id, nq_last_uniq_id, _ = \
-                nq_last_event_dict[uniq_id]
+                arrival_time, service_time, waiting_time, departure_time, event_id, argmin_d, servicing_state, k_servers, queue_id, uniq_id = e
+                next_arrival_time, next_service_time, next_waiting_time, next_departure_time, next_event_id, next_argmin_d, next_servicing_state, next_k_servers, next_queue_id, next_uniq_id = \
+                    next_event_dict[uniq_id]
+                wq_next_arrival_time, wq_next_service_time, wq_next_waiting_time, wq_next_departure_time, wq_next_event_id, wq_next_argmin_d, wq_next_k_servers, wq_next_servicing_state, wq_next_queue_id, wq_next_uniq_id = \
+                    wq_next_event_dict[uniq_id]
+                wq_last_arrival_time, wq_last_service_time, wq_last_waiting_time, wq_last_departure_time, wq_last_event_id, wq_last_argmin_d, wq_next_k_servers, wq_last_servicing_state, wq_last_queue_id, wq_last_uniq_id = \
+                    wq_last_event_dict[uniq_id]
+                nq_next_arrival_time, nq_next_service_time, nq_next_waiting_time, nq_next_departure_time, nq_next_event_id, nq_next_argmin_d, nq_next_k_servers, nq_next_servicing_state, nq_next_queue_id, nq_next_uniq_id = \
+                    nq_next_event_dict[uniq_id]
+                nq_last_arrival_time, nq_last_service_time, nq_last_waiting_time, nq_last_departure_time, nq_last_event_id, nq_last_argmin_d, nq_next_k_servers, nq_last_servicing_state, nq_last_queue_id, nq_last_uniq_id = \
+                    nq_last_event_dict[uniq_id]
                 print(uniq_id)
                 print(e)
                 print(next_event_dict[uniq_id])
@@ -383,6 +389,10 @@ class QueueNetwork:
                                                       maximum=1, )
                 upper_bound = self.max_min_queue_grid(next_departure_time, nq_next_arrival_time, wq_next_departure_time,
                                                       maximum=0)
+                print(Lower_bound)
+                print(upper_bound)
+                # print(A_bound)
+                # print(B_bound)
                 if upper_bound < Lower_bound:
                     continue
                 A_bound = self.max_min_queue_grid(wq_next_arrival_time, nq_last_departure_time, maximum=0)
@@ -409,7 +419,7 @@ class QueueNetwork:
                     ## Choose an interval
                     service_rate = self.service_rates[queue_id]
                     next_service_rate = self.service_rates[next_queue_id]
-                    
+
                     pass
                     # TODO
                     # sample_trancated_exponential(rate, start, end)
@@ -428,6 +438,11 @@ class QueueNetwork:
         return bound
 
 
+# Test sampling
+exponential_test = [sample_truncated_exponential_right_fixed(5, 5, 20) for i in range(500)]
+hist, bin_edges = np.histogram(exponential_test)
+plt.hist(exponential_test, bins = bin_edges[:-1])
+plt.show()
 
 events = 500
 p = 0.4
