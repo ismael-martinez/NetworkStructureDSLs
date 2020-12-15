@@ -184,11 +184,7 @@ class QueueNetwork:
         old_log = self.log[queue_id]
         # Proper insert point
         entry_point = 0
-        for entry in range(len(old_log)):
-            if new_arrival < old_log[entry][0]:
-                break
-            else:
-                entry_point += 1
+
 
         while entry_point < len(old_log):
 
@@ -206,6 +202,13 @@ class QueueNetwork:
             old_departure_time = old_log[delete_point][3]
             old_log = old_log[0:delete_point] + old_log[delete_point+1:] # Remove old log entry
 
+            entry_point = 0
+            for entry in range(len(old_log)):
+                if new_arrival < old_log[entry][0]:
+                    break
+                else:
+                    entry_point += 1
+
             servicing_state = {}
             departure_servicing = {}
             for k in range(self.K):
@@ -214,6 +217,7 @@ class QueueNetwork:
             if entry_point > 0:
                 servicing_state = old_log[entry_point - 1][6]
             for log in old_log[0:entry_point]:
+                # If previous event has already departed, remove from state
                 ev_id = log[4]
                 if log[3] < new_arrival:
                     for k in range(self.K):
@@ -222,9 +226,9 @@ class QueueNetwork:
                 else:
                     for k in range(self.K):
                         if servicing_state[k] == ev_id:
-                            departure_servicing[k] = log[3]
+                            departure_servicing[k] = log[3] # state departure after new arrival
             next_deps = [departure_servicing[k] for k in range(self.K)]
-            argmin_d = 0
+            argmin_d = 0 # Earliest server available
             if all(next_deps):
                 earliest_service = next_deps[0]
                 argmin_d = 0
@@ -439,10 +443,10 @@ class QueueNetwork:
 
 
 # Test sampling
-exponential_test = [sample_truncated_exponential_right_fixed(5, 5, 20) for i in range(500)]
-hist, bin_edges = np.histogram(exponential_test)
-plt.hist(exponential_test, bins = bin_edges[:-1])
-plt.show()
+# exponential_test = [sample_truncated_exponential_right_fixed(5, 5, 20) for i in range(500)]
+# hist, bin_edges = np.histogram(exponential_test)
+# plt.hist(exponential_test, bins = bin_edges[:-1])
+# plt.show()
 
 events = 500
 p = 0.4
