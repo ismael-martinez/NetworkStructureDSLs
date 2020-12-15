@@ -191,3 +191,15 @@ def sample_truncated_exponential_left_fixed(param_lambda, start, end):
     u = np.random.random() * norm_constant + cdf_start
     inv_exp_sample = - np.log(1 - norm_constant * u) / param_lambda + start
     return inv_exp_sample
+
+def sample_truncated_exponential_two_queues_open(param_lambda1, param_lambda2, A, B, start, end):
+    param_lambda = param_lambda1 - param_lambda2
+    loc_const = (-A*param_lambda1 - B*param_lambda2) / param_lambda
+    if param_lambda >= 0:
+        norm_constant = -np.exp(-param_lambda * start) + np.exp(-param_lambda * end)
+    else:
+        norm_constant = np.exp(param_lambda * start) + np.exp(param_lambda * end)
+    cdf_start = 1 - np.exp(-param_lambda * start)
+    u = np.random.random() * norm_constant + cdf_start
+    inv_exp_sample = end + np.log(1 - norm_constant * u) / param_lambda + loc_const
+    return inv_exp_sample
