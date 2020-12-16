@@ -72,6 +72,7 @@ class QueueNetwork:
     def update_departure_time(self, new_departure, event_id, queue_id):
         print(event_id)
         print(queue_id)
+        print(new_departure)
         old_log = self.log[queue_id]
         log_id = 0
         departure_times_subserver = {}
@@ -172,9 +173,7 @@ class QueueNetwork:
                 log_tuple = old_log[i] #new_log
                 new_departure = log_tuple[3]
                 servicing_state = log_tuple[6]
-                self.log[queue_id][log_id] = (
-                    log_tuple[0], log_tuple[1], log_tuple[2], new_departure, log_tuple[4], log_tuple[5],
-                    servicing_state, log_tuple[7])
+                self.log[queue_id] = old_log
                 departure_times_subserver[log_tuple[4]] = new_departure
                 queue_events = []
                 servicing = [servicing_state[q] for q in servicing_state if servicing_state[q]]
@@ -301,6 +300,7 @@ class QueueNetwork:
 
             # Index in current queue log
 
+
             log_id_cq = None
             log_id_nq = None
             if current_queue_id != 'init':
@@ -318,7 +318,7 @@ class QueueNetwork:
             ## Current queue q_pi(e)
             try:
                 # Current event arrival, a_pi(e)
-                current_event_current_queue_arrival = self.log[current_queue_id][log_id_cq][0]
+                current_event_current_queue_arrival = self.log[current_queue_id][log_id_cq][0] + self.log[current_queue_id][log_id_cq][2] # Earliest service time
                 # Previous event departure, d_rho(pi(e))
                 previous_event_current_queue_departure = None
                 if log_id_cq > 0:
@@ -364,6 +364,7 @@ class QueueNetwork:
             upper_bound_gibbs = min(upper_bound_choices)
             print('Sample in d in [{}, {}]'.format(lower_bound_gibbs, upper_bound_gibbs))
 
+
             #partition_choices = [x for x in [next_event_current_queue_arrival, previous_event_next_queue_departure] if x]
             partition_points = []
             # Next K arrivals in current queue
@@ -393,6 +394,8 @@ class QueueNetwork:
                             if nq_log_departure > lower_bound_gibbs:
                                 partition_points.append(nq_log_departure)
                                 nq_prev_log -=1
+                            else:
+                                break
                     else:
                         break
             partition_points.sort()
@@ -415,7 +418,8 @@ class QueueNetwork:
                 # sample_trancated_exponential(rate, start, end)
                 # self.event_transition[(event_id, queue_id)] this function gives the next queue for an event
             self.update_departure_time(d, event_id, current_queue_id)
-            self.update_arrival_time(d, event_id, next_queue_id)
+            if next_queue_id is not None:
+                self.update_arrival_time(d, event_id, next_queue_id)
 
 
 
@@ -614,10 +618,10 @@ ns = network_structure.graph.nodes.get_nodes()
 queues = {}
 K = 1
 for node in ns:
-    service_rate = 3*np.random.random()
+    service_rate = 15*np.random.random()
     queues[node] = Queue(node, service_rate, K)
 
-arrival_rate = 3
+arrival_rate = 10
 arrivals = np.zeros(events)
 arrivals[0] = 0.0
 for e in range(1, events):
