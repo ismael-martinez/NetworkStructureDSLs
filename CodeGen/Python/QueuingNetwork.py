@@ -70,6 +70,8 @@ class QueueNetwork:
         return event_log_dict
 
     def update_departure_time(self, new_departure, event_id, queue_id):
+        print(event_id)
+        print(queue_id)
         old_log = self.log[queue_id]
         log_id = 0
         departure_times_subserver = {}
@@ -86,6 +88,11 @@ class QueueNetwork:
             return
 
         log_tuple = self.log[queue_id][log_id]
+        if queue_id == 'init':
+            new_log = self.log[queue_id][log_id][0:3] + (new_departure,) + self.log[queue_id][log_id][4:]
+            self.log[queue_id][log_id] = new_log
+            return
+
         servicing_state = log_tuple[6] # Dict representing which subqueues are servicing which events
         # Chech new departure is valid
         if new_departure < log_tuple[0] + log_tuple[2]:
@@ -215,7 +222,7 @@ class QueueNetwork:
                 servicing_state[k] = None
                 departure_servicing[k] = None
             if entry_point > 0:
-                servicing_state = old_log[entry_point - 1][6]
+                servicing_state = dict(old_log[entry_point - 1][6])
             for log in old_log[0:entry_point]:
                 # If previous event has already departed, remove from state
                 ev_id = log[4]
@@ -260,6 +267,7 @@ class QueueNetwork:
                 print('Stable')
                 self.log[queue_id] = old_log
                 return
+
 
             entry_point += 1
             if entry_point < len(old_log):
@@ -358,26 +366,56 @@ class QueueNetwork:
 
             #partition_choices = [x for x in [next_event_current_queue_arrival, previous_event_next_queue_departure] if x]
             partition_points = []
-            # Earliest service in current queue
+            # Next K arrivals in current queue
             if current_queue_id != 'init':
-                for cq_log in self.log[current_queue_id]:
-                    cg_log_earliest_service = cq_log[0] + cq_log[2]
-                    if cg_log_earliest_service >= upper_bound_gibbs:
-                        break
+                cg_next_log = 0
+                K = len(self.log[current_queue_id][log_id_cq][6])
+                while cg_next_log < K:
+                    if log_id_cq + 1 + cg_next_log < len(self.log[current_queue_id]):
+                        cg_log_arrival = self.log[current_queue_id][log_id_cq+1+cg_next_log][0]
+                        if cg_log_arrival < upper_bound_gibbs:
+                            partition_points.append(cg_log_arrival)
+                            cg_next_log += 1
+                        else:
+                            break
                     else:
-                        if cg_log_earliest_service > lower_bound_gibbs:
-                            partition_points.append(cg_log_earliest_service)
-            # Departures in next queue
+                        break
+        # Previous K departures in next queue
             if next_queue_id is not None:
-                for nq_log in self.log[next_queue_id]:
-                    nq_log_departure = nq_log[3]
-                    if nq_log_departure >= upper_bound_gibbs:
-                        break
+                K = len(self.log[next_queue_id][log_id_nq][6])
+                nq_prev_log = 0
+                while nq_prev_log < K:
+                    if log_id_nq - 1 - nq_prev_log >= 0:
+                        nq_log_departure = self.log[next_queue_id][log_id_nq-1-nq_prev_log][3]
+                        if nq_log_departure >= upper_bound_gibbs:
+                            break
+                        else:
+                            if nq_log_departure > lower_bound_gibbs:
+                                partition_points.append(nq_log_departure)
+                                nq_prev_log -=1
                     else:
-                        if nq_log_departure > lower_bound_gibbs:
-                            partition_points.append(nq_log_departure)
+                        break
             partition_points.sort()
             print('Partition points: {}'.format(partition_points))
+
+            # Sample from region
+            # Todo with probability, region Z
+            # Sample
+            if initial:
+                # Sample from uniform across [L, U]
+                d = lower_bound_gibbs + np.random.random() * (upper_bound_gibbs-lower_bound_gibbs)
+            else:
+                #### Gibbs sampling
+                ## Choose an interval
+                service_rate = self.service_rates[current_queue_id]
+                next_service_rate = self.service_rates[next_queue_id]
+
+                pass
+                # TODO
+                # sample_trancated_exponential(rate, start, end)
+                # self.event_transition[(event_id, queue_id)] this function gives the next queue for an event
+            self.update_departure_time(d, event_id, current_queue_id)
+            self.update_arrival_time(d, event_id, next_queue_id)
 
 
 
@@ -523,21 +561,21 @@ class QueueNetwork:
         #         partition_points.append(upper_bound)
         #         partition_points.sort()
                 # Sample
-                if initial:
-                    # Sample from uniform across [L, U]
-                    d = lower_bound_gibbs + np.random.random() * (upper_bound_gibbs)
-                else:
-                    #### Gibbs sampling
-                    ## Choose an interval
-                    service_rate = self.service_rates[queue_id]
-                    next_service_rate = self.service_rates[next_queue_id]
-
-                    pass
-                    # TODO
-                    # sample_trancated_exponential(rate, start, end)
-                    # self.event_transition[(event_id, queue_id)] this function gives the next queue for an event
-                self.update_departure_time(d, event_id, queue_id)
-                self.update_arrival_time(d, event_id, next_queue_id)
+                # if initial:
+                #     # Sample from uniform across [L, U]
+                #     d = lower_bound_gibbs + np.random.random() * (upper_bound_gibbs)
+                # else:
+                #     #### Gibbs sampling
+                #     ## Choose an interval
+                #     service_rate = self.service_rates[queue_id]
+                #     next_service_rate = self.service_rates[next_queue_id]
+                #
+                #     pass
+                #     # TODO
+                #     # sample_trancated_exponential(rate, start, end)
+                #     # self.event_transition[(event_id, queue_id)] this function gives the next queue for an event
+                # self.update_departure_time(d, event_id, queue_id)
+                # self.update_arrival_time(d, event_id, next_queue_id)
 
     def max_min_queue_grid(self, *argv, maximum=1):
         # print("call",maximum)
@@ -551,14 +589,23 @@ class QueueNetwork:
 
 
 # Test sampling
-mu1 = 5
-mu2 = 7
-exponential_test = [sample_truncated_exponential_two_queues_open(mu1, mu2, 5, 0, 0, 10) for i in range(5000)]
-hist, bin_edges = np.histogram(exponential_test, bins=30)
-plt.hist(exponential_test, bins = bin_edges[:-1])
-plt.title('Truncated Exponential, {}'.format(r'$\mu_1 = 5, \mu_2 = 7$'))
-plt.ylabel('Samples')
-plt.show()
+# mu1 = 0
+# mu2 = 5
+# np.random.seed(10)
+# # exponential_test = [sample_truncated_exponential_left_fixed(mu1, 5, 15) for i in range(5000)]
+# # hist, bin_edges = np.histogram(exponential_test, bins=30)
+# # plt.hist(exponential_test, bins = bin_edges[:-1])
+# # plt.title('Truncated Exponential Left')
+# # plt.ylabel('Samples')
+# # plt.show()
+#
+# np.random.seed(10)
+# exponential_test = [sample_truncated_exponential_two_queues_open(mu1, mu2, 0, 5, -50, -5) for i in range(5000)]
+# hist, bin_edges = np.histogram(exponential_test, bins=30)
+# plt.hist(exponential_test, bins = bin_edges[:-1])
+# plt.title('Truncated Exponential, {}'.format(r'$\mu_1 = 5, \mu_2 = 7$'))
+# plt.ylabel('Samples')
+# plt.show()
 
 events = 500
 p = 0.4
