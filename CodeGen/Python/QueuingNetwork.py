@@ -409,12 +409,11 @@ class QueueNetwork:
             else:
                 #### Gibbs sampling
                 ## Choose an interval
-                service_rate = self.service_rates[current_queue_id]
-                next_service_rate = self.service_rates[next_queue_id]
+                cq_service_rate = self.service_rates[current_queue_id]
+                nq_service_rate = self.service_rates[next_queue_id]
 
-                pass
-                # TODO
-                # sample_trancated_exponential(rate, start, end)
+                d = sample_trancated_exponential(cq_service_rate, nq_service_rate, current_event_current_queue_arrival,
+                                                 current_event_next_queue_departure, lower_bound_gibbs, upper_bound_gibbs)
                 # self.event_transition[(event_id, queue_id)] this function gives the next queue for an event
             self.update_departure_time(d, event_id, current_queue_id)
             if next_queue_id is not None:
@@ -602,8 +601,11 @@ class QueueNetwork:
 # # plt.ylabel('Samples')
 # # plt.show()
 #
+# Test sampling
+# mu1 = 1
+# mu2 = 2
 # np.random.seed(10)
-# exponential_test = [sample_truncated_exponential_two_queues_open(mu1, mu2, 0, 5, -50, -5) for i in range(5000)]
+# exponential_test = [sample_truncated_exponential_two_queues_open(mu1, mu2, 2, 4, 2.1, 3) for i in range(5000)]
 # hist, bin_edges = np.histogram(exponential_test, bins=30)
 # plt.hist(exponential_test, bins = bin_edges[:-1])
 # plt.title('Truncated Exponential, {}'.format(r'$\mu_1 = 5, \mu_2 = 7$'))

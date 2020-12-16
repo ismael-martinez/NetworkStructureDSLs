@@ -199,15 +199,18 @@ def sample_truncated_exponential_two_queues_open(param_lambda1, param_lambda2, A
         gamma = -1
     loc_const = gamma*(A*param_lambda1 - B*param_lambda2) / param_lambda
     if gamma > 0:
-        cdf_start = gamma*(1 - np.exp(-gamma*param_lambda * (gamma*start - loc_const)))
+        cdf_start = 1 - np.exp(-gamma*param_lambda * (gamma*start - loc_const))
         cdf_end = 1 - np.exp(-gamma*param_lambda * (gamma*end - loc_const))
     else:
-        cdf_start = np.exp(-param_lambda * (start - loc_const))
-        cdf_end = np.exp(-param_lambda * (end - loc_const))
+        cdf_start = np.exp(-param_lambda * (start + loc_const))
+        cdf_end = np.exp(-param_lambda * (end + loc_const))
 
-    lower_bound = max(cdf_start, 0)
-    upper_bound = min(cdf_end, 1)
+    lower_bound =  max(cdf_start, 0)
+    upper_bound =  min(cdf_end, 1)
     norm_constant = upper_bound - lower_bound
     u = np.random.random() * norm_constant + lower_bound
-    inv_exp_sample =  -np.log(1 - norm_constant * u) / param_lambda + loc_const
+    if gamma > 0:
+        inv_exp_sample =  -np.log(1 - u) / param_lambda + loc_const
+    else:
+        inv_exp_sample = -np.log(u)/param_lambda - loc_const
     return inv_exp_sample
