@@ -26,11 +26,12 @@ class QueueNetwork:
                 continue
             if 'Departure' in e[2]:
                 curr_queue = e[3]
-                if i+1 < len(event_triggers) and 'Arrival' in event_triggers[i+1][2]:
+                event_id = e[1]
+                if i+1 < len(event_triggers) and 'Arrival' in event_triggers[i+1][2] and event_id == event_triggers[i+1][1]:
                     next_queue = event_triggers[i+1][3]
                 else:
                     next_queue = None
-                event_id = e[1]
+
                 self.event_transition[(event_id, curr_queue)] = next_queue
         # Trim arrival, wait, service, and destination to 7 decimals
         for q in self.log:
@@ -187,7 +188,7 @@ class QueueNetwork:
                             break
 
     def update_arrival_time(self, new_arrival, event_id, queue_id):
-        old_log = self.log[queue_id]
+        old_log = list(self.log[queue_id])
         # Proper insert point
         entry_point = 0
 
@@ -300,7 +301,6 @@ class QueueNetwork:
 
             # Index in current queue log
 
-
             log_id_cq = None
             log_id_nq = None
             if current_queue_id != 'init':
@@ -314,7 +314,6 @@ class QueueNetwork:
                     if log[4] == event_id:
                         log_id_nq = idx
                         break
-
             ## Current queue q_pi(e)
             try:
                 # Current event arrival, a_pi(e)
@@ -382,7 +381,7 @@ class QueueNetwork:
                     else:
                         break
         # Previous K departures in next queue
-            if next_queue_id is not None:
+            if next_queue_id is not None and log_id_nq is not None:
                 K = len(self.log[next_queue_id][log_id_nq][6])
                 nq_prev_log = 0
                 while nq_prev_log < K:
