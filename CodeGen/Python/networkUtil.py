@@ -194,6 +194,10 @@ def sample_truncated_exponential_left_fixed(param_lambda, start, end):
 
 def sample_truncated_exponential_two_queues_open(param_lambda1, param_lambda2, A, B, start, end):
     param_lambda = param_lambda1 - param_lambda2
+    if param_lambda == 0: # Return uniform
+        u = np.random.random()*(end-start) + start
+        return u
+
     gamma = 1
     if param_lambda2 > param_lambda1:
         gamma = -1

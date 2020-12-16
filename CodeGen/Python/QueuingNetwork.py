@@ -36,13 +36,13 @@ class QueueNetwork:
         # Trim arrival, wait, service, and destination to 7 decimals
         for q in self.log:
             self.queue_ids.append(q)
-            self.service_rates[q] = 0
+            self.service_rates[q] = 1
             for i in range(len(self.log[q])):
                 q_times = [round(self.log[q][i][t], DECIMALS) for t in range(4)]
                 q_log = q_times + list(self.log[q][i][4:])
                 self.log[q][i] = tuple(q_log)
         #self.update_arrival_time('')
-        self.gibbs_sampling_update(initial=True)
+        self.gibbs_sampling_update() # TODO
     # For an event in a queue, return all required information.
     # Input
     ## event_id (string), id of Event
@@ -411,10 +411,16 @@ class QueueNetwork:
                 ## Choose an interval
                 cq_service_rate = self.service_rates[current_queue_id]
                 nq_service_rate = self.service_rates[next_queue_id]
-
-                d = sample_trancated_exponential(cq_service_rate, nq_service_rate, current_event_current_queue_arrival,
+                d = sample_truncated_exponential_two_queues_open(cq_service_rate, nq_service_rate, current_event_current_queue_arrival,
                                                  current_event_next_queue_departure, lower_bound_gibbs, upper_bound_gibbs)
                 # self.event_transition[(event_id, queue_id)] this function gives the next queue for an event
+                print('Sampling from CQ {} *[ x - {}] , NQ {} * [{} - x] from x in [{}, {}]'.format(cq_service_rate,
+                                                                                                    current_event_current_queue_arrival,
+                                                                                                    nq_service_rate,
+                                                                                                    current_event_next_queue_departure,
+                                                                                                    lower_bound_gibbs,
+                                                                                                    upper_bound_gibbs))
+                print('Sample d = {}'.format(d))
             self.update_departure_time(d, event_id, current_queue_id)
             if next_queue_id is not None:
                 self.update_arrival_time(d, event_id, next_queue_id)
@@ -602,8 +608,8 @@ class QueueNetwork:
 # # plt.show()
 #
 # Test sampling
-# mu1 = 1
-# mu2 = 2
+# mu1 = 2
+# mu2 = 1
 # np.random.seed(10)
 # exponential_test = [sample_truncated_exponential_two_queues_open(mu1, mu2, 2, 4, 2.1, 3) for i in range(5000)]
 # hist, bin_edges = np.histogram(exponential_test, bins=30)
