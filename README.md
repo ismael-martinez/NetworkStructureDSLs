@@ -33,7 +33,11 @@ This will generate the `networkStructureAttributesAndInstances.py` script.
 
 ## Execute Network Analysis
 
-Simply execute `python networkStructureAnalysis.py`. Ensure the generated file is in the same directory as the analysis script.
+Execute `python networkStructureAnalysis.py` with any of the following parameters. Ensure the generated file is in the same directory as the analysis script.
+
+- `-n` : Network structure graph.
+- `-q` : Queue simulation logs.
+- `-a` : Arrival request per node, one graph per node.
 
 -----------------------------------------
 ## Primitives
@@ -157,7 +161,7 @@ The grammar is available in `CodeGen\Python\PNS\pns.tx`
 * *nodePair* -- Reference two two `node`.
 
 
-
+### PNS Sample
 ```
 Graph Edge
 	nodeSet {
