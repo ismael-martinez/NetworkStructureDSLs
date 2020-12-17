@@ -1,0 +1,384 @@
+(43200.0, 't0', 'Departure', 'init')
+Event t0 complete at queue init
+(43200.0, 't1', 'Departure', 'init')
+Event t1 complete at queue init
+(43200.0, 't0', 'Arrival', 'n3')
+Event t0 arrived at queue n3
+Servicing event t0 at queue: n3
+(43200.0, 't1', 'Arrival', 'n3')
+Event t1 arrived at queue n3
+(43201.05877608027, 't0', 'Departure', 'n3')
+Event t0 complete at queue n3
+(43201.25896786105, 't1', 'Departure', 'n3')
+Event t1 complete at queue n3
+(43302.838, 't2', 'Departure', 'init')
+Event t2 complete at queue init
+(43302.838, 't2', 'Arrival', 'n3')
+Event t2 arrived at queue n3
+Servicing event t2 at queue: n3
+(43303.19119574527, 't2', 'Departure', 'n3')
+Event t2 complete at queue n3
+(43426.943, 't3', 'Departure', 'init')
+Event t3 complete at queue init
+(43426.943, 't3', 'Arrival', 'n3')
+Event t3 arrived at queue n3
+Servicing event t3 at queue: n3
+(43428.70169239626, 't3', 'Departure', 'n3')
+Event t3 complete at queue n3
+(43459.013, 't4', 'Departure', 'init')
+Event t4 complete at queue init
+(43459.013, 't4', 'Arrival', 'n3')
+Event t4 arrived at queue n3
+Servicing event t4 at queue: n3
+(43460.076639971856, 't4', 'Departure', 'n3')
+Event t4 complete at queue n3
+(43563.879, 't5', 'Departure', 'init')
+Event t5 complete at queue init
+(43563.879, 't5', 'Arrival', 'n3')
+Event t5 arrived at queue n3
+Servicing event t5 at queue: n3
+(43564.13502608956, 't5', 'Departure', 'n3')
+Event t5 complete at queue n3
+(43569.579, 't6', 'Departure', 'init')
+Event t6 complete at queue init
+(43569.579, 't6', 'Arrival', 'n3')
+Event t6 arrived at queue n3
+Servicing event t6 at queue: n3
+(43569.69954346008, 't6', 'Departure', 'n3')
+Event t6 complete at queue n3
+(43698.377, 't7', 'Departure', 'init')
+Event t7 complete at queue init
+(43698.377, 't7', 'Arrival', 'n3')
+Event t7 arrived at queue n3
+Servicing event t7 at queue: n3
+(43698.66858806591, 't7', 'Departure', 'n3')
+Event t7 complete at queue n3
+(43732.814, 't8', 'Departure', 'init')
+Event t8 complete at queue init
+(43732.814, 't8', 'Arrival', 'n3')
+Event t8 arrived at queue n3
+Servicing event t8 at queue: n3
+(43732.817565467834, 't8', 'Departure', 'n3')
+Event t8 complete at queue n3
+(43744.891, 't9', 'Departure', 'init')
+Event t9 complete at queue init
+(43744.891, 't9', 'Arrival', 'n3')
+Event t9 arrived at queue n3
+Servicing event t9 at queue: n3
+(43745.072826534226, 't9', 'Departure', 'n3')
+Event t9 complete at queue n3
+(43751.294, 't10', 'Departure', 'init')
+Event t10 complete at queue init
+(43751.294, 't10', 'Arrival', 'n3')
+Event t10 arrived at queue n3
+Servicing event t10 at queue: n3
+(43752.28648892617, 't10', 'Departure', 'n3')
+Event t10 complete at queue n3
+(43809.923, 't11', 'Departure', 'init')
+Event t11 complete at queue init
+(43809.923, 't11', 'Arrival', 'n3')
+Event t11 arrived at queue n3
+Servicing event t11 at queue: n3
+(43809.93260782836, 't11', 'Departure', 'n3')
+Event t11 complete at queue n3
+(43921.144, 't12', 'Departure', 'init')
+Event t12 complete at queue init
+(43921.144, 't12', 'Arrival', 'n3')
+Event t12 arrived at queue n3
+Servicing event t12 at queue: n3
+(43921.71487709169, 't12', 'Departure', 'n3')
+Event t12 complete at queue n3
+(44036.95, 't13', 'Departure', 'init')
+Event t13 complete at queue init
+(44036.95, 't13', 'Arrival', 'n3')
+Event t13 arrived at queue n3
+Servicing event t13 at queue: n3
+(44037.528654750764, 't13', 'Departure', 'n3')
+Event t13 complete at queue n3
+(44155.949, 't14', 'Departure', 'init')
+Event t14 complete at queue init
+(44155.949, 't14', 'Arrival', 'n3')
+Event t14 arrived at queue n3
+Servicing event t14 at queue: n3
+(44156.018435366226, 't14', 'Departure', 'n3')
+Event t14 complete at queue n3
+(44246.687, 't15', 'Departure', 'init')
+Event t15 complete at queue init
+(44246.687, 't15', 'Arrival', 'n3')
+Event t15 arrived at queue n3
+Servicing event t15 at queue: n3
+(44246.98773457042, 't15', 'Departure', 'n3')
+Event t15 complete at queue n3
+(44264.92, 't16', 'Departure', 'init')
+Event t16 complete at queue init
+(44264.92, 't16', 'Arrival', 'n3')
+Event t16 arrived at queue n3
+Servicing event t16 at queue: n3
+(44264.94322371312, 't16', 'Departure', 'n3')
+Event t16 complete at queue n3
+(44362.691, 't17', 'Departure', 'init')
+Event t17 complete at queue init
+(44362.691, 't17', 'Arrival', 'n3')
+Event t17 arrived at queue n3
+Servicing event t17 at queue: n3
+(44364.07288963493, 't17', 'Departure', 'n3')
+Event t17 complete at queue n3
+(44452.535, 't18', 'Departure', 'init')
+Event t18 complete at queue init
+(44452.535, 't18', 'Arrival', 'n3')
+Event t18 arrived at queue n3
+Servicing event t18 at queue: n3
+(44455.00947470673, 't18', 'Departure', 'n3')
+Event t18 complete at queue n3
+(44501.685, 't19', 'Departure', 'init')
+Event t19 complete at queue init
+(44501.685, 't19', 'Arrival', 'n3')
+Event t19 arrived at queue n3
+Servicing event t19 at queue: n3
+(44501.723633557245, 't19', 'Departure', 'n3')
+Event t19 complete at queue n3
+(44605.664, 't20', 'Departure', 'init')
+Event t20 complete at queue init
+(44605.664, 't20', 'Arrival', 'n3')
+Event t20 arrived at queue n3
+Servicing event t20 at queue: n3
+(44607.04665650271, 't20', 'Departure', 'n3')
+Event t20 complete at queue n3
+(44707.082, 't21', 'Departure', 'init')
+Event t21 complete at queue init
+(44707.082, 't21', 'Arrival', 'n3')
+Event t21 arrived at queue n3
+Servicing event t21 at queue: n3
+(44707.61959391569, 't21', 'Departure', 'n3')
+Event t21 complete at queue n3
+(44784.092, 't22', 'Departure', 'init')
+Event t22 complete at queue init
+(44784.092, 't22', 'Arrival', 'n3')
+Event t22 arrived at queue n3
+Servicing event t22 at queue: n3
+(44784.93991042794, 't22', 'Departure', 'n3')
+Event t22 complete at queue n3
+(44809.835, 't23', 'Departure', 'init')
+Event t23 complete at queue init
+(44809.835, 't23', 'Arrival', 'n3')
+Event t23 arrived at queue n3
+Servicing event t23 at queue: n3
+(44810.4567184516, 't23', 'Departure', 'n3')
+Event t23 complete at queue n3
+(44912.215, 't24', 'Departure', 'init')
+Event t24 complete at queue init
+(44912.215, 't24', 'Arrival', 'n3')
+Event t24 arrived at queue n3
+Servicing event t24 at queue: n3
+(44912.75993524222, 't24', 'Departure', 'n3')
+Event t24 complete at queue n3
+(44936.943, 't25', 'Departure', 'init')
+Event t25 complete at queue init
+(44936.943, 't25', 'Arrival', 'n3')
+Event t25 arrived at queue n3
+Servicing event t25 at queue: n3
+(44936.95590681353, 't25', 'Departure', 'n3')
+Event t25 complete at queue n3
+(44950.648, 't26', 'Departure', 'init')
+Event t26 complete at queue init
+(44950.648, 't26', 'Arrival', 'n3')
+Event t26 arrived at queue n3
+Servicing event t26 at queue: n3
+(44950.795347485444, 't26', 'Departure', 'n3')
+Event t26 complete at queue n3
+(44962.97, 't27', 'Departure', 'init')
+Event t27 complete at queue init
+(44962.97, 't27', 'Arrival', 'n3')
+Event t27 arrived at queue n3
+Servicing event t27 at queue: n3
+(44963.4617284527, 't27', 'Departure', 'n3')
+Event t27 complete at queue n3
+(45019.707, 't28', 'Departure', 'init')
+Event t28 complete at queue init
+(45019.707, 't28', 'Arrival', 'n3')
+Event t28 arrived at queue n3
+Servicing event t28 at queue: n3
+(45020.62314766813, 't28', 'Departure', 'n3')
+Event t28 complete at queue n3
+(45078.517, 't29', 'Departure', 'init')
+Event t29 complete at queue init
+(45078.517, 't29', 'Arrival', 'n3')
+Event t29 arrived at queue n3
+Servicing event t29 at queue: n3
+(45078.697380921585, 't29', 'Departure', 'n3')
+Event t29 complete at queue n3
+(45112.97, 't30', 'Departure', 'init')
+Event t30 complete at queue init
+(45112.97, 't30', 'Arrival', 'n3')
+Event t30 arrived at queue n3
+Servicing event t30 at queue: n3
+(45113.180453897156, 't30', 'Departure', 'n3')
+Event t30 complete at queue n3
+(45184.631, 't31', 'Departure', 'init')
+Event t31 complete at queue init
+(45184.631, 't31', 'Arrival', 'n3')
+Event t31 arrived at queue n3
+Servicing event t31 at queue: n3
+(45185.82676005448, 't31', 'Departure', 'n3')
+Event t31 complete at queue n3
+(45290.878, 't32', 'Departure', 'init')
+Event t32 complete at queue init
+(45290.878, 't32', 'Arrival', 'n3')
+Event t32 arrived at queue n3
+Servicing event t32 at queue: n3
+(45293.18371202007, 't32', 'Departure', 'n3')
+Event t32 complete at queue n3
+(45313.838, 't33', 'Departure', 'init')
+Event t33 complete at queue init
+(45313.838, 't33', 'Arrival', 'n3')
+Event t33 arrived at queue n3
+Servicing event t33 at queue: n3
+(45315.1889676593, 't33', 'Departure', 'n3')
+Event t33 complete at queue n3
+(45442.793, 't34', 'Departure', 'init')
+Event t34 complete at queue init
+(45442.793, 't34', 'Arrival', 'n3')
+Event t34 arrived at queue n3
+Servicing event t34 at queue: n3
+(45443.07144900269, 't34', 'Departure', 'n3')
+Event t34 complete at queue n3
+(45523.585, 't35', 'Departure', 'init')
+Event t35 complete at queue init
+(45523.585, 't35', 'Arrival', 'n3')
+Event t35 arrived at queue n3
+Servicing event t35 at queue: n3
+(45524.1559013485, 't35', 'Departure', 'n3')
+Event t35 complete at queue n3
+(45600.898, 't36', 'Departure', 'init')
+Event t36 complete at queue init
+(45600.898, 't36', 'Arrival', 'n3')
+Event t36 arrived at queue n3
+Servicing event t36 at queue: n3
+(45601.17186758202, 't36', 'Departure', 'n3')
+Event t36 complete at queue n3
+(45649.74, 't37', 'Departure', 'init')
+Event t37 complete at queue init
+(45649.74, 't37', 'Arrival', 'n3')
+Event t37 arrived at queue n3
+Servicing event t37 at queue: n3
+(45649.999877306625, 't37', 'Departure', 'n3')
+Event t37 complete at queue n3
+(45722.831, 't38', 'Departure', 'init')
+Event t38 complete at queue init
+(45722.831, 't38', 'Arrival', 'n3')
+Event t38 arrived at queue n3
+Servicing event t38 at queue: n3
+(45722.953570885096, 't38', 'Departure', 'n3')
+Event t38 complete at queue n3
+(45776.338, 't39', 'Departure', 'init')
+Event t39 complete at queue init
+(45776.338, 't39', 'Arrival', 'n3')
+Event t39 arrived at queue n3
+Servicing event t39 at queue: n3
+(45776.50762968924, 't39', 'Departure', 'n3')
+Event t39 complete at queue n3
+(45879.356, 't40', 'Departure', 'init')
+Event t40 complete at queue init
+(45879.356, 't40', 'Arrival', 'n3')
+Event t40 arrived at queue n3
+Servicing event t40 at queue: n3
+(45879.38468733878, 't40', 'Departure', 'n3')
+Event t40 complete at queue n3
+(45986.019, 't41', 'Departure', 'init')
+Event t41 complete at queue init
+(45986.019, 't41', 'Arrival', 'n3')
+Event t41 arrived at queue n3
+Servicing event t41 at queue: n3
+(45986.45904341967, 't41', 'Departure', 'n3')
+Event t41 complete at queue n3
+(45998.926, 't42', 'Departure', 'init')
+Event t42 complete at queue init
+(45998.926, 't42', 'Arrival', 'n3')
+Event t42 arrived at queue n3
+Servicing event t42 at queue: n3
+(45999.22100597917, 't42', 'Departure', 'n3')
+Event t42 complete at queue n3
+(46073.097, 't43', 'Departure', 'init')
+Event t43 complete at queue init
+(46073.097, 't43', 'Arrival', 'n3')
+Event t43 arrived at queue n3
+Servicing event t43 at queue: n3
+(46073.658540048455, 't43', 'Departure', 'n3')
+Event t43 complete at queue n3
+(46100.586, 't44', 'Departure', 'init')
+Event t44 complete at queue init
+(46100.586, 't44', 'Arrival', 'n3')
+Event t44 arrived at queue n3
+Servicing event t44 at queue: n3
+(46101.207309495425, 't44', 'Departure', 'n3')
+Event t44 complete at queue n3
+(46151.994, 't45', 'Departure', 'init')
+Event t45 complete at queue init
+(46151.994, 't45', 'Arrival', 'n3')
+Event t45 arrived at queue n3
+Servicing event t45 at queue: n3
+(46152.09015693222, 't45', 'Departure', 'n3')
+Event t45 complete at queue n3
+(46166.256, 't46', 'Departure', 'init')
+Event t46 complete at queue init
+(46166.256, 't46', 'Arrival', 'n3')
+Event t46 arrived at queue n3
+Servicing event t46 at queue: n3
+(46167.95331179358, 't46', 'Departure', 'n3')
+Event t46 complete at queue n3
+(46202.971, 't47', 'Departure', 'init')
+Event t47 complete at queue init
+(46202.971, 't47', 'Arrival', 'n3')
+Event t47 arrived at queue n3
+Servicing event t47 at queue: n3
+(46204.79964432706, 't47', 'Departure', 'n3')
+Event t47 complete at queue n3
+(46294.364, 't48', 'Departure', 'init')
+Event t48 complete at queue init
+(46294.364, 't48', 'Arrival', 'n3')
+Event t48 arrived at queue n3
+Servicing event t48 at queue: n3
+(46294.94028057675, 't48', 'Departure', 'n3')
+Event t48 complete at queue n3
+(46387.212, 't49', 'Departure', 'init')
+Event t49 complete at queue init
+(46387.212, 't49', 'Arrival', 'n3')
+Event t49 arrived at queue n3
+Servicing event t49 at queue: n3
+(46387.51865073405, 't49', 'Departure', 'n3')
+Event t49 complete at queue n3
+(46430.522, 't50', 'Departure', 'init')
+Event t50 complete at queue init
+(46430.522, 't50', 'Arrival', 'n3')
+Event t50 arrived at queue n3
+Servicing event t50 at queue: n3
+(46430.80405050429, 't50', 'Departure', 'n3')
+Event t50 complete at queue n3
+(46518.222, 't51', 'Departure', 'init')
+Event t51 complete at queue init
+(46518.222, 't51', 'Arrival', 'n3')
+Event t51 arrived at queue n3
+Servicing event t51 at queue: n3
+(46518.3648687201, 't51', 'Departure', 'n3')
+Event t51 complete at queue n3
+(46530.316, 't52', 'Departure', 'init')
+Event t52 complete at queue init
+(46530.316, 't52', 'Arrival', 'n3')
+Event t52 arrived at queue n3
+Servicing event t52 at queue: n3
+(46530.51851322497, 't52', 'Departure', 'n3')
+Event t52 complete at queue n3
+(46635.672, 't53', 'Departure', 'init')
+Event t53 complete at queue init
+(46635.672, 't53', 'Arrival', 'n3')
+Event t53 arrived at queue n3
+Servicing event t53 at queue: n3
+(46635.84892117589, 't53', 'Departure', 'n3')
+Event t53 complete at queue n3
+(46746.469, 't54', 'Departure', 'init')
+Event t54 complete at queue init
+(46746.469, 't54', 'Arrival', 'n3')
+Event t54 arrived at queue n3
+Servicing event t54 at queue: n3
+(46746.58817877742, 't54', 'Departure', 'n3')
+Event t54 complete at queue n3

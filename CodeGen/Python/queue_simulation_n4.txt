@@ -1,0 +1,7 @@
+(43200.0, 't0', 'Departure', 'init')
+Event t0 complete at queue init
+(43200.0, 't0', 'Arrival', 'n4')
+Event t0 arrived at queue n4
+Servicing event t0 at queue: n4
+(43201.172237819046, 't0', 'Departure', 'n4')
+Event t0 complete at queue n4

@@ -1,0 +1,49 @@
+(43920.0, 't0', 'Departure', 'init')
+Event t0 complete at queue init
+(43920.0, 't0', 'Arrival', 'n1')
+Event t0 arrived at queue n1
+Servicing event t0 at queue: n1
+(43920.24498698999, 't0', 'Departure', 'n1')
+Event t0 complete at queue n1
+(44820.0, 't1', 'Departure', 'init')
+Event t1 complete at queue init
+(44820.0, 't1', 'Arrival', 'n1')
+Event t1 arrived at queue n1
+Servicing event t1 at queue: n1
+(44820.10195058897, 't1', 'Departure', 'n1')
+Event t1 complete at queue n1
+(45720.0, 't2', 'Departure', 'init')
+Event t2 complete at queue init
+(45720.0, 't2', 'Arrival', 'n1')
+Event t2 arrived at queue n1
+Servicing event t2 at queue: n1
+(45720.17267081791, 't2', 'Departure', 'n1')
+Event t2 complete at queue n1
+(46620.0, 't3', 'Departure', 'init')
+Event t3 complete at queue init
+(46620.0, 't3', 'Arrival', 'n1')
+Event t3 arrived at queue n1
+Servicing event t3 at queue: n1
+(46620.58215215514, 't3', 'Departure', 'n1')
+Event t3 complete at queue n1
+(47520.0, 't4', 'Departure', 'init')
+Event t4 complete at queue init
+(47520.0, 't4', 'Arrival', 'n1')
+Event t4 arrived at queue n1
+Servicing event t4 at queue: n1
+(47520.00147813286, 't4', 'Departure', 'n1')
+Event t4 complete at queue n1
+(48420.0, 't5', 'Departure', 'init')
+Event t5 complete at queue init
+(48420.0, 't5', 'Arrival', 'n1')
+Event t5 arrived at queue n1
+Servicing event t5 at queue: n1
+(48420.04050564216, 't5', 'Departure', 'n1')
+Event t5 complete at queue n1
+(49320.0, 't6', 'Departure', 'init')
+Event t6 complete at queue init
+(49320.0, 't6', 'Arrival', 'n1')
+Event t6 arrived at queue n1
+Servicing event t6 at queue: n1
+(49320.34716723703, 't6', 'Departure', 'n1')
+Event t6 complete at queue n1
