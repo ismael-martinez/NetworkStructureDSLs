@@ -1,5 +1,3 @@
-from CodeGen.Python.networkStructureAttributesAndInstances import *
-from CodeGen.Python.networkUtil import *
 from networkStructureAttributesAndInstances import *
 from networkUtil import *
 import numpy as np
@@ -30,17 +28,19 @@ class Simulation:
     ## Events_H (array Events) - Unobserved events, no infor
     ## Queue (dict Queue) - Set of Queue objects
     ## assist_style (string) - defines how servers interact with events. In {'noAssist', 'assistComplete', 'assist_partial')
-    def __init__(self, Events_O, Events_H, Queues, assist_style='noAssist'):
+    def __init__(self, Events_O, Events_H, Queues, assist_style='noAssist', verbose=False):
         # Add initial queue to every event
         self.Events_O = Events_O
         self.Events_H = Events_H
         self.Queues = Queues
+        self.verbose = verbose
+        self.simulation_log = []
         self.assist_style = assist_style
         if assist_style not in ('noAssist', 'assistComplete', 'assist_partial'):
             raise Exception("Assist_style must be in {'noAssist', 'assistComplete', 'assist_partial')")
         # Initial queue
         self.init_q_id = 'init'
-        queue_init = Queue(self.init_q_id, 1, 1)
+        queue_init = Queue(self.init_q_id, 0, 1)
         self.Queues[self.init_q_id] = queue_init
 
         all_events = self.Events_O + self.Events_H
@@ -76,19 +76,22 @@ class Simulation:
             #e.current_task += 1
             # insert by timestamp
             self.event_triggers = insert_event_trigger(self.event_triggers, initial_departure_trigger)
+            log = (0, e.departure_times[0], 0, e.departure_times[0], e.id, 0, {}, 1)
+            self.Queues['init'].queue_log.append(log)
 
         # Iterate through arrival times. At each time, simulate the new state
         t = 0
         while t < len(self.event_triggers):
             trigger = self.event_triggers[t]
-            print(trigger)
+            if self.verbose:
+                print(trigger)
+            self.simulation_log.append(str(trigger))
             trigger_time = trigger[0]
             event_id = trigger[1]
             trigger_type = trigger[2]
             event = self.dict_events[event_id]
             task = event.current_task
-            print(task)
-            print(event.queues)
+
             queue_id = event.queues[task]
             queue = self.dict_queue[queue_id]
             if 'Arrival' in trigger_type:
@@ -105,14 +108,26 @@ class Simulation:
                 service_ready = queue.arrival(event_id, trigger_time)#, service_time=service_time)
                 #else:
                 #    service_ready = False
-                print('Event {} arrived at queue {}'.format(event_id, queue_id))
+                sim_trigger = 'Event {} arrived at queue {}'.format(event_id, queue_id)
+                if self.verbose:
+                    print(sim_trigger)
+                self.simulation_log.append(sim_trigger)
                 if service_ready:
                     self.service_queue(trigger_time, queue, t)
-                    print('Servicing event {} at queue: {}'.format(event_id, queue_id))
+
+                    sim_trigger = 'Servicing event {} at queue: {}'.format(event_id, queue_id)
+                    if self.verbose:
+                        print(sim_trigger)
+                    self.simulation_log.append(sim_trigger)
 
             elif 'Departure' in trigger_type:
                 queue.complete_service(event_id)
-                print('Event {} complete at queue {}'.format(event_id, queue_id))
+
+                sim_trigger = 'Event {} complete at queue {}'.format(event_id, queue_id)
+                if self.verbose:
+                    print(sim_trigger)
+                self.simulation_log.append(sim_trigger)
+
                 # New queue for current event
                 new_queue_id = event.move_queue()
                 if new_queue_id: # event completed

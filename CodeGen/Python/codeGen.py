@@ -6,8 +6,7 @@ import json
 from scipy.stats import expon
 import numpy as np
 from numpy.random import normal
-#from networkStructure import *
-from CodeGen.Python.networkStructure import * # TODO remove at the end
+from networkStructure import *
 from textx import metamodel_from_file
 from textx.export import metamodel_export
 import os
@@ -608,7 +607,7 @@ def code_generation(trs_model, pns_model, trs_location, pns_location):
     attribute_class_gen = []
     # File headers and imports
     attribute_class_gen.append('from networkStructure import *\nimport numpy as np\nfrom networkUtil import * \n')
-    attribute_class_gen.append('#from CodeGen.Python.networkStructure import *\n')
+    #attribute_class_gen.append('#from CodeGen.Python.networkStructure import *\n')
 
     # Generate Client classes
     attribute_class_gen.append(generate_client_class(trs_model=trs_model))

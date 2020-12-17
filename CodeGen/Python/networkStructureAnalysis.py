@@ -2,9 +2,6 @@ from networkStructureAttributesAndInstances import *
 import networkStructure as NS
 from networkUtil import *
 from Simulation import *
-#from CodeGen.Python.networkStructure import *
-#from CodeGen.Python.networkStructureAttributesAndInstances import *
-#from CodeGen.Python.networkUtil import *
 import numpy as np
 import matplotlib.pyplot as plt
 import random
@@ -12,9 +9,31 @@ import networkx as nx
 import os
 import cv2
 import math
+import sys, getopt
 
 
-def main():
+def main(argv):
+    # Arguments
+    queue_analysis = False
+    arrival_analysis = False
+    network_structure_analysis = False
+
+    try:
+        opts, args = getopt.getopt(argv, "hqan", ["queueAnalysis=", "arrivalAnalysis=", "networkAnalysis="])
+    except getopt.GetoptError:
+        print('networkStructureAnalysis.py -q (optional) -a (optional) -n (optional)')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print('networkStructureAnalysis.py -q (optional) -a (optional) -n (optional)')
+            sys.exit()
+        elif opt in ("-q", "--queueAnalysis"):
+            queue_analysis = True
+        elif opt in ("-a", "--arrivalAnalysis"):
+            arrival_analysis = True
+        elif opt in ("-n", "--networkAnalysis"):
+            network_structure_analysis = True
+
     print('*** ATTRIBUTES ***')
     for client_set in network_structure.clients.attributes:
         print('Client type {} : {}'.format(client_set, network_structure.clients.attributes[client_set]))
@@ -23,18 +42,9 @@ def main():
     for link_set in network_structure.graph.links.attributes:
         print('Link type {} : {}'.format(link_set, network_structure.graph.links.attributes[link_set]))
 
-    # Show Network Structure
-    G = nx.DiGraph()
-    ns_graph = network_structure.graph
-    for node_id in ns_graph.nodes.get_nodes():
-        G.add_node(node_id)
-    for link_id in ns_graph.links.get_links():
-        [n_source, n_target] = ns_graph.links.get_link(link_id).node_pair
-        G.add_edge(n_source, n_target)
 
-    A = nx.nx_pydot.write_dot(G, 'graph.dot')
-    os.system('dot -Tpng -O  graph.dot')
 
+    # Request arrival graphs ####################
 
     # Handshake -- create a distance matrix between every 'thing' and 'node'
     T = len(network_structure.clients.get_clients())
@@ -81,6 +91,9 @@ def main():
             new_sched = merge_timestamps(sched, old_sched)
             node_arrival_schedules[node_name] = new_sched
 
+    if arrival_analysis:
+        print('Arrival Request graphs printing in .pdf files')
+
     # Arrivals per hour
     first_hour_all = 24
     last_hour_all = 0
@@ -122,7 +135,13 @@ def main():
         ax.set_xlabel('Hours')
         ax.set_ylabel('Arrivals')
         ax.set_title('Arrivals per hour - Node {}'.format(node))
-        plt.show()
+        #plt.show()
+
+
+        if arrival_analysis:
+
+            plot_pdf = 'request_arrivals_perHour_{}.pdf'.format(node)
+            fig.savefig(plot_pdf, bbox_inches='tight')
 
     # Arrivals per quarter hour (15)
     quarters = []
@@ -176,53 +195,91 @@ def main():
         ax.set_xlabel('Quarter Hours')
         ax.set_ylabel('Arrivals')
         ax.set_title('Arrivals per 15 minutes - Node {}'.format(node))
-        plt.show()
+        #plt.show()
 
+        if arrival_analysis:
+            plot_pdf = 'request_arrivals_perQuarter_{}.pdf'.format(node)
+            fig.savefig(plot_pdf, bbox_inches='tight')
+
+    if arrival_analysis:
+        print('Complete')
     ############################################
-    # Queue Simulation
-    random.seed(100)
-    ns = network_structure.graph.nodes.get_nodes()
-    queues = {}
-    K = 1
+
+    if queue_analysis:
+
+        # Queue Simulation
+        random.seed(100)
+        ns = network_structure.graph.nodes.get_nodes()
+        queues = {}
+        K = 1
 
 
-    arrivals = []
-    zero_timestamp = NS.timestamp(0)
-    arrivals.append(zero_timestamp)
+        arrivals = []
+        zero_timestamp = NS.timestamp(0)
+        arrivals.append(zero_timestamp)
 
 
-    for n in ns:
-        if n not in node_arrival_schedules:
-            continue
-        arrivals = [s.timestamp_to_seconds() for s in  node_arrival_schedules[n]]
-        events = []
-        node = ns[n]
-        service_rate = node.get_service_rate()
-        queues = {n:Queue(n, service_rate, K)}
-        for a in range(len(arrivals)):
-            id = 't{}'.format(a)
-            events.append(Event(id, [arrivals[a]], [0.0], [n]))
-        # Init calls execution_initial() internally
-        S = Simulation(events, [], queues)
 
-        queue_log = {}
-        for q in S.Queues:
-            if q == 'init':
+        for n in ns:
+            if n not in node_arrival_schedules:
                 continue
-            print('\nQueue {}'.format(q))
-            print('Arrival, Service, Wait, Departure ')
-            queue = queues[q]
-            queue_log[q] = queue.queue_log
-            for l in queue.queue_log:  # [arrival, service, wait, departure
-                arrival = NS.timestamp.convertTime(l[0])
-                departure = NS.timestamp.convertTime(l[3])
-                print([arrival, l[1], l[2], departure])
+            arrivals = [s.timestamp_to_seconds() for s in  node_arrival_schedules[n]]
+            events = []
+            node = ns[n]
+            service_rate = node.get_service_rate()
+            queues = {n:Queue(n, service_rate, K)}
+            for a in range(len(arrivals)):
+                id = 't{}'.format(a)
+                events.append(Event(id, [arrivals[a]], [0.0], [n]))
+            # Init calls execution_initial() internally
+            S = Simulation(events, [], queues)
 
+            queue_simulation_file = 'queue_simulation_{}.txt'.format(n)
+            with open(queue_simulation_file, 'w') as g:
+                print('Simulation log, queue {}'.format(n))
+                for log in S.simulation_log:
+                    g.write(log)
+                    g.write('\n')
+
+            queue_log_file = 'queue_log_{}.csv'.format(n)
+            f = open(queue_log_file, 'w')
+
+
+            queue_log = {}
+            for q in S.Queues:
+                if q == 'init':
+                    continue
+                f.write('Queue {}'.format(q) + '\n')
+                f.write('Arrival, Service, Wait, Departure\n ')
+                queue = queues[q]
+                queue_log[q] = queue.queue_log
+                for l in queue.queue_log:  # [arrival, service, wait, departure
+                    arrival = NS.timestamp.convertTime(l[0])
+                    departure = NS.timestamp.convertTime(l[3])
+                    log = [arrival, str(l[1]), str(l[2]), departure]
+                    f.write(','.join(log) + '\n')
+            f.close()
+            print('Queue simulation log available in {}'.format(queue_simulation_file))
+            print('Queue event log available in {}'.format(queue_log_file))
     ##############################
+    # Show Network Structure
+    if network_structure_analysis:
+        print('Network Structure graph')
+        G = nx.DiGraph()
+        ns_graph = network_structure.graph
+        for node_id in ns_graph.nodes.get_nodes():
+            G.add_node(node_id)
+        for link_id in ns_graph.links.get_links():
+            [n_source, n_target] = ns_graph.links.get_link(link_id).node_pair
+            G.add_edge(n_source, n_target)
 
-    graph_img = cv2.imread('graph.dot.png')
-    cv2.imshow('Graph Structure', graph_img)
-    cv2.waitKey(0)
+        ## Network structure
+        A = nx.nx_pydot.write_dot(G, 'graph.dot')
+        os.system('dot -Tpng -O  graph.dot')
+        graph_img = cv2.imread('graph.dot.png')
+        cv2.imshow('Graph Structure', graph_img)
+        cv2.waitKey(0)
+
 
 if __name__=="__main__":
-    main()
+    main(sys.argv[1:])
