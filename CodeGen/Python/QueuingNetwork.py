@@ -418,7 +418,7 @@ class QueueNetwork:
                 cq_service_rate = self.service_rates[current_queue_id]
                 nq_service_rate = self.service_rates[next_queue_id]
                 d = sample_truncated_exponential_two_queues_open(cq_service_rate, nq_service_rate, current_event_current_queue_arrival,
-                                                 current_event_next_queue_departure, lower_bound_gibbs, upper_bound_gibbs)
+                                                 current_event_next_queue_departure, lower_bound_gibbs, upper_bound_gibbs, [next_event_current_queue_arrival, next_event_current_queue_departure])
                 # self.event_transition[(event_id, queue_id)] this function gives the next queue for an event
                 print('Sampling from CQ {} *[ x - {}] , NQ {} * [{} - x] from x in [{}, {}]'.format(cq_service_rate,
                                                                                                     current_event_current_queue_arrival,
