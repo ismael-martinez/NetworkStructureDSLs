@@ -40,7 +40,8 @@ class Simulation:
             raise Exception("Assist_style must be in {'noAssist', 'assistComplete', 'assist_partial')")
         # Initial queue
         self.init_q_id = 'init'
-        queue_init = Queue(self.init_q_id, 0, 1)
+
+        queue_init = Queue(self.init_q_id, 0, 1, [0])
         self.Queues[self.init_q_id] = queue_init
 
         all_events = self.Events_O + self.Events_H
@@ -363,7 +364,7 @@ class Queue:
             k_servers = np.floor(len(self.sub_servers) / (total_events_in_queue))
         else:
             k_servers = 1
-        service_loss_k = self.service_loss[k_servers]
+        service_loss_k = self.service_loss[k_servers-1]
         service_time = expon.rvs(scale=1 / (self.service_rate*k_servers - service_loss_k))
         #service_time =     #self.queue_times_service.pop(0)
         wait_time = event_time - arrival_time
