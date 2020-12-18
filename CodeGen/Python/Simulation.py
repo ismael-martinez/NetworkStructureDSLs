@@ -280,7 +280,8 @@ class SubQueue:
 
 class Queue:
     # K (int) - Number of servers
-    def __init__(self, id, service_rate, K):
+    # service_loss (array size K) - loss for k server collaboration
+    def __init__(self, id, service_rate, K, service_loss):
         self.id = id
         self.service_rate = service_rate
         self.queue_events = []
@@ -293,6 +294,12 @@ class Queue:
         self.queue_log = []
         self.sub_servers = []
         self.K = K
+        if len(service_loss) != K:
+            raise Exception('Service loss needs to be of size K')
+        for k in range(K):
+            if service_loss[k] > service_rate*(k+1):
+                raise Exception('Service loss from k servers cannot be greater than service rate by k servers')
+        self.service_loss = service_loss
         for k in range(K):
             self.sub_servers.append(SubQueue(k, self.service_rate))
 
@@ -356,7 +363,8 @@ class Queue:
             k_servers = np.floor(len(self.sub_servers) / (total_events_in_queue))
         else:
             k_servers = 1
-        service_time = expon.rvs(scale=1 / (self.service_rate*k_servers))
+        service_loss_k = self.service_loss[k_servers]
+        service_time = expon.rvs(scale=1 / (self.service_rate*k_servers - service_loss_k))
         #service_time =     #self.queue_times_service.pop(0)
         wait_time = event_time - arrival_time
         departure_time = event_time + service_time

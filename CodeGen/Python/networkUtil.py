@@ -166,34 +166,14 @@ def depthFirstSearch_rec(nodes, root, node_visited_map, all_paths):
         all_paths.append(p)
     return [node_visited_map, root_paths, all_paths]
 
-# Sample from a truncated exponential
-# Input
-## param_lambda (float > 0) - exponential parameter
-## start (float) - beginning of interval
-## end (float) - end of interval
-def sample_trancated_exponential(param_lambda, start, end):
-    norm_constant = np.exp(-param_lambda * start) - np.exp(-param_lambda * end)
-    cdf_start = 1 - np.exp(-param_lambda*start)
-    u = np.random.random() * norm_constant + cdf_start
-    inv_exp_sample = end +  np.log( 1 - norm_constant * u) / param_lambda
-    return inv_exp_sample
-
-def sample_truncated_exponential_right_fixed(param_lambda, start, end):
-    norm_constant = np.exp(-param_lambda * (end - start)) - 1
-    cdf_start = 1 - np.exp(-param_lambda * (end - start))
-    u = np.random.random() * norm_constant + cdf_start
-    inv_exp_sample =  np.log(1 - norm_constant * u) / param_lambda + end
-    return inv_exp_sample
-
-def sample_truncated_exponential_left_fixed(param_lambda, start, end):
-    norm_constant = 1 - np.exp(-param_lambda * (end-start))
-    cdf_start = 0
-    u = np.random.random() * norm_constant + cdf_start
-    inv_exp_sample = - np.log(1 - norm_constant * u) / param_lambda + start
-    return inv_exp_sample
-
-def sample_truncated_exponential_two_queues_open(param_lambda1, param_lambda2, A, B, start, end):
-    param_lambda = param_lambda1 - param_lambda2
+def sample_truncated_exponential_two_queues_open(param_lambda1, param_lambda2, A, B, start, end, current_queue_next_event):
+    # Depermine bounds of previous and next items
+    cq_ne_arrival = current_queue_next_event[0]
+    cq_ne_departure = current_queue_next_event[3]
+    if cq_ne_arrival >= end:
+        param_lambda = -param_lambda2
+    else:
+        param_lambda = param_lambda1 - param_lambda2
     if param_lambda == 0: # Return uniform
         u = np.random.random()*(end-start) + start
         return u
@@ -202,6 +182,12 @@ def sample_truncated_exponential_two_queues_open(param_lambda1, param_lambda2, A
     if param_lambda2 > param_lambda1:
         gamma = -1
     loc_const = gamma*(A*param_lambda1 - B*param_lambda2) / param_lambda
+    if cq_ne_arrival >= end:
+        loc_const += gamma*param_lambda1(cq_ne_arrival - cq_ne_departure)/param_lambda
+    else:
+        loc_const += -gamma * param_lambda1(cq_ne_departure) / param_lambda
+
+
     if gamma > 0:
         cdf_start = 1 - np.exp(-gamma*param_lambda * (gamma*start - loc_const))
         cdf_end = 1 - np.exp(-gamma*param_lambda * (gamma*end - loc_const))
@@ -218,3 +204,31 @@ def sample_truncated_exponential_two_queues_open(param_lambda1, param_lambda2, A
     else:
         inv_exp_sample = -np.log(u)/param_lambda - loc_const
     return inv_exp_sample
+
+
+# Sample from a truncated exponential
+# Input
+## param_lambda (float > 0) - exponential parameter
+## start (float) - beginning of interval
+## end (float) - end of interval
+# def sample_trancated_exponential(param_lambda, start, end):
+#     norm_constant = np.exp(-param_lambda * start) - np.exp(-param_lambda * end)
+#     cdf_start = 1 - np.exp(-param_lambda*start)
+#     u = np.random.random() * norm_constant + cdf_start
+#     inv_exp_sample = end +  np.log( 1 - norm_constant * u) / param_lambda
+#     return inv_exp_sample
+#
+# def sample_truncated_exponential_right_fixed(param_lambda, start, end):
+#     norm_constant = np.exp(-param_lambda * (end - start)) - 1
+#     cdf_start = 1 - np.exp(-param_lambda * (end - start))
+#     u = np.random.random() * norm_constant + cdf_start
+#     inv_exp_sample =  np.log(1 - norm_constant * u) / param_lambda + end
+#     return inv_exp_sample
+#
+# def sample_truncated_exponential_left_fixed(param_lambda, start, end):
+#     norm_constant = 1 - np.exp(-param_lambda * (end-start))
+#     cdf_start = 0
+#     u = np.random.random() * norm_constant + cdf_start
+#     inv_exp_sample = - np.log(1 - norm_constant * u) / param_lambda + start
+#     return inv_exp_sample
+

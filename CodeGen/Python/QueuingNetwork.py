@@ -18,6 +18,7 @@ class QueueNetwork:
         self.hidden_ids = hidden_ids
         self.queue_ids = []
         self.service_rates = {}
+        self.service_loss = {}
         # Construct event tuples from event trigger list:
         self.event_transition = {}
         for i in range(len(event_triggers)):
@@ -37,6 +38,9 @@ class QueueNetwork:
         for q in self.log:
             self.queue_ids.append(q)
             self.service_rates[q] = 1
+            self.service_loss[q] = [0]*self.K
+            for k in range(self.K):
+                self.service_loss[q][k] = 0.5
             for i in range(len(self.log[q])):
                 q_times = [round(self.log[q][i][t], DECIMALS) for t in range(4)]
                 q_log = q_times + list(self.log[q][i][4:])
@@ -405,6 +409,8 @@ class QueueNetwork:
             # Sample
             if initial:
                 # Sample from uniform across [L, U]
+                if upper_bound_gibbs == np.infty:
+                    upper_bound_gibbs = current_event_next_queue_departure # modify upper bound to not be too large
                 d = lower_bound_gibbs + np.random.random() * (upper_bound_gibbs-lower_bound_gibbs)
             else:
                 #### Gibbs sampling
@@ -626,7 +632,11 @@ queues = {}
 K = 1
 for node in ns:
     service_rate = 15*np.random.random()
-    queues[node] = Queue(node, service_rate, K)
+    service_loss = []
+    for k in range(K):
+        sl =  (k+1)*service_rate*np.random.random()
+        service_loss.append(sl)
+    queues[node] = Queue(node, service_rate, K, service_loss)
 
 arrival_rate = 10
 arrivals = np.zeros(events)
@@ -685,6 +695,11 @@ for q in S.Queues:
 queue_network = QueueNetwork(queue_log, hidden_ids, S.event_triggers, K)
 
 
+def service_rate_k(n, eta, sum_s, sum_sk):
+    service_rate = n + eta*sum_s
+    service_rate = service_rate/sum_sk
+    return service_rate
+
 
 
 runs = 10
@@ -696,17 +711,34 @@ for i in range(runs):
         if q == 'init':
             continue
         print('Queue {}'.format(q))
-        queue = queues[q]
+        queue_log = queue_network.log[q]
 
         sum_service_times = 0
         sum_servicers = 0
-        for log in queue.queue_log: # [arrival, service, wait, departure
-            k_servers = log[7]
-            service_time = log[1]
-            sum_service_times += service_time*k_servers
 
-        N = len(queue.queue_log)
-        #queue_network.service_rates[q] = N / sum_service_times # M step update
+        sk_sums = [0]*K
+        obs = [0]*K
+        s_sums = [0]*K
+        for log in queue_log: # [arrival, service, wait, departure
+            k_servers = int(log[7])
+            service_time = log[1]
+            if service_time == np.infty:
+                continue
+            sk_sums[k_servers-1] += service_time*k_servers
+            obs[k_servers-1] += 1
+            s_sums[k_servers-1] += service_time
+
+        service_rate_observed = sum( service_rate_k(obs[k], queue_network.service_loss[q][k], s_sums[k], sk_sums[k]) for k in range(K))
+        print('Update service time estimation')
+        queue_network.service_rates[q] = service_rate_observed # M step update, service rate
+
+        # Update eta, service loss
+        print('Update service loss estimation')
+        for k in range(K):
+            service_loss_estimation = service_rate_observed*(k+1) - obs[k]/s_sums[k]
+            queue_network.service_loss[q][k] = service_loss_estimation
+
+
 
 
 
