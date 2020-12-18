@@ -412,7 +412,7 @@ class QueueNetwork:
             if initial:
                 # Sample from uniform across [L, U]
                 if upper_bound_gibbs == np.infty:
-                    upper_bound_gibbs = current_event_next_queue_departure # modify upper bound to not be too large
+                    continue
                 d = lower_bound_gibbs + np.random.random() * (upper_bound_gibbs-lower_bound_gibbs)
             else:
                 #### Gibbs sampling
