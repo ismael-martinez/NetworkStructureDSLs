@@ -301,6 +301,8 @@ class QueueNetwork:
         for dep_event in events_ordered_departure:
             current_queue_id = dep_event[8]
             event_id = dep_event[4]
+            if event_id not in self.hidden_ids:
+                continue
             next_queue_id = self.event_transition[(event_id, current_queue_id)]
 
             # Index in current queue log
@@ -416,7 +418,10 @@ class QueueNetwork:
                 #### Gibbs sampling
                 ## Choose an interval
                 cq_service_rate = self.service_rates[current_queue_id]
-                nq_service_rate = self.service_rates[next_queue_id]
+                if next_queue_id is not None:
+                    nq_service_rate = self.service_rates[next_queue_id]
+                else:
+                    nq_service_rate = 0
                 d = sample_truncated_exponential_two_queues_open(cq_service_rate, nq_service_rate, current_event_current_queue_arrival,
                                                  current_event_next_queue_departure, lower_bound_gibbs, upper_bound_gibbs, [next_event_current_queue_arrival, next_event_current_queue_departure])
                 # self.event_transition[(event_id, queue_id)] this function gives the next queue for an event
