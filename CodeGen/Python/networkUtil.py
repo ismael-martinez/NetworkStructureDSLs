@@ -167,6 +167,7 @@ def depthFirstSearch_rec(nodes, root, node_visited_map, all_paths):
     return [node_visited_map, root_paths, all_paths]
 
 # Input:
+## section (int 0,1,2 for left, middle, right
 ## lower_bound (float) -- Truncation begin
 ## upper_bound (float) -- Truncation end
 ## service_rate_current_queue (float >= 0)
