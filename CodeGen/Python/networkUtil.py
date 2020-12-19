@@ -166,44 +166,110 @@ def depthFirstSearch_rec(nodes, root, node_visited_map, all_paths):
         all_paths.append(p)
     return [node_visited_map, root_paths, all_paths]
 
-def sample_truncated_exponential_two_queues_open(param_lambda1, param_lambda2, A, B, start, end, current_queue_next_event):
-    # Depermine bounds of previous and next items
-    cq_ne_arrival = current_queue_next_event[0]
-    cq_ne_departure = current_queue_next_event[1]
-    if cq_ne_arrival >= end:
-        param_lambda = -param_lambda2
-    else:
-        param_lambda = param_lambda1 - param_lambda2
-    if param_lambda == 0: # Return uniform
-        u = np.random.random()*(end-start) + start
-        return u
+# Input:
+## lower_bound (float) -- Truncation begin
+## upper_bound (float) -- Truncation end
+## service_rate_current_queue (float >= 0)
+## service_rate_next_queue (float >= 0)
+## current_queue_current_event ([float] size 2) -- [arrival, departure]
+## next_queue_current_event ([float] size 2) -- [arrival, departure]
+## next_queue_previous_event ([float] size 2) -- [arrival, departure]
+## current_queue_next_event ([float] size 2) -- [arrival, departure]
+# Output: Sample for d
+def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bound, service_rate_current_queue, service_rate_next_queue, current_queue_current_event, next_queue_current_event ,next_queue_previous_event, current_queue_next_event):
+    [current_queue_current_arrival, current_queue_current_departure] = current_queue_current_event
+    [next_queue_current_arrival, next_queue_current_departure] = next_queue_current_event
+    [next_queue_previous_arrival, next_queue_previous_departure] = next_queue_previous_event
+    [current_queue_next_arrival, current_queue_next_departure] = current_queue_next_event
 
-    gamma = 1
-    if param_lambda2 > param_lambda1:
-        gamma = -1
-    loc_const = gamma*(A*param_lambda1 - B*param_lambda2) / param_lambda
-    if cq_ne_arrival >= end:
-        loc_const += gamma*param_lambda1(cq_ne_arrival - cq_ne_departure)/param_lambda
-    else:
-        loc_const += -gamma * param_lambda1(cq_ne_departure) / param_lambda
+    # Valid partitions
+    partitions = []
+    if lower_bound < next_queue_previous_departure < upper_bound:
+        partitions.append(next_queue_previous_departure)
+    if lower_bound < current_queue_next_arrival < upper_bound:
+        partitions.append(current_queue_next_arrival)
+    partitions.sort()
 
+    if section == 0: # left most
+        partition_point = min(partitions)
+        cdf_upper = 1 - np.exp(-service_rate_current_queue * (partition_point - lower_bound))
+        u = np.random.random()*cdf_upper
+        inv = -np.log(1-u)/service_rate_current_queue + lower_bound
+        return inv
 
-    if gamma > 0:
-        cdf_start = 1 - np.exp(-gamma*param_lambda * (gamma*start - loc_const))
-        cdf_end = 1 - np.exp(-gamma*param_lambda * (gamma*end - loc_const))
-    else:
-        cdf_start = np.exp(-param_lambda * (start + loc_const))
-        cdf_end = np.exp(-param_lambda * (end + loc_const))
+    if section == 2: # Right most
+        partition_point = max(partitions)
+        cdf_start = np.exp(service_rate_next_queue * (partition_point - upper_bound))
+        cdf_upper = 1
+        u = np.random.random() * (cdf_upper - cdf_start)
+        inv = np.log(1 - u) / service_rate_next_queue + upper_bound
+        return inv
 
-    lower_bound =  max(cdf_start, 0)
-    upper_bound =  min(cdf_end, 1)
-    norm_constant = upper_bound - lower_bound
-    u = np.random.random() * norm_constant + lower_bound
-    if gamma > 0:
-        inv_exp_sample =  -np.log(1 - u) / param_lambda + loc_const
-    else:
-        inv_exp_sample = -np.log(u)/param_lambda - loc_const
-    return inv_exp_sample
+    if section == 1:
+        if len(partitions) == 2 and next_queue_previous_departure == max(partitions):
+            u = np.random.random()*(next_queue_previous_departure - current_queue_next_arrival)
+            return u
+        else:
+            gamma = 1
+            if service_rate_current_queue > service_rate_next_queue:
+                gamma = -1
+            service_rate = service_rate_current_queue - service_rate_next_queue
+            loc_const = gamma * (
+                    current_queue_current_arrival * service_rate_current_queue - next_queue_current_departure * service_rate_next_queue) / service_rate
+            if gamma > 0:
+                cdf_start = 1 - np.exp(-gamma*service_rate* (gamma*lower_bound - loc_const))
+                cdf_end = 1 - np.exp(-gamma*service_rate * (gamma*upper_bound - loc_const))
+            else:
+                cdf_start = np.exp(-service_rate * (lower_bound + loc_const))
+                cdf_end = np.exp(-service_rate * (upper_bound + loc_const))
+
+            lower_bound =  max(cdf_start, 0)
+            upper_bound =  min(cdf_end, 1)
+            norm_constant = upper_bound - lower_bound
+            u = np.random.random() * norm_constant + lower_bound
+            if gamma > 0:
+                inv_exp_sample =  -np.log(1 - u) / service_rate + loc_const
+            else:
+                inv_exp_sample = -np.log(u)/service_rate - loc_const
+            return inv_exp_sample
+
+    # # Depermine bounds of previous and next items
+    # cq_ne_arrival = current_queue_next_event[0]
+    # cq_ne_departure = current_queue_next_event[1]
+    # if cq_ne_arrival >= end:
+    #     param_lambda = -param_lambda2
+    # else:
+    #     param_lambda = param_lambda1 - param_lambda2
+    # if param_lambda == 0: # Return uniform
+    #     u = np.random.random()*(end-start) + start
+    #     return u
+    #
+    # gamma = 1
+    # if param_lambda2 > param_lambda1:
+    #     gamma = -1
+    # loc_const = gamma*(A*param_lambda1 - B*param_lambda2) / param_lambda
+    # if cq_ne_arrival >= end:
+    #     loc_const += gamma*param_lambda1(cq_ne_arrival - cq_ne_departure)/param_lambda
+    # else:
+    #     loc_const += -gamma * param_lambda1(cq_ne_departure) / param_lambda
+    #
+    #
+    # if gamma > 0:
+    #     cdf_start = 1 - np.exp(-gamma*param_lambda * (gamma*start - loc_const))
+    #     cdf_end = 1 - np.exp(-gamma*param_lambda * (gamma*end - loc_const))
+    # else:
+    #     cdf_start = np.exp(-param_lambda * (start + loc_const))
+    #     cdf_end = np.exp(-param_lambda * (end + loc_const))
+    #
+    # lower_bound =  max(cdf_start, 0)
+    # upper_bound =  min(cdf_end, 1)
+    # norm_constant = upper_bound - lower_bound
+    # u = np.random.random() * norm_constant + lower_bound
+    # if gamma > 0:
+    #     inv_exp_sample =  -np.log(1 - u) / param_lambda + loc_const
+    # else:
+    #     inv_exp_sample = -np.log(u)/param_lambda - loc_const
+    # return inv_exp_sample
 
 
 # Input:
