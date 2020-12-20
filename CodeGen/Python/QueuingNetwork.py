@@ -526,6 +526,10 @@ class QueueNetwork:
                 next_queue_previous_event = [previous_event_next_queue_arrival, previous_event_next_queue_departure]
                 current_queue_next_event = [next_event_current_queue_arrival, next_event_current_queue_departure]
 
+                #print(event_id)
+                # if event_id == 'e33':
+                #     print('here')
+
                 Z = partition_probabilities(lower_bound_gibbs, upper_bound_gibbs, cq_service_rate,
                                             nq_service_rate, current_queue_current_event,
                                             next_queue_current_event, next_queue_previous_event,
