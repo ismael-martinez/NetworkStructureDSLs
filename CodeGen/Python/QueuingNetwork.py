@@ -376,7 +376,12 @@ class QueueNetwork:
                  previous_event_current_queue_departure_dict if
                  previous_event_current_queue_departure_dict[
                      k] is not None]
-                if len(previous_event_current_queue_departure_nonempty) > 0:
+                previous_event_current_queue_departure_empty = [previous_event_current_queue_departure_dict[k] for k
+                                                                   in
+                                                                   previous_event_current_queue_departure_dict if
+                                                                   previous_event_current_queue_departure_dict[
+                                                                       k] is None]
+                if len(previous_event_current_queue_departure_empty) == 0:
                     previous_event_current_queue_departure = max(previous_event_current_queue_departure_nonempty)
 
                 # Next event departure, d_rho^{-1}(pi(e))
@@ -384,12 +389,18 @@ class QueueNetwork:
                  next_event_current_queue_departure_dict] = self.surrounding_log_events(log_id_cq, current_queue_id,
                                                                                             forwards=True)
                 next_event_current_queue_departure = None
-                next_event_current_queue_departure_nonempty = [next_event_current_queue_departure_dict[k] for k
+
+                next_event_current_queue_departure_empty = [next_event_current_queue_departure_dict[k] for k
                                                                    in
                                                                next_event_current_queue_departure_dict if
                                                                next_event_current_queue_departure_dict[
-                                                                       k] is not None]
-                if len(next_event_current_queue_departure_nonempty) > 0:
+                                                                       k] is None]
+                next_event_current_queue_departure_nonempty = [next_event_current_queue_departure_dict[k] for k
+                                                            in
+                                                            next_event_current_queue_departure_dict if
+                                                            next_event_current_queue_departure_dict[
+                                                                k] is not None]
+                if len(next_event_current_queue_departure_empty) == 0:
                     next_event_current_queue_departure = min(next_event_current_queue_departure_nonempty)
 
                 # Next event arrival, a_rho^{-1}(pi(e))
@@ -399,7 +410,12 @@ class QueueNetwork:
                                                              next_event_current_queue_arrival_dict if
                                                              next_event_current_queue_arrival_dict[
                                                                    k] is not None]
-                if len(next_event_current_queue_arrival_dict) > 0:
+                next_event_current_queue_arrival_empty = [next_event_current_queue_arrival_dict[k] for k
+                                                             in
+                                                             next_event_current_queue_arrival_dict if
+                                                             next_event_current_queue_arrival_dict[
+                                                                 k] is  None]
+                if len(next_event_current_queue_arrival_empty ) == 0:
                     next_event_current_queue_arrival = max(next_event_current_queue_arrival_nonempty)
 
             except:
@@ -426,7 +442,12 @@ class QueueNetwork:
                                                               previous_event_next_queue_arrival_dict if
                                                               previous_event_next_queue_arrival_dict[
                                                                    k] is not None]
-                if len(previous_event_next_queue_arrival_nonempty) > 0:
+                previous_event_next_queue_arrival_empty = [previous_event_next_queue_arrival_dict[k] for k
+                                                              in
+                                                              previous_event_next_queue_arrival_dict if
+                                                              previous_event_next_queue_arrival_dict[
+                                                                  k] is None]
+                if len(previous_event_next_queue_arrival_empty) == 0:
                     previous_event_next_queue_arrival = max(previous_event_next_queue_arrival_nonempty)
 
                 # Previous event departure, d_rho(e)
@@ -436,7 +457,12 @@ class QueueNetwork:
                                                                 previous_event_next_queue_departure_dict if
                                                                 previous_event_next_queue_departure_dict[
                                                                   k] is not None]
-                if len(previous_event_next_queue_departure_nonempty) > 0:
+                previous_event_next_queue_departure_empty = [previous_event_next_queue_departure_dict[k] for k
+                                                                in
+                                                                previous_event_next_queue_departure_dict if
+                                                                previous_event_next_queue_departure_dict[
+                                                                    k] is None]
+                if len(previous_event_next_queue_departure_empty) == 0:
                     previous_event_next_queue_departure = min(previous_event_next_queue_departure_nonempty)
 
                 # Next event arrival, a_rho^{-1}(e)
@@ -449,7 +475,12 @@ class QueueNetwork:
                                                           next_event_next_queue_arrival_dict if
                                                           next_event_next_queue_arrival_dict[
                                                                   k] is not None]
-                if len(next_event_next_queue_arrival_nonempty) > 0:
+                next_event_next_queue_arrival_empty = [next_event_next_queue_arrival_dict[k] for k
+                                                          in
+                                                          next_event_next_queue_arrival_dict if
+                                                          next_event_next_queue_arrival_dict[
+                                                              k] is None]
+                if len(next_event_next_queue_arrival_empty) == 0:
                     next_event_next_queue_arrival = min(next_event_next_queue_arrival_nonempty)
 
                 # Current event arrival, d_e
