@@ -212,17 +212,19 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
             return u
         else:
             gamma = 1
-            if service_rate_current_queue > service_rate_next_queue:
+            if service_rate_current_queue < service_rate_next_queue:
                 gamma = -1
-            service_rate = service_rate_current_queue - service_rate_next_queue
+                service_rate =  service_rate_next_queue - service_rate_current_queue
+            else:
+                service_rate = service_rate_current_queue - service_rate_next_queue
             loc_const = gamma * (
                     current_queue_current_arrival * service_rate_current_queue - next_queue_current_departure * service_rate_next_queue) / service_rate
             if gamma > 0:
-                cdf_start = 1 - np.exp(-gamma*service_rate* (gamma*lower_bound - loc_const))
-                cdf_end = 1 - np.exp(-gamma*service_rate * (gamma*upper_bound - loc_const))
+                cdf_start = 1 - np.exp(-service_rate* (lower_bound - loc_const))
+                cdf_end = 1 - np.exp(-service_rate * (upper_bound - loc_const))
             else:
-                cdf_start = np.exp(-service_rate * (lower_bound + loc_const))
-                cdf_end = np.exp(-service_rate * (upper_bound + loc_const))
+                cdf_start = np.exp(service_rate * (lower_bound - loc_const))
+                cdf_end = np.exp(service_rate * (upper_bound - loc_const))
 
             lower_bound =  max(cdf_start, 0)
             upper_bound =  min(cdf_end, 1)
@@ -231,7 +233,7 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
             if gamma > 0:
                 inv_exp_sample =  -np.log(1 - u) / service_rate + loc_const
             else:
-                inv_exp_sample = -np.log(u)/service_rate - loc_const
+                inv_exp_sample = np.log(u)/service_rate + loc_const
             return inv_exp_sample
 
     # # Depermine bounds of previous and next items
