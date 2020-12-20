@@ -98,7 +98,7 @@ class QueueNetwork:
 
         log_tuple = self.log[queue_id][log_id]
         if queue_id == 'init':
-            new_log = self.log[queue_id][log_id][0:3] + (new_departure,) + self.log[queue_id][log_id][4:]
+            new_log =  (0, new_departure, 0, new_departure) + self.log[queue_id][log_id][4:]
             self.log[queue_id][log_id] = new_log
             return
 
@@ -201,7 +201,8 @@ class QueueNetwork:
 
 
         while entry_point < len(old_log):
-
+            if event_id == 'e39':
+                print('here')
             # Delete old log
             delete_point = 0
             for entry in range(len(old_log)):
@@ -259,8 +260,9 @@ class QueueNetwork:
             servicing_state[argmin_d] = event_id
             waiting_time = round(earliest_service - new_arrival, DECIMALS)
             service_time = round(old_departure_time - earliest_service, DECIMALS)
-            if service_time < 0:
-                raise Exception('Service time must be non-negative')
+            # TODO Remove comments after you find bug.
+            # if service_time < 0:
+            #     raise Exception('Service time must be non-negative')
             k_servers = delete_log[7]
             new_log = (new_arrival, service_time, waiting_time, old_departure_time, event_id, argmin_d, servicing_state, k_servers)
             old_log = old_log[0:entry_point] + [new_log] + old_log[entry_point:]
