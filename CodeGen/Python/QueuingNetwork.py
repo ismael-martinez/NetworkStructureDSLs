@@ -198,11 +198,9 @@ class QueueNetwork:
         old_log = list(self.log[queue_id])
         # Proper insert point
         entry_point = 0
-
+        print('Updating arrival of event {} in queue {}'.format(event_id, queue_id))
 
         while entry_point < len(old_log):
-            if event_id == 'e39':
-                print('here')
             # Delete old log
             delete_point = 0
             for entry in range(len(old_log)):
@@ -223,6 +221,9 @@ class QueueNetwork:
                     break
                 else:
                     entry_point += 1
+
+            if entry_point != delete_point:
+                raise Exception('New log out of order')
 
             servicing_state = {}
             departure_servicing = {}
@@ -486,8 +487,8 @@ class QueueNetwork:
                     next_event_next_queue_arrival = min(next_event_next_queue_arrival_nonempty)
 
                 # Current event arrival, d_e
-                current_event_next_queue_departure = self.log[next_queue_id][log_id_nq][3]
-                current_event_next_queue_arrival = self.log[next_queue_id][log_id_nq][0]
+                # current_event_next_queue_departure = self.log[next_queue_id][log_id_nq][3]
+                # current_event_next_queue_arrival = self.log[next_queue_id][log_id_nq][0]
 
 
             # Lower bound
@@ -496,8 +497,6 @@ class QueueNetwork:
             lower_bound_gibbs = max(lower_bound_choices)
             upper_bound_gibbs = min(upper_bound_choices)
             print('Sample in d in [{}, {}]'.format(lower_bound_gibbs, upper_bound_gibbs))
-            if event_id == 'e39':
-                print('here')
             # Sample from region
             # Todo with probability, region Z
             # Sample
@@ -545,6 +544,8 @@ class QueueNetwork:
                                                                                                     lower_bound_gibbs,
                                                                                                     upper_bound_gibbs))
                 print('Sample d = {}'.format(d))
+                if d > upper_bound_gibbs or d < lower_bound_gibbs:
+                    print('Bound error')
 
             self.update_departure_time(d, event_id, current_queue_id)
             if next_queue_id is not None:
