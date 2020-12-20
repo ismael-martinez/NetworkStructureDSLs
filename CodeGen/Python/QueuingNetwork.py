@@ -282,6 +282,43 @@ class QueueNetwork:
                 new_arrival = old_log[entry_point][0]
         self.log[queue_id] = old_log
 
+
+    # From a given log, search either forwards and backwards from a log point, and find one log per subqueue
+    def surrounding_log_events(self, log_id, queue_id, forwards = True):
+        queue_log = self.log[queue_id]
+        log_entry_arrival = {}
+        log_entry_departure = {}
+        for k in range(self.K):
+            log_entry_arrival[k] = None
+            log_entry_departure[k] = None
+        if log_id: # not none
+            if forwards:
+                log_id_next = log_id + 1
+                while log_id_next < len(log):
+                    server_k = queue_log[log_id_next][5]
+                    if log_entry_arrival[server_k] is None:
+                        log_entry_arrival[server_k] = queue_log[log_id_next][0]
+                        log_entry_departure[server_k] = queue_log[log_id_next][3]
+                    if any([log_entry_arrival[server_k] is None for k in
+                            log_entry_arrival]):
+                        log_id_next += 1
+                    else:
+                        return [log_entry_arrival, log_entry_departure]
+                return [log_entry_arrival, log_entry_departure]
+            else:
+                log_id_prev = log_id - 1
+                while log_id_prev > 0:
+                    server_k = queue_log[log_id_prev][5]
+                    if log_entry_arrival[server_k] is None:
+                        log_entry_arrival[server_k] = queue_log[log_id_prev][0]
+                        log_entry_departure[server_k] = queue_log[log_id_prev][3]
+                    if any([log_entry_arrival[server_k] is None for k in
+                            log_entry_arrival]):
+                        log_id_prev -= 1
+                    else:
+                        return [log_entry_arrival, log_entry_departure]
+            return [log_entry_arrival, log_entry_departure]
+
     def gibbs_sampling_update(self, initial=False):
         uniq_id_column = 9
         queue_column = 8
@@ -329,57 +366,41 @@ class QueueNetwork:
                 current_event_current_queue_arrival = self.log[current_queue_id][log_id_cq][0] + self.log[current_queue_id][log_id_cq][2] # Earliest service time
                 current_event_current_queue_departure =  self.log[current_queue_id][log_id_cq][3]  # Departure
                 # Previous event departure, d_rho(pi(e))
+                [previous_event_current_queue_arrival_dict, previous_event_current_queue_departure_dict] = self.surrounding_log_events(log_id_cq, current_queue_id, forwards=False)
                 previous_event_current_queue_departure = None
-                # Max of previous departures
-                if current_queue_id != 'init':
-                    log_id_cq_prev = log_id_cq - 1
-                    previous_event_current_queue_departure_dict = {}
-                    for k in range(self.K):
-                        previous_event_current_queue_departure_dict[k] = None
-                    while log_id_cq_prev > 0:
-                        k = self.log[current_queue_id][log_id_cq_prev][5]
-                        if previous_event_current_queue_departure_dict[k] is None:
-                            previous_event_current_queue_departure_dict[k] = self.log[current_queue_id][log_id_cq_prev][3]
-                        if any([previous_event_current_queue_departure_dict[k] is None for k in previous_event_current_queue_departure_dict]):
-                            log_id_cq_prev -= 1
-                        else:
-                            previous_event_current_queue_departure = max([previous_event_current_queue_departure_dict[k] for k in
-                            previous_event_current_queue_departure_dict])
-                            break
-                    if all([previous_event_current_queue_departure_dict[k] is None for k in
-                            previous_event_current_queue_departure_dict]):
-                        previous_event_current_queue_departure = 0
-                    elif any([previous_event_current_queue_departure_dict[k] is None for k in
-                            previous_event_current_queue_departure_dict]):
-                        previous_event_current_queue_departure = max([previous_event_current_queue_departure_dict[k]  for k in
-                            previous_event_current_queue_departure_dict if previous_event_current_queue_departure_dict[k]  is not None])
+                previous_event_current_queue_departure_nonempty = [previous_event_current_queue_departure_dict[k] for k in
+                 previous_event_current_queue_departure_dict if
+                 previous_event_current_queue_departure_dict[
+                     k] is not None]
+                if len(previous_event_current_queue_departure_nonempty) > 0:
+                    previous_event_current_queue_departure = max(previous_event_current_queue_departure_nonempty)
+
                 # Next event departure, d_rho^{-1}(pi(e))
+                [next_event_current_queue_arrival_dict,
+                 next_event_current_queue_departure_dict] = self.surrounding_log_events(log_id_cq, current_queue_id,
+                                                                                            forwards=True)
                 next_event_current_queue_departure = None
-                if  current_queue_id != 'init':
-                    log_id_cq_next = log_id_cq + 1
-                    while log_id_cq_next < len(self.log[current_queue_id]):
-                        next_event_k = self.log[current_queue_id][log_id_cq_next][6][current_queue_server_k]
-                        if next_event_k is None:
-                            log_id_cq_next += 1
-                        else:
-                            next_event_current_queue_departure = self.log[current_queue_id][log_id_cq_next][3]
-                            break
+                next_event_current_queue_departure_nonempty = [next_event_current_queue_departure_dict[k] for k
+                                                                   in
+                                                               next_event_current_queue_departure_dict if
+                                                               next_event_current_queue_departure_dict[
+                                                                       k] is not None]
+                if len(next_event_current_queue_departure_nonempty) > 0:
+                    next_event_current_queue_departure = min(next_event_current_queue_departure_nonempty)
+
                 # Next event arrival, a_rho^{-1}(pi(e))
                 next_event_current_queue_arrival = None
-                if current_queue_id != 'init':
-                    log_id_cq_next = log_id_cq + 1
-                    while log_id_cq_next < len(self.log[current_queue_id]):
-                        next_event_k = self.log[current_queue_id][log_id_cq_next][6][current_queue_server_k]
-                        if next_event_k is None:
-                            log_id_cq_next += 1
-                        else:
-                            next_event_current_queue_arrival = self.log[current_queue_id][log_id_cq_next][0]
-                            break
-
+                next_event_current_queue_arrival_nonempty = [next_event_current_queue_arrival_dict[k] for k
+                                                               in
+                                                             next_event_current_queue_arrival_dict if
+                                                             next_event_current_queue_arrival_dict[
+                                                                   k] is not None]
+                if len(next_event_current_queue_arrival_dict) > 0:
+                    next_event_current_queue_arrival = max(next_event_current_queue_arrival_nonempty)
 
             except:
                 current_event_current_queue_arrival = 0
-                previous_event_current_queue_departure = 0
+                previous_event_current_queue_departure = None
                 next_event_current_queue_departure = None
                 next_event_current_queue_arrival = None
                 current_event_current_queue_departure = 0
@@ -395,16 +416,34 @@ class QueueNetwork:
                 # Previous event arrival, a_rho(e)
                 if log_id_nq:
                     log_id_nq_prev = log_id_nq - 1
+                    previous_event_next_queue_arrival_dict = {}
+                    for k in range(self.K):
+                        previous_event_next_queue_arrival_dict[k] = None
                     while log_id_nq_prev > 0:
-                        next_event_k = self.log[next_queue_id][log_id_nq_prev][6][next_queue_server_k]
-                        if next_event_k is None:
+                        k = self.log[current_queue_id][log_id_nq_prev][5]
+                        if previous_event_next_queue_arrival_dict[k] is None:
+                            previous_event_next_queue_arrival_dict[k] = self.log[current_queue_id][log_id_nq_prev][
+                                3]
+                        if any([previous_event_next_queue_arrival_dict[k] is None for k in
+                                previous_event_next_queue_arrival_dict]):
                             log_id_nq_prev -= 1
                         else:
-                            next_event_current_queue_arrival = self.log[next_queue_id][log_id_nq_prev][6][next_queue_server_k][0]
+                            previous_event_next_queue_arrival = max(
+                                [previous_event_next_queue_arrival_dict[k] for k in
+                                 previous_event_next_queue_arrival_dict])
                             break
+                    if all([previous_event_next_queue_arrival_dict[k] is None for k in
+                            previous_event_next_queue_arrival_dict]):
+                        previous_event_next_queue_arrival = None
+                    elif any([previous_event_next_queue_arrival_dict[k] is None for k in
+                              previous_event_next_queue_arrival_dict]):
+                        previous_event_next_queue_arrival = max(
+                            [previous_event_next_queue_arrival_dict[k] for k in
+                             previous_event_next_queue_arrival_dict if
+                             previous_event_next_queue_arrival_dict[k] is not None])
 
-                    if log_id_nq > 0:
-                        previous_event_next_queue_arrival = self.log[next_queue_id][log_id_nq-1][0]
+
+
                 # Next event arrival, a_rho^{-1}(e)
                 log_id_nq_next = log_id_nq + 1
                 while log_id_nq_next < len(self.log[next_queue_id]):
