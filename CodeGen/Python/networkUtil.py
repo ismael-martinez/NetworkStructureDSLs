@@ -183,12 +183,13 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
     [next_queue_previous_arrival, next_queue_previous_departure] = next_queue_previous_event
     [current_queue_next_arrival, current_queue_next_departure] = current_queue_next_event
 
-    if next_queue_current_arrival is None and section == 2:
-        raise Exception('Only left most case valid')
-    if next_queue_previous_departure is None:
+    if next_queue_current_arrival is None:
+        next_queue_current_arrival = current_queue_current_departure
+        next_queue_current_departure = np.infty
+    if next_queue_previous_departure is None or next_queue_previous_departure < lower_bound:
         next_queue_previous_departure = lower_bound
         next_queue_previous_arrival = lower_bound
-    if current_queue_next_arrival is None:
+    if current_queue_next_arrival is None or current_queue_next_arrival > upper_bound:
         current_queue_next_arrival = upper_bound
         current_queue_next_departure = upper_bound
 
@@ -208,6 +209,9 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
         return inv
 
     if section == 2: # Right most
+        if service_rate_next_queue == 0:
+            u = np.random.random() * (upper_bound - partitions[1]) + partitions[1]
+            return  u
         partition_point = max(partitions)
         cdf_start = np.exp(service_rate_next_queue * (partition_point - upper_bound))
         cdf_upper = 1
@@ -216,8 +220,11 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
         return inv
 
     if section == 1:
+        if service_rate_current_queue == service_rate_next_queue:
+            u = np.random.random() * (partitions[1] - partitions[0]) + partitions[0]
+            return u
         if next_queue_previous_departure == max(partitions):
-            u = np.random.random()*(next_queue_previous_departure - current_queue_next_arrival)
+            u = np.random.random()*(current_queue_current_departure- current_queue_next_arrival)
             return u
         else:
             gamma = 1
@@ -313,10 +320,10 @@ def partition_probabilities(lower_bound, upper_bound, service_rate_current_queue
     if next_queue_current_arrival is None:
         next_queue_current_arrival = current_queue_current_departure
         next_queue_current_departure = np.infty
-    if next_queue_previous_departure is None:
+    if next_queue_previous_departure is None or next_queue_previous_departure < lower_bound:
         next_queue_previous_departure = lower_bound
         next_queue_previous_arrival = lower_bound
-    if current_queue_next_arrival is None:
+    if current_queue_next_arrival is None or current_queue_next_arrival > upper_bound:
         current_queue_next_arrival = upper_bound
         current_queue_next_departure = upper_bound
 
@@ -377,31 +384,35 @@ def partition_probabilities(lower_bound, upper_bound, service_rate_current_queue
 
         Z = 0
         gamma = 1
-        if service_rate_current_queue < service_rate_next_queue:
-            gamma = -1
-            service_rate = service_rate_next_queue - service_rate_current_queue
+        if service_rate_current_queue == service_rate_current_queue:
+            Z += service_rate_current_queue * np.exp(service_rate_current_queue*(partitions[1] - partitions[0]))*(partitions[1] - partitions[0])
         else:
-            service_rate = service_rate_current_queue - service_rate_next_queue
-        if service_rate_current_queue == 0:
-            joint_service = service_rate_next_queue
-        elif service_rate_next_queue == 0:
-            joint_service = service_rate_current_queue
-        else:
-            joint_service = service_rate_current_queue * service_rate_next_queue / service_rate
-        if service_rate_next_queue == 0:
-            loc_const = current_queue_current_arrival * service_rate_current_queue
-        else:
-            loc_const = gamma * (current_queue_current_arrival * service_rate_current_queue - next_queue_current_departure * service_rate_next_queue) / service_rate
-        if gamma > 0:
-            Z += joint_service * (np.exp(- service_rate * (
-                        max(next_queue_previous_departure, current_queue_current_arrival) - loc_const)) - np.exp(
-                - service_rate * (min(next_queue_current_departure, current_queue_next_arrival) - loc_const)))
-        else:
-            cdf_end = np.exp(service_rate * (
-                        min(upper_bound, next_queue_current_departure) - loc_const))
-            cdf_start = np.exp(
-                service_rate * (max(lower_bound, current_queue_current_arrival) - loc_const))
-            Z += joint_service * (cdf_end - cdf_start)
+            if service_rate_current_queue < service_rate_next_queue:
+                gamma = -1
+                service_rate = service_rate_next_queue - service_rate_current_queue
+            else:
+                service_rate = service_rate_current_queue - service_rate_next_queue
+
+            if service_rate_current_queue == 0:
+                joint_service = service_rate_next_queue
+            elif service_rate_next_queue == 0:
+                joint_service = service_rate_current_queue
+            else:
+                joint_service = service_rate_current_queue * service_rate_next_queue / service_rate
+            if service_rate_next_queue == 0:
+                loc_const = current_queue_current_arrival * service_rate_current_queue
+            else:
+                loc_const = gamma * (current_queue_current_arrival * service_rate_current_queue - next_queue_current_departure * service_rate_next_queue) / service_rate
+            if gamma > 0:
+                Z += joint_service * (np.exp(- service_rate * (
+                            max(next_queue_previous_departure, current_queue_current_arrival) - loc_const)) - np.exp(
+                    - service_rate * (min(next_queue_current_departure, current_queue_next_arrival) - loc_const)))
+            else:
+                cdf_end = np.exp(service_rate * (
+                            min(upper_bound, next_queue_current_departure) - loc_const))
+                cdf_start = np.exp(
+                    service_rate * (max(lower_bound, current_queue_current_arrival) - loc_const))
+                Z += joint_service * (cdf_end - cdf_start)
 
             # Previous event, next queue
             #if next_queue_previous_departure > lower_bound:
