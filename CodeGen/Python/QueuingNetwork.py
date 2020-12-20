@@ -49,7 +49,7 @@ class QueueNetwork:
                 q_log = q_times + list(self.log[q][i][4:])
                 self.log[q][i] = tuple(q_log)
         #self.update_arrival_time('')
-        self.gibbs_sampling_update(initial=False) # TESTING TODO
+        self.gibbs_sampling_update(initial=True) 
     # For an event in a queue, return all required information.
     # Input
     ## event_id (string), id of Event
