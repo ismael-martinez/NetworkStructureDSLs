@@ -49,7 +49,7 @@ class QueueNetwork:
                 q_log = q_times + list(self.log[q][i][4:])
                 self.log[q][i] = tuple(q_log)
         #self.update_arrival_time('')
-        self.gibbs_sampling_update(initial=True)
+        self.gibbs_sampling_update(initial=False) # TESTING TODO
     # For an event in a queue, return all required information.
     # Input
     ## event_id (string), id of Event
@@ -291,15 +291,15 @@ class QueueNetwork:
         for k in range(self.K):
             log_entry_arrival[k] = None
             log_entry_departure[k] = None
-        if log_id: # not none
+        if log_id is not None: # not none
             if forwards:
                 log_id_next = log_id + 1
-                while log_id_next < len(log):
+                while log_id_next < len(queue_log):
                     server_k = queue_log[log_id_next][5]
                     if log_entry_arrival[server_k] is None:
                         log_entry_arrival[server_k] = queue_log[log_id_next][0]
                         log_entry_departure[server_k] = queue_log[log_id_next][3]
-                    if any([log_entry_arrival[server_k] is None for k in
+                    if any([log_entry_arrival[server_k] is None for server_k in
                             log_entry_arrival]):
                         log_id_next += 1
                     else:
@@ -312,12 +312,12 @@ class QueueNetwork:
                     if log_entry_arrival[server_k] is None:
                         log_entry_arrival[server_k] = queue_log[log_id_prev][0]
                         log_entry_departure[server_k] = queue_log[log_id_prev][3]
-                    if any([log_entry_arrival[server_k] is None for k in
+                    if any([log_entry_arrival[server_k] is None for server_k in
                             log_entry_arrival]):
                         log_id_prev -= 1
                     else:
                         return [log_entry_arrival, log_entry_departure]
-            return [log_entry_arrival, log_entry_departure]
+        return [log_entry_arrival, log_entry_departure]
 
     def gibbs_sampling_update(self, initial=False):
         uniq_id_column = 9
@@ -338,6 +338,10 @@ class QueueNetwork:
 
         # Order events by Departure time
         events_ordered_departure = sorted(events_ordered_departure, key=lambda x: x[3], reverse=False)
+        # sort 'init' log by departure
+        init_log = sorted(self.log['init'], key=lambda x: x[3], reverse=False)
+        self.log['init'] = init_log
+
         for dep_event in events_ordered_departure:
             current_queue_id = dep_event[8]
             event_id = dep_event[4]
@@ -410,13 +414,12 @@ class QueueNetwork:
             next_event_next_queue_arrival = None
             previous_event_next_queue_arrival = None
             current_event_next_queue_departure = None
-            current_event_next_queue_arrival = 0
+            current_event_next_queue_arrival = None
             previous_event_next_queue_departure = None
-            if log_id_nq is not None:
+            if log_id_nq is not None and next_queue_id is not None:
                 # Previous event arrival, a_rho(e)
                 [previous_event_next_queue_arrival_dict,
-                 previous_event_next_queue_departure_dict] = self.surrounding_log_events(log_id_nq, next_queue_id,
-                                                                                        forwards=False)
+                 previous_event_next_queue_departure_dict] = self.surrounding_log_events(log_id_nq, next_queue_id, forwards=False)
                 previous_event_next_queue_arrival = None
                 previous_event_next_queue_arrival_nonempty = [previous_event_next_queue_arrival_dict[k] for k
                                                                in
@@ -460,44 +463,8 @@ class QueueNetwork:
             lower_bound_gibbs = max(lower_bound_choices)
             upper_bound_gibbs = min(upper_bound_choices)
             print('Sample in d in [{}, {}]'.format(lower_bound_gibbs, upper_bound_gibbs))
-
-
-            #partition_choices = [x for x in [next_event_current_queue_arrival, previous_event_next_queue_departure] if x]
-            partition_points = []
-            # Next K arrivals in current queue
-            if current_queue_id != 'init':
-                cg_next_log = 0
-                K = len(self.log[current_queue_id][log_id_cq][6])
-                while cg_next_log < K:
-                    if log_id_cq + 1 + cg_next_log < len(self.log[current_queue_id]):
-                        cg_log_arrival = self.log[current_queue_id][log_id_cq+1+cg_next_log][0]
-                        if cg_log_arrival < upper_bound_gibbs:
-                            partition_points.append(cg_log_arrival)
-                            cg_next_log += 1
-                        else:
-                            break
-                    else:
-                        break
-        # Previous K departures in next queue
-            if next_queue_id is not None and log_id_nq is not None:
-                K = len(self.log[next_queue_id][log_id_nq][6])
-                nq_prev_log = 0
-                while nq_prev_log < K:
-                    if log_id_nq - 1 - nq_prev_log >= 0:
-                        nq_log_departure = self.log[next_queue_id][log_id_nq-1-nq_prev_log][3]
-                        if nq_log_departure >= upper_bound_gibbs:
-                            break
-                        else:
-                            if nq_log_departure > lower_bound_gibbs:
-                                partition_points.append(nq_log_departure)
-                                nq_prev_log -=1
-                            else:
-                                break
-                    else:
-                        break
-            partition_points.sort()
-            print('Partition points: {}'.format(partition_points))
-
+            if event_id == 'e39':
+                print('here')
             # Sample from region
             # Todo with probability, region Z
             # Sample
@@ -532,6 +499,7 @@ class QueueNetwork:
                     z = 1
                 else:
                     z = 2
+
                 d = sample_truncated_exponential_two_queues_open(z, lower_bound_gibbs, upper_bound_gibbs, cq_service_rate,
                                             nq_service_rate, current_queue_current_event,
                                             next_queue_current_event, next_queue_previous_event,
@@ -544,10 +512,47 @@ class QueueNetwork:
                                                                                                     lower_bound_gibbs,
                                                                                                     upper_bound_gibbs))
                 print('Sample d = {}'.format(d))
+
             self.update_departure_time(d, event_id, current_queue_id)
             if next_queue_id is not None:
                 self.update_arrival_time(d, event_id, next_queue_id)
 
+
+        #     #partition_choices = [x for x in [next_event_current_queue_arrival, previous_event_next_queue_departure] if x]
+        #     partition_points = []
+        #     # Next K arrivals in current queue
+        #     if current_queue_id != 'init':
+        #         cg_next_log = 0
+        #         K = len(self.log[current_queue_id][log_id_cq][6])
+        #         while cg_next_log < K:
+        #             if log_id_cq + 1 + cg_next_log < len(self.log[current_queue_id]):
+        #                 cg_log_arrival = self.log[current_queue_id][log_id_cq+1+cg_next_log][0]
+        #                 if cg_log_arrival < upper_bound_gibbs:
+        #                     partition_points.append(cg_log_arrival)
+        #                     cg_next_log += 1
+        #                 else:
+        #                     break
+        #             else:
+        #                 break
+        # # Previous K departures in next queue
+        #     if next_queue_id is not None and log_id_nq is not None:
+        #         K = len(self.log[next_queue_id][log_id_nq][6])
+        #         nq_prev_log = 0
+        #         while nq_prev_log < K:
+        #             if log_id_nq - 1 - nq_prev_log >= 0:
+        #                 nq_log_departure = self.log[next_queue_id][log_id_nq-1-nq_prev_log][3]
+        #                 if nq_log_departure >= upper_bound_gibbs:
+        #                     break
+        #                 else:
+        #                     if nq_log_departure > lower_bound_gibbs:
+        #                         partition_points.append(nq_log_departure)
+        #                         nq_prev_log -=1
+        #                     else:
+        #                         break
+        #             else:
+        #                 break
+        #     partition_points.sort()
+        #     print('Partition points: {}'.format(partition_points))
 
 
 
