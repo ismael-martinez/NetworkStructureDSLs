@@ -49,7 +49,7 @@ class QueueNetwork:
                 q_log = q_times + list(self.log[q][i][4:])
                 self.log[q][i] = tuple(q_log)
         #self.update_arrival_time('')
-        self.gibbs_sampling_update(initial=True) 
+        self.gibbs_sampling_update(initial=True)
     # For an event in a queue, return all required information.
     # Input
     ## event_id (string), id of Event
@@ -77,10 +77,10 @@ class QueueNetwork:
         event_log_dict['earliest_service_time'] = event_log[0] + event_log[2]
         return event_log_dict
 
-    def update_departure_time(self, new_departure, event_id, queue_id):
-        print(event_id)
-        print(queue_id)
-        print(new_departure)
+    def update_departure_time(self, new_departure, event_id, queue_id, verbose=False):
+        # print(event_id)
+        # print(queue_id)
+        # print(new_departure)
         old_log = self.log[queue_id]
         log_id = 0
         departure_times_subserver = {}
@@ -113,8 +113,8 @@ class QueueNetwork:
         self.log[queue_id][log_id] = (
         log_tuple[0], new_departure - earliest_service , log_tuple[2], new_departure, log_tuple[4], log_tuple[5], servicing_state, log_tuple[7])
         departure_times_subserver[log_tuple[4]] = new_departure
-        print(self.log[queue_id][log_id])
-        print('Dep ' + str(departure_times_subserver))
+        # print(self.log[queue_id][log_id])
+        # print('Dep ' + str(departure_times_subserver))
         queue_events = []
         servicing = [servicing_state[q] for q in servicing_state if servicing_state[q]]
         if all(servicing):
@@ -165,14 +165,16 @@ class QueueNetwork:
 
             new_log = (
             arrival_time, service_time, waiting_time, departure_time, event_id, subserver, servicing_state_new, log_tuple[7])
-            print('Old ' + str(old_log[i]))
-            print('New ' + str(new_log))
+            if verbose:
+                print('Old ' + str(old_log[i]))
+                print('New ' + str(new_log))
 
             compare = [new_log[t] == old_log[i][t] for t in range(len(new_log))]
 
             # Compare new_log with old_log
             if all(compare) and i > self.K:
-                print('Stable')
+                if verbose:
+                    print('Stable')
                 self.log[queue_id] = old_log
                 return
             else:
@@ -194,11 +196,12 @@ class QueueNetwork:
                         else:
                             break
 
-    def update_arrival_time(self, new_arrival, event_id, queue_id):
+    def update_arrival_time(self, new_arrival, event_id, queue_id, verbose=False):
         old_log = list(self.log[queue_id])
         # Proper insert point
         entry_point = 0
-        print('Updating arrival of event {} in queue {}'.format(event_id, queue_id))
+        if verbose:
+            print('Updating arrival of event {} in queue {}'.format(event_id, queue_id))
 
         while entry_point < len(old_log):
             # Delete old log
@@ -267,14 +270,15 @@ class QueueNetwork:
             k_servers = delete_log[7]
             new_log = (new_arrival, service_time, waiting_time, old_departure_time, event_id, argmin_d, servicing_state, k_servers)
             old_log = old_log[0:entry_point] + [new_log] + old_log[entry_point:]
-
-            print('Old ' + str(delete_log))
-            print('New ' + str(new_log))
+            if verbose:
+                print('Old ' + str(delete_log))
+                print('New ' + str(new_log))
             compare = [new_log[t] == delete_log[t] for t in range(len(new_log))]
 
             # Compare new_log with old_log
             if all(compare):
-                print('Stable')
+                if verbose:
+                    print('Stable')
                 self.log[queue_id] = old_log
                 return
 
@@ -322,7 +326,7 @@ class QueueNetwork:
                         return [log_entry_arrival, log_entry_departure]
         return [log_entry_arrival, log_entry_departure]
 
-    def gibbs_sampling_update(self, initial=False):
+    def gibbs_sampling_update(self, initial=False, verbose=False):
         uniq_id_column = 9
         queue_column = 8
         event_column = 4
@@ -496,7 +500,8 @@ class QueueNetwork:
             upper_bound_choices = [np.infty] + [x for x in [next_event_next_queue_arrival, next_event_current_queue_departure, current_event_next_queue_departure] if x]
             lower_bound_gibbs = max(lower_bound_choices)
             upper_bound_gibbs = min(upper_bound_choices)
-            print('Sample in d in [{}, {}]'.format(lower_bound_gibbs, upper_bound_gibbs))
+            if verbose:
+                print('Sample in d in [{}, {}]'.format(lower_bound_gibbs, upper_bound_gibbs))
             # Sample from region
             # Todo with probability, region Z
             # Sample
@@ -505,6 +510,8 @@ class QueueNetwork:
                 if upper_bound_gibbs == np.infty:
                     continue
                 d = lower_bound_gibbs + np.random.random() * (upper_bound_gibbs-lower_bound_gibbs)
+                if verbose:
+                    print('Sample d = {}'.format(d))
             else:
                 #### Gibbs sampling
                 ## Choose an interval
@@ -537,15 +544,16 @@ class QueueNetwork:
                                             next_queue_current_event, next_queue_previous_event,
                                             current_queue_next_event)
                 # self.event_transition[(event_id, queue_id)] this function gives the next queue for an event
-                print('Sampling from CQ {} *[ x - {}] , NQ {} * [{} - x] from x in [{}, {}]'.format(cq_service_rate,
-                                                                                                    current_event_current_queue_arrival,
-                                                                                                    nq_service_rate,
-                                                                                                    current_event_next_queue_departure,
-                                                                                                    lower_bound_gibbs,
-                                                                                                    upper_bound_gibbs))
-                print('Sample d = {}'.format(d))
+                # print('Sampling from CQ {} *[ x - {}] , NQ {} * [{} - x] from x in [{}, {}]'.format(cq_service_rate,
+                #                                                                                     current_event_current_queue_arrival,
+                #                                                                                     nq_service_rate,
+                #                                                                                     current_event_next_queue_departure,
+                #                                                                                     lower_bound_gibbs,
+                #                                                                                     upper_bound_gibbs))
+                if verbose:
+                    print('Sample d = {}'.format(d))
                 if d > upper_bound_gibbs or d < lower_bound_gibbs:
-                    print('Bound error')
+                    raise Exception('Bound error')
 
             self.update_departure_time(d, event_id, current_queue_id)
             if next_queue_id is not None:
