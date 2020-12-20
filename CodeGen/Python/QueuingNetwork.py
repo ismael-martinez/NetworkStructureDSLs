@@ -323,33 +323,36 @@ class QueueNetwork:
                     if log[4] == event_id:
                         log_id_nq = idx
                         break
-            current_queue_server_k = 0
-            if current_queue_id != 'init':
-                for k in range(self.K):
-                    if self.log[current_queue_id][log_id_cq][6][k] == event_id:
-                        current_queue_server_k = k
-                        break
-            next_queue_server_k = 0
-            if next_queue_id is not None and log_id_nq is not None:
-                for k in range(self.K):
-                    if self.log[next_queue_id][log_id_nq][6][k] == event_id:
-                        next_queue_server_k = k
-                        break
             ## Current queue q_pi(e)
             try:
                 # Current event arrival, a_pi(e)
                 current_event_current_queue_arrival = self.log[current_queue_id][log_id_cq][0] + self.log[current_queue_id][log_id_cq][2] # Earliest service time
+                current_event_current_queue_departure =  self.log[current_queue_id][log_id_cq][3]  # Departure
                 # Previous event departure, d_rho(pi(e))
                 previous_event_current_queue_departure = None
+                # Max of previous departures
                 if current_queue_id != 'init':
                     log_id_cq_prev = log_id_cq - 1
+                    previous_event_current_queue_departure_dict = {}
+                    for k in range(self.K):
+                        previous_event_current_queue_departure_dict[k] = None
                     while log_id_cq_prev > 0:
-                        prev_event_k = self.log[current_queue_id][log_id_cq_prev][6][current_queue_server_k]
-                        if prev_event_k is None:
+                        k = self.log[current_queue_id][log_id_cq_prev][5]
+                        if previous_event_current_queue_departure_dict[k] is None:
+                            previous_event_current_queue_departure_dict[k] = self.log[current_queue_id][log_id_cq_prev][3]
+                        if any([previous_event_current_queue_departure_dict[k] is None for k in previous_event_current_queue_departure_dict]):
                             log_id_cq_prev -= 1
                         else:
-                            previous_event_current_queue_departure = self.log[current_queue_id][log_id_cq_prev][3]
+                            previous_event_current_queue_departure = max([previous_event_current_queue_departure_dict[k] for k in
+                            previous_event_current_queue_departure_dict])
                             break
+                    if all([previous_event_current_queue_departure_dict[k] is None for k in
+                            previous_event_current_queue_departure_dict]):
+                        previous_event_current_queue_departure = 0
+                    elif any([previous_event_current_queue_departure_dict[k] is None for k in
+                            previous_event_current_queue_departure_dict]):
+                        previous_event_current_queue_departure = max([previous_event_current_queue_departure_dict[k]  for k in
+                            previous_event_current_queue_departure_dict if previous_event_current_queue_departure_dict[k]  is not None])
                 # Next event departure, d_rho^{-1}(pi(e))
                 next_event_current_queue_departure = None
                 if  current_queue_id != 'init':
@@ -379,12 +382,14 @@ class QueueNetwork:
                 previous_event_current_queue_departure = 0
                 next_event_current_queue_departure = None
                 next_event_current_queue_arrival = None
+                current_event_current_queue_departure = 0
 
             ## Next queue q_e
 
             next_event_next_queue_arrival = None
             previous_event_next_queue_arrival = None
             current_event_next_queue_departure = None
+            current_event_next_queue_arrival = 0
             previous_event_next_queue_departure = None
             if log_id_nq is not None:
                 # Previous event arrival, a_rho(e)
@@ -411,6 +416,7 @@ class QueueNetwork:
                         break
                 # Current event arrival, d_e
                 current_event_next_queue_departure = self.log[next_queue_id][log_id_nq][3]
+                current_event_next_queue_arrival = self.log[next_queue_id][log_id_nq][0]
                 # Previous event departure, d_rho(e)
                 log_id_nq_prev = log_id_nq - 1
                 while log_id_nq_prev > 0:
@@ -482,8 +488,28 @@ class QueueNetwork:
                     nq_service_rate = self.service_rates[next_queue_id]
                 else:
                     nq_service_rate = 0
-                d = sample_truncated_exponential_two_queues_open(cq_service_rate, nq_service_rate, current_event_current_queue_arrival,
-                                                 current_event_next_queue_departure, lower_bound_gibbs, upper_bound_gibbs, [next_event_current_queue_arrival, next_event_current_queue_departure])
+
+                current_queue_current_event = [current_event_current_queue_arrival, current_event_current_queue_departure]
+                next_queue_current_event = [current_event_next_queue_arrival, current_event_next_queue_departure]
+                next_queue_previous_event = [previous_event_next_queue_arrival, previous_event_next_queue_departure]
+                current_queue_next_event = [next_event_current_queue_arrival, next_event_current_queue_departure]
+
+                Z = partition_probabilities(lower_bound_gibbs, upper_bound_gibbs, cq_service_rate,
+                                            nq_service_rate, current_queue_current_event,
+                                            next_queue_current_event, next_queue_previous_event,
+                                            current_queue_next_event)
+                z = 0
+                u = np.random.random()
+                if u < Z[0]:
+                    z = 0
+                elif u < Z[0] + Z[1]:
+                    z = 1
+                else:
+                    z = 2
+                d = sample_truncated_exponential_two_queues_open(z, lower_bound_gibbs, upper_bound_gibbs, cq_service_rate,
+                                            nq_service_rate, current_queue_current_event,
+                                            next_queue_current_event, next_queue_previous_event,
+                                            current_queue_next_event)
                 # self.event_transition[(event_id, queue_id)] this function gives the next queue for an event
                 print('Sampling from CQ {} *[ x - {}] , NQ {} * [{} - x] from x in [{}, {}]'.format(cq_service_rate,
                                                                                                     current_event_current_queue_arrival,
@@ -700,20 +726,34 @@ class QueueNetwork:
 ## next_queue_previous_event ([float] size 2) -- [arrival, departure]
 ## current_queue_next_event ([float] size 2) -- [arrival, departure]
 # Output: Partition probabilities (array, sum to 1)
-# lower_bound = 3
-# upper_bound= 6
-# service_rate_curr = 2.9
-# service_rate_next = 1.9
-# current_queue_current_event = [3, 4]
-# next_queue_current_event = [4, 6]
-# current_queue_next_event = [6, 6]
-# next_queue_previous_event = [4, 4.1]
+# lower_bound = 10
+# upper_bound= 16
+# service_rate_curr = 1
+# service_rate_next = 1
+# current_queue_current_event = [8, 12]
+# next_queue_current_event = [12, 18]
+# current_queue_next_event = [10, 16]
+# next_queue_previous_event = [0, 0.5]
 #
 #
-# Z = partition_probabilities(lower_bound, upper_bound, service_rate_curr, service_rate_next, current_queue_current_event, next_queue_current_event, next_queue_previous_event, current_queue_next_event)
+# # samples = []
+# Z = partition_probabilities(lower_bound, upper_bound, service_rate_curr, service_rate_next,
+#                                 current_queue_current_event, next_queue_current_event, next_queue_previous_event,
+#                                 current_queue_next_event)
 # samples = []
-# for i in range(10000):
-#     d = sample_truncated_exponential_two_queues_open(1, lower_bound, upper_bound, service_rate_curr, service_rate_next, current_queue_current_event, next_queue_current_event, next_queue_previous_event, current_queue_next_event)
+# for i in range(1000):
+#     u = np.random.random()
+#     z = 0
+#     if u < Z[0]:
+#         z = 0
+#     elif u < Z[0] + Z[1]:
+#         z = 1
+#     else:
+#         z = 2
+#     d = sample_truncated_exponential_two_queues_open(z, lower_bound, upper_bound, service_rate_curr, service_rate_next,
+#                                                      current_queue_current_event, next_queue_current_event,
+#                                                      next_queue_previous_event, current_queue_next_event)
+#
 #     samples.append(d)
 # hist, bin_edges = np.histogram(samples, bins=30)
 # plt.hist(samples, bins = bin_edges[:-1])
@@ -801,7 +841,7 @@ def service_rate_k(n, eta, sum_s, sum_sk):
 runs = 10
 for i in range(runs):
     print('E-step')
-    queue_network.gibbs_sampling_update(initial=True)
+    queue_network.gibbs_sampling_update()
 
     # M - Step
     for queue_id, queue_log in queue_network.log.items():
