@@ -330,7 +330,7 @@ class QueueNetwork:
                         current_queue_server_k = k
                         break
             next_queue_server_k = 0
-            if next_queue_id is not None:
+            if next_queue_id is not None and log_id_nq is not None:
                 for k in range(self.K):
                     if self.log[next_queue_id][log_id_nq][6][k] == event_id:
                         next_queue_server_k = k
@@ -702,8 +702,8 @@ class QueueNetwork:
 # Output: Partition probabilities (array, sum to 1)
 # lower_bound = 3
 # upper_bound= 6
-# service_rate_curr = 1.1
-# service_rate_next = 0.9
+# service_rate_curr = 2.9
+# service_rate_next = 1.9
 # current_queue_current_event = [3, 4]
 # next_queue_current_event = [4, 6]
 # current_queue_next_event = [6, 6]
@@ -798,17 +798,16 @@ def service_rate_k(n, eta, sum_s, sum_sk):
     return service_rate
 
 
-
 runs = 10
 for i in range(runs):
-    #queue_network.gibbs_sampling_update()
+    print('E-step')
+    queue_network.gibbs_sampling_update(initial=True)
 
     # M - Step
-    for q in S.Queues:
-        if q == 'init':
+    for queue_id, queue_log in queue_network.log.items():
+        if queue_id == 'init':
             continue
-        print('Queue {}'.format(q))
-        queue_log = queue_network.log[q]
+        print('Queue {}'.format(queue_id))
 
         sum_service_times = 0
         sum_servicers = 0
@@ -821,19 +820,19 @@ for i in range(runs):
             service_time = log[1]
             if service_time == np.infty:
                 continue
-            sk_sums[k_servers-1] += service_time*k_servers
-            obs[k_servers-1] += 1
-            s_sums[k_servers-1] += service_time
+            sk_sums[k_servers] += service_time*k_servers
+            obs[k_servers] += 1
+            s_sums[k_servers] += service_time
 
-        service_rate_observed = sum( service_rate_k(obs[k], queue_network.service_loss[q][k], s_sums[k], sk_sums[k]) for k in range(K))
+        service_rate_observed = sum( service_rate_k(obs[k], queue_network.service_loss[queue_id][k], s_sums[k], sk_sums[k]) for k in range(K))
         print('Update service time estimation')
-        queue_network.service_rates[q] = service_rate_observed # M step update, service rate
+        queue_network.service_rates[queue_id] = service_rate_observed # M step update, service rate
 
         # Update eta, service loss
         print('Update service loss estimation')
         for k in range(K):
             service_loss_estimation = service_rate_observed*(k+1) - obs[k]/s_sums[k]
-            queue_network.service_loss[q][k] = service_loss_estimation
+            queue_network.service_loss[queue_id][k] = service_loss_estimation
 
 
 
