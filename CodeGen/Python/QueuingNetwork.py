@@ -40,8 +40,8 @@ class QueueNetwork:
         for q in self.log:
             self.queue_ids.append(q)
             self.service_rates[q] = 1
-            self.service_loss[q] = [0]*self.K
-            for k in range(self.K):
+            self.service_loss[q] = {}
+            for k in range(1, self.K+1):
                 self.service_loss[q][k] = 0
             if q == 'init':
                 self.service_loss[q] = [0]*self.K
@@ -358,7 +358,7 @@ class QueueNetwork:
                 continue
             next_queue_id = self.event_transition[(event_id, current_queue_id)]
 
-            print(event_id)
+            #print(event_id)
 
             # Index in current queue log
 
@@ -921,7 +921,7 @@ def service_rate_k(n, eta, sum_s, sum_sk):
 runs = 10
 for i in range(runs):
     print('E-step')
-    queue_network.gibbs_sampling_update()
+    #queue_network.gibbs_sampling_update()
 
     # M - Step
     for queue_id, queue_log in queue_network.log.items():
@@ -932,9 +932,15 @@ for i in range(runs):
         sum_service_times = 0
         sum_servicers = 0
 
-        sk_sums = [0]*K
-        obs = [0]*K
-        s_sums = [0]*K
+        sk_sums = {}
+        for k in range(1, K+1):
+            sk_sums[k] = 0
+        obs = {}
+        for k in range(1, K+1):
+            obs[k] = 0
+        s_sums = {}
+        for k in range(1, K+1):
+            s_sums[k] = 0
         for log in queue_log: # [arrival, service, wait, departure
             k_servers = int(log[7])
             service_time = log[1]
@@ -944,14 +950,18 @@ for i in range(runs):
             obs[k_servers] += 1
             s_sums[k_servers] += service_time
 
-        service_rate_observed = sum( service_rate_k(obs[k], queue_network.service_loss[queue_id][k], s_sums[k], sk_sums[k]) for k in range(K))
+        service_rate_observed = 0
+        for k in range(1, K+1):
+            print(k)
+            service_rate_observed = service_rate_k(obs[k], queue_network.service_loss[queue_id][k], s_sums[k], sk_sums[k])
+
         print('Update service time estimation')
         queue_network.service_rates[queue_id] = service_rate_observed # M step update, service rate
 
         # Update eta, service loss
         print('Update service loss estimation')
-        for k in range(K):
-            service_loss_estimation = service_rate_observed*(k+1) - obs[k]/s_sums[k]
+        for k in range(1, K+1):
+            service_loss_estimation = service_rate_observed*(k) - obs[k]/s_sums[k]
             queue_network.service_loss[queue_id][k] = service_loss_estimation
 
 
