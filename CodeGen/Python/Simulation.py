@@ -124,6 +124,8 @@ class Simulation:
             elif 'Departure' in trigger_type:
                 queue.complete_service(event_id)
 
+
+                print(self.event_triggers[t])
                 sim_trigger = 'Event {} complete at queue {}'.format(event_id, queue_id)
                 if self.verbose:
                     print(sim_trigger)
@@ -135,7 +137,7 @@ class Simulation:
                     # add trigger for current event, new queue
                     arrival_trigger = (trigger_time, event_id, 'Arrival', new_queue_id)
                     self.event_triggers = insert_event_trigger(self.event_triggers, arrival_trigger)
-
+                    print(self.event_triggers[t+1])
                 # New event for current queue
                 self.service_queue(trigger_time, queue, t)
             t += 1

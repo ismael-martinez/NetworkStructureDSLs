@@ -28,8 +28,6 @@ class QueueNetwork:
             if 'Departure' in e[2]:
                 curr_queue = e[3]
                 event_id = e[1]
-                if event_id == 'e496':
-                    print('here')
                 if i+1 < len(event_triggers) and 'Arrival' in event_triggers[i+1][2] and event_id == event_triggers[i+1][1]:
                     print(event_triggers[i])
                     print(event_triggers[i+1])
@@ -361,8 +359,6 @@ class QueueNetwork:
             next_queue_id = self.event_transition[(event_id, current_queue_id)]
 
             print(event_id)
-            if event_id == 'e496':
-                print('here')
 
             # Index in current queue log
 
@@ -534,7 +530,8 @@ class QueueNetwork:
                 next_queue_previous_event = [previous_event_next_queue_arrival, previous_event_next_queue_departure]
                 current_queue_next_event = [next_event_current_queue_arrival, next_event_current_queue_departure]
 
-
+                if event_id == 'e498':
+                    print('here')
 
                 Z = partition_probabilities(lower_bound_gibbs, upper_bound_gibbs, cq_service_rate,
                                             nq_service_rate, current_queue_current_event,
