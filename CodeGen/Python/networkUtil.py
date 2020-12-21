@@ -482,21 +482,28 @@ def set_new_bounds(lower_bound, upper_bound,
     [next_queue_previous_arrival, next_queue_previous_departure] = next_queue_previous_event
     [current_queue_next_arrival, current_queue_next_departure] = current_queue_next_event
 
+    if current_queue_next_arrival is not None and current_queue_next_arrival > upper_bound:
+        if current_queue_next_arrival > upper_bound:
+            current_queue_next_arrival = upper_bound
+            current_queue_next_departure = upper_bound
+    elif current_queue_next_arrival is not None and current_queue_next_arrival <= lower_bound:
+        current_queue_next_arrival = lower_bound
+        current_queue_next_departure = upper_bound
+    elif current_queue_next_arrival is None:
+        current_queue_next_arrival = lower_bound
+        current_queue_next_departure = upper_bound
+
+
     if next_queue_previous_departure is None or next_queue_previous_departure < lower_bound:
-        if next_queue_current_arrival is not None:
+
+        if next_queue_current_arrival is None:
+            if current_queue_next_arrival <= lower_bound:
+                next_queue_previous_departure = max(current_queue_next_arrival, lower_bound)
+            else:
+                next_queue_previous_departure = min(current_queue_next_arrival, upper_bound)
+        else:
             next_queue_previous_departure = lower_bound
             next_queue_previous_arrival = lower_bound
-        else:
-            if current_queue_next_arrival is not None:
-                if current_queue_next_arrival <= lower_bound:
-                    next_queue_previous_departure = max(current_queue_next_arrival, lower_bound)
-                else:
-                    next_queue_previous_departure = min(current_queue_next_arrival, upper_bound)
-            else:
-                next_queue_previous_departure = upper_bound
-            next_queue_previous_arrival = lower_bound
-    elif next_queue_previous_departure > upper_bound:
-            next_queue_previous_departure = upper_bound
     else:
         if next_queue_current_arrival is None and current_queue_next_arrival is not None:
             if current_queue_next_arrival > lower_bound:
@@ -509,12 +516,12 @@ def set_new_bounds(lower_bound, upper_bound,
             next_queue_previous_arrival = lower_bound
 
 
-    if current_queue_next_arrival is None or current_queue_next_arrival > upper_bound:
-        current_queue_next_arrival = upper_bound
-        current_queue_next_departure = upper_bound
-    if current_queue_next_arrival < lower_bound:
-        current_queue_next_arrival = lower_bound
-        current_queue_next_departure = upper_bound
+    # if current_queue_next_arrival is None or current_queue_next_arrival > upper_bound:
+    #     current_queue_next_arrival = upper_bound
+    #     current_queue_next_departure = upper_bound
+    # if current_queue_next_arrival < lower_bound:
+    #     current_queue_next_arrival = lower_bound
+    #     current_queue_next_departure = upper_bound
 
 
     current_queue_current_event = [current_queue_current_arrival, current_queue_current_departure]
