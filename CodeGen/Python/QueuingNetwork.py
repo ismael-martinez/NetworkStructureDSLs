@@ -565,201 +565,6 @@ class QueueNetwork:
                 self.update_arrival_time(d, event_id, next_queue_id)
 
 
-        #     #partition_choices = [x for x in [next_event_current_queue_arrival, previous_event_next_queue_departure] if x]
-        #     partition_points = []
-        #     # Next K arrivals in current queue
-        #     if current_queue_id != 'init':
-        #         cg_next_log = 0
-        #         K = len(self.log[current_queue_id][log_id_cq][6])
-        #         while cg_next_log < K:
-        #             if log_id_cq + 1 + cg_next_log < len(self.log[current_queue_id]):
-        #                 cg_log_arrival = self.log[current_queue_id][log_id_cq+1+cg_next_log][0]
-        #                 if cg_log_arrival < upper_bound_gibbs:
-        #                     partition_points.append(cg_log_arrival)
-        #                     cg_next_log += 1
-        #                 else:
-        #                     break
-        #             else:
-        #                 break
-        # # Previous K departures in next queue
-        #     if next_queue_id is not None and log_id_nq is not None:
-        #         K = len(self.log[next_queue_id][log_id_nq][6])
-        #         nq_prev_log = 0
-        #         while nq_prev_log < K:
-        #             if log_id_nq - 1 - nq_prev_log >= 0:
-        #                 nq_log_departure = self.log[next_queue_id][log_id_nq-1-nq_prev_log][3]
-        #                 if nq_log_departure >= upper_bound_gibbs:
-        #                     break
-        #                 else:
-        #                     if nq_log_departure > lower_bound_gibbs:
-        #                         partition_points.append(nq_log_departure)
-        #                         nq_prev_log -=1
-        #                     else:
-        #                         break
-        #             else:
-        #                 break
-        #     partition_points.sort()
-        #     print('Partition points: {}'.format(partition_points))
-
-
-
-        # for queue_id, queue_events in self.log.items():
-        #     for event_log in queue_events:
-        #         event_log_and_queue = [l for l in event_log]
-        #         event_log_and_queue.append(queue_id)
-        #         event_log_and_queue.append(uniq_id)
-        #         events_ordered_departure.append(event_log_and_queue)
-        #         uniq_id += 1
-        #         # print(event_log_and_queue)
-        #
-        # # find next queue for each events : sorted by event_id and by reverse arrival time to retreive next queue
-        # event_list_ordered_by_event_id = sorted(events_ordered_departure, key=lambda x: (x[event_column], -x[0]), reverse=False)
-        # none_list = [None] * 10
-        # next_event_log = none_list
-        # next_event_dict = {}
-        # for event_log in event_list_ordered_by_event_id:
-        #     uniq_id = event_log[uniq_id_column]
-        #     if next_event_log[event_column] == event_log[event_column]:
-        #         next_event_dict[uniq_id] = next_event_log
-        #     else:
-        #         next_event_dict[uniq_id] = none_list
-        #     next_event_log = event_log
-        #     # print(next_event_dict[uniq_id])
-        #
-        # # find within queue next events : sorted by queue_id and by reverse arrival time to retreive next queue
-        # event_list_ordered_by_queue_id = sorted(events_ordered_departure, key=lambda x: (x[queue_column], -x[0]), reverse=False)
-        # next_event_log = none_list
-        # wq_next_event_dict = {}
-        # for event_log in event_list_ordered_by_queue_id:
-        #     uniq_id = event_log[uniq_id_column]
-        #     if next_event_log[queue_column] == event_log[queue_column]:
-        #         wq_next_event_dict[uniq_id] = next_event_log
-        #     else:
-        #         wq_next_event_dict[uniq_id] = none_list
-        #     next_event_log = event_log
-        #     # print(wq_next_event_dict[uniq_id])
-        #
-        # # find within queue last events : sorted by queue_id and by arrival time to retreive last queue
-        # event_list_ordered_by_queue_id = sorted(events_ordered_departure, key=lambda x: (x[queue_column], x[0]), reverse=False)
-        # last_event_log = none_list
-        # wq_last_event_dict = {}
-        # for event_log in event_list_ordered_by_queue_id:
-        #     uniq_id = event_log[uniq_id_column]
-        #     if last_event_log[queue_column] == event_log[queue_column]:
-        #         wq_last_event_dict[uniq_id] = last_event_log
-        #     else:
-        #         wq_last_event_dict[uniq_id] = none_list
-        #     last_event_log = event_log
-        #     # print(event_log)
-        #     # print(wq_last_event_dict[uniq_id])
-        #
-        # # find next queue next events : sorted by queue_id and by reverse arrival time to retreive last queue
-        # event_list_ordered_by_queue_id = sorted(events_ordered_departure, key=lambda x: (x[queue_column], -x[0]), reverse=False)
-        # next_event_log = none_list
-        # nq_next_event_dict = {}
-        # for e in events_ordered_departure:
-        #     uniq_id = e[uniq_id_column]
-        #     nq_event = next_event_dict[uniq_id]
-        #     nq_event_uniq_id = nq_event[uniq_id_column]
-        #     for event_log in event_list_ordered_by_queue_id:
-        #         nq_next_event_uniq_id = event_log[uniq_id_column]
-        #         if next_event_log[queue_column] == event_log[
-        #             queue_column] and nq_next_event_uniq_id == nq_event_uniq_id:
-        #             nq_next_event_dict[uniq_id] = next_event_log
-        #             break
-        #         else:
-        #             nq_next_event_dict[uniq_id] = none_list
-        #         next_event_log = event_log
-        #     # print(nq_next_event_dict[uniq_id])
-        #
-        # # find next queue last events : sorted by queue_id and by arrival time to retreive last queue
-        # event_list_ordered_by_queue_id = sorted(events_ordered_departure, key=lambda x: (x[queue_column], x[0]), reverse=False)
-        # last_event_log = none_list
-        # nq_last_event_dict = {}
-        # for e in events_ordered_departure:
-        #     uniq_id = e[uniq_id_column]
-        #     nq_event = next_event_dict[uniq_id]
-        #     nq_event_uniq_id = nq_event[uniq_id_column]
-        #     for event_log in event_list_ordered_by_queue_id:
-        #         nq_last_event_uniq_id = event_log[uniq_id_column]
-        #         if last_event_log[queue_column] == event_log[
-        #             queue_column] and nq_last_event_uniq_id == nq_event_uniq_id:
-        #             nq_last_event_dict[uniq_id] = last_event_log
-        #             break
-        #         else:
-        #             nq_last_event_dict[uniq_id] = none_list
-        #         last_event_log = event_log
-        #     # print(nq_last_event_dict[uniq_id])
-        #
-        # event_list_ordered_by_arrival = sorted(events_ordered_departure, key=lambda x: x[0], reverse=False)
-        # # sample for each hidden event ordered by arrival
-        # hidden_ids = self.hidden_ids  # [e.id for e in Events_H]
-        # # print(hidden_ids)
-        # for e in event_list_ordered_by_arrival:
-        #     event_id = e[event_column]
-        #     if event_id in hidden_ids:
-        #         arrival_time, service_time, waiting_time, departure_time, event_id, argmin_d, servicing_state, k_servers, queue_id, uniq_id = e
-        #         next_arrival_time, next_service_time, next_waiting_time, next_departure_time, next_event_id, next_argmin_d, next_servicing_state, next_k_servers, next_queue_id, next_uniq_id = \
-        #             next_event_dict[uniq_id]
-        #         wq_next_arrival_time, wq_next_service_time, wq_next_waiting_time, wq_next_departure_time, wq_next_event_id, wq_next_argmin_d, wq_next_k_servers, wq_next_servicing_state, wq_next_queue_id, wq_next_uniq_id = \
-        #             wq_next_event_dict[uniq_id]
-        #         wq_last_arrival_time, wq_last_service_time, wq_last_waiting_time, wq_last_departure_time, wq_last_event_id, wq_last_argmin_d, wq_next_k_servers, wq_last_servicing_state, wq_last_queue_id, wq_last_uniq_id = \
-        #             wq_last_event_dict[uniq_id]
-        #         nq_next_arrival_time, nq_next_service_time, nq_next_waiting_time, nq_next_departure_time, nq_next_event_id, nq_next_argmin_d, nq_next_k_servers, nq_next_servicing_state, nq_next_queue_id, nq_next_uniq_id = \
-        #             nq_next_event_dict[uniq_id]
-        #         nq_last_arrival_time, nq_last_service_time, nq_last_waiting_time, nq_last_departure_time, nq_last_event_id, nq_last_argmin_d, nq_next_k_servers, nq_last_servicing_state, nq_last_queue_id, nq_last_uniq_id = \
-        #             nq_last_event_dict[uniq_id]
-        #         print(uniq_id)
-        #         print(e)
-        #         print(next_event_dict[uniq_id])
-        #         print(wq_next_event_dict[uniq_id])
-        #         print(wq_last_event_dict[uniq_id])
-        #         print(nq_next_event_dict[uniq_id])
-        #         print(nq_last_event_dict[uniq_id])
-        #
-        #         # if wq_next_queue_id is not None:
-        #         Lower_bound = self.max_min_queue_grid(departure_time, wq_last_departure_time, nq_last_arrival_time,
-        #                                               maximum=1, )
-        #         upper_bound = self.max_min_queue_grid(next_departure_time, nq_next_arrival_time, wq_next_departure_time,
-        #                                               maximum=0)
-        #         print(Lower_bound)
-        #         print(upper_bound)
-        #         # print(A_bound)
-        #         # print(B_bound)
-        #         if upper_bound < Lower_bound:
-        #             continue
-        #         A_bound = self.max_min_queue_grid(wq_next_arrival_time, nq_last_departure_time, maximum=0)
-        #         B_bound = self.max_min_queue_grid(wq_next_arrival_time, nq_last_departure_time, maximum=1)
-        #
-        #         # Get all current queue next arrivals, and next queue prev_event departures
-        #         partition_points = []
-        #         for e in event_list_ordered_by_arrival:
-        #             if (e[0] >= Lower_bound and e[0] <= upper_bound) or (e[3] >= Lower_bound and e[3] <= upper_bound):
-        #                 # Check if it's valid
-        #                 if e[8] == queue_id and (e[3] >= Lower_bound and e[3] <= upper_bound):
-        #                     partition_points.append(e[0])
-        #                 elif e[8] == next_queue_id and (e[0] >= Lower_bound and e[0] <= upper_bound):
-        #                     partition_points.append(e[0])
-        #         partition_points.append(Lower_bound)
-        #         partition_points.append(upper_bound)
-        #         partition_points.sort()
-                # Sample
-                # if initial:
-                #     # Sample from uniform across [L, U]
-                #     d = lower_bound_gibbs + np.random.random() * (upper_bound_gibbs)
-                # else:
-                #     #### Gibbs sampling
-                #     ## Choose an interval
-                #     service_rate = self.service_rates[queue_id]
-                #     next_service_rate = self.service_rates[next_queue_id]
-                #
-                #     pass
-                #     # TODO
-                #     # sample_trancated_exponential(rate, start, end)
-                #     # self.event_transition[(event_id, queue_id)] this function gives the next queue for an event
-                # self.update_departure_time(d, event_id, queue_id)
-                # self.update_arrival_time(d, event_id, next_queue_id)
-
     def max_min_queue_grid(self, *argv, maximum=1):
         # print("call",maximum)
         bound = 0.0 if maximum == 1 else np.infty
@@ -771,80 +576,13 @@ class QueueNetwork:
         return bound
 
 
-# Test sampling
-# mu1 = 0
-# mu2 = 5
-# np.random.seed(10)
-# # exponential_test = [sample_truncated_exponential_left_fixed(mu1, 5, 15) for i in range(5000)]
-# # hist, bin_edges = np.histogram(exponential_test, bins=30)
-# # plt.hist(exponential_test, bins = bin_edges[:-1])
-# # plt.title('Truncated Exponential Left')
-# # plt.ylabel('Samples')
-# # plt.show()
-#
-# Test sampling
-# mu1 = 2
-# mu2 = 1
-# np.random.seed(10)
-# exponential_test = [sample_truncated_exponential_two_queues_open(mu1, mu2, 2, 4, 2.1, 3) for i in range(5000)]
-# hist, bin_edges = np.histogram(exponential_test, bins=30)
-# plt.hist(exponential_test, bins = bin_edges[:-1])
-# plt.title('Truncated Exponential, {}'.format(r'$\mu_1 = 5, \mu_2 = 7$'))
-# plt.ylabel('Samples')
-# plt.show()
-
-# Test normalization factors
-# Input:
-## lower_bound (float) -- Truncation begin
-## upper_bound (float) -- Truncation end
-## service_rate_current_queue (float >= 0)
-## service_rate_next_queue (float >= 0)
-## current_queue_current_event ([float] size 2) -- [arrival, departure]
-## next_queue_current_event ([float] size 2) -- [arrival, departure]
-## next_queue_previous_event ([float] size 2) -- [arrival, departure]
-## current_queue_next_event ([float] size 2) -- [arrival, departure]
-# Output: Partition probabilities (array, sum to 1)
-# lower_bound = 10
-# upper_bound= 16
-# service_rate_curr = 1
-# service_rate_next = 1
-# current_queue_current_event = [8, 12]
-# next_queue_current_event = [12, 18]
-# current_queue_next_event = [10, 16]
-# next_queue_previous_event = [0, 0.5]
-#
-#
-# # samples = []
-# Z = partition_probabilities(lower_bound, upper_bound, service_rate_curr, service_rate_next,
-#                                 current_queue_current_event, next_queue_current_event, next_queue_previous_event,
-#                                 current_queue_next_event)
-# samples = []
-# for i in range(1000):
-#     u = np.random.random()
-#     z = 0
-#     if u < Z[0]:
-#         z = 0
-#     elif u < Z[0] + Z[1]:
-#         z = 1
-#     else:
-#         z = 2
-#     d = sample_truncated_exponential_two_queues_open(z, lower_bound, upper_bound, service_rate_curr, service_rate_next,
-#                                                      current_queue_current_event, next_queue_current_event,
-#                                                      next_queue_previous_event, current_queue_next_event)
-#
-#     samples.append(d)
-# hist, bin_edges = np.histogram(samples, bins=30)
-# plt.hist(samples, bins = bin_edges[:-1])
-# plt.title('Truncated Exponential, {}'.format(r'$\mu_1 = 5, \mu_2 = 7$'))
-# plt.ylabel('Samples')
-# plt.show()
-
+K = 1
 events = 500
-p = 0.4
+p = 0.2
 random.seed(events)
 ns = network_structure.graph.nodes.get_nodes()
 queues = {}
-K = 1
+
 for node in ns:
     service_rate = 15*np.random.random()
     service_loss = {}
@@ -884,7 +622,7 @@ events_O_copy = copy.deepcopy(events_O)
 events_H_copy = copy.deepcopy(events_H)
 queues_copy = copy.deepcopy(queues)
 random.seed(events)
-S = Simulation(events_O_copy, events_H_copy, queues_copy)
+S = Simulation(events_O_copy, events_H_copy, queues_copy, 'assistComplete')
 # Copy the hidden events with real values for testing. Deep copy creates new objects with their own references
 events_H_actual = copy.deepcopy(events_H)
 hidden_ids = []
@@ -936,7 +674,8 @@ def log_likelihood(service_times, service_rate):
         log_ll += f_s
     return log_ll
 
-runs = 10
+
+runs = 1000
 estimated_service_rate = {}
 for queue_id, queue_log in queue_network.log.items():
     if queue_id == 'init':
@@ -954,9 +693,11 @@ for queue_id, queue_log in queue_network.log.items():
     ll = log_likelihood(service_times, service_rate)
     log_likelihood_runs[queue_id].append(ll)
 
+    initial_service =  len(service_times)/sum(service_times)
+    estimated_service_rate[queue_id].append(initial_service)
+
 for i in range(runs):
     print("Run {}".format(i))
-
 
     # E - step
     print('E-step')
@@ -966,8 +707,6 @@ for i in range(runs):
     print("M-step")
     for queue_id, queue_log in queue_network.log.items():
         if queue_id == 'init':
-            continue
-        if queue_id != 'n1':
             continue
         print('Queue {}'.format(queue_id))
 
@@ -1017,13 +756,19 @@ for i in range(runs):
 for queue_id, queue_log in queue_network.log.items():
     if queue_id == 'init':
         continue
-    if queue_id != 'n1':
-        continue
     estimated_service_rate_queue = estimated_service_rate[queue_id]
     true_service_rate_queue = true_service_rate[queue_id]
     squared_error = [(estimated_service_rate_queue[i] - true_service_rate_queue)**2 for i in range(len(estimated_service_rate_queue))]
     plt.plot(squared_error)
     plt.show()
+    p_percent = int(100*p)
+    csv_file = 'Results/server_k{}_{}_events_p{}_queue_{}.csv'.format(K, events, p_percent, queue_id)
+    with open(csv_file, 'w') as f:
+        f.write('Iteration,Squared_error,LogLoss,Estimate\n')
+        iterations = len(log_likelihood_runs[queue_id])
+        for i in range(iterations):
+            row = [str(i), str(squared_error[i]), str(log_likelihood_runs[queue_id][i]), str(estimated_service_rate_queue[i])]
+            f.write(','.join(row) + '\n')
 
     plt.plot(log_likelihood_runs[queue_id])
     plt.show()

@@ -41,7 +41,13 @@ class Simulation:
         # Initial queue
         self.init_q_id = 'init'
 
-        queue_init = Queue(self.init_q_id, 0, 1, {1:0})
+        for q in self.Queues:
+            K = Queues[q].K
+            break
+        service_loss_initial = {}
+        for k in range(1, K+1):
+            service_loss_initial[k] = 0
+        queue_init = Queue(self.init_q_id, 0, K, service_loss_initial)
         self.Queues[self.init_q_id] = queue_init
 
         all_events = self.Events_O + self.Events_H
