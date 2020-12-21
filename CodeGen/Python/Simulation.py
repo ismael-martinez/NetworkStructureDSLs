@@ -41,7 +41,7 @@ class Simulation:
         # Initial queue
         self.init_q_id = 'init'
 
-        queue_init = Queue(self.init_q_id, 0, 1, [0])
+        queue_init = Queue(self.init_q_id, 0, 1, {1:0})
         self.Queues[self.init_q_id] = queue_init
 
         all_events = self.Events_O + self.Events_H
@@ -299,8 +299,8 @@ class Queue:
         self.K = K
         if len(service_loss) != K:
             raise Exception('Service loss needs to be of size K')
-        for k in range(K):
-            if service_loss[k] > service_rate*(k+1):
+        for k in range(1, K+1): # Servers
+            if service_loss[k] > service_rate*(k):
                 raise Exception('Service loss from k servers cannot be greater than service rate by k servers')
         self.service_loss = service_loss
         for k in range(K):
@@ -366,7 +366,7 @@ class Queue:
             k_servers = np.floor(len(self.sub_servers) / (total_events_in_queue))
         else:
             k_servers = 1
-        service_loss_k = self.service_loss[k_servers-1]
+        service_loss_k = self.service_loss[k_servers]
         service_time = expon.rvs(scale=1 / (self.service_rate*k_servers - service_loss_k))
         #service_time =     #self.queue_times_service.pop(0)
         wait_time = event_time - arrival_time

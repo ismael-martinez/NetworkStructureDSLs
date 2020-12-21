@@ -849,10 +849,12 @@ queues = {}
 K = 1
 for node in ns:
     service_rate = 15*np.random.random()
-    service_loss = []
-    for k in range(K):
-        sl =  (k)*service_rate*np.random.random()
-        service_loss.append(sl)
+    service_loss = {}
+    for k in range(1,K+1):
+        if k == 1:
+            service_loss[k] = 0
+        else:
+            service_loss[k] =  (k)*service_rate*np.random.random()
     queues[node] = Queue(node, service_rate, K, service_loss)
 
 arrival_rate = 10
@@ -890,6 +892,8 @@ events_H_actual = copy.deepcopy(events_H)
 hidden_ids = []
 for h in events_H_actual:
     hidden_ids.append(h.id)
+
+
 # for e in S.event_triggers:
 #     print(e[0])
 # print('\nDeparture times')
@@ -897,13 +901,21 @@ for h in events_H_actual:
 #     print(e.id)
 #     print(e.departure_times)
 
+true_service_rate = {}
+true_service_loss = {}
 queue_log = {}
+
 for q in S.Queues:
     # if q == 'init':
     #     continue
     print('Queue {}'.format(q))
     print('Arrival, Service, Wait, Departure, ')
     queue = S.Queues[q]
+    true_service_rate[q] = queue.service_rate
+    true_service_loss[q] = {}
+    for k in range(1, K+1):
+        true_service_loss[q][k] = queue.service_loss[k]
+
     queue_log[q] = [qlog for qlog in queue.queue_log]
     for l in queue.queue_log: # [arrival, service, wait, departure
         print(l)
@@ -920,10 +932,13 @@ def service_rate_k(n, eta, sum_s, sum_sk):
 
 runs = 10
 for i in range(runs):
+    print("Run {}".format(i))
+    # E - step
     print('E-step')
-    #queue_network.gibbs_sampling_update()
+    queue_network.gibbs_sampling_update()
 
     # M - Step
+    print("M-step")
     for queue_id, queue_log in queue_network.log.items():
         if queue_id == 'init':
             continue
@@ -952,8 +967,9 @@ for i in range(runs):
 
         service_rate_observed = 0
         for k in range(1, K+1):
-            print(k)
-            service_rate_observed = service_rate_k(obs[k], queue_network.service_loss[queue_id][k], s_sums[k], sk_sums[k])
+            service_rate_observed += service_rate_k(obs[k], queue_network.service_loss[queue_id][k], s_sums[k], sk_sums[k])
+        print('True service rate: {}'.format(true_service_rate[queue_id]))
+        print('Estimated service rate: {}'.format(service_rate_observed))
 
         print('Update service time estimation')
         queue_network.service_rates[queue_id] = service_rate_observed # M step update, service rate
