@@ -178,20 +178,11 @@ def depthFirstSearch_rec(nodes, root, node_visited_map, all_paths):
 ## current_queue_next_event ([float] size 2) -- [arrival, departure]
 # Output: Sample for d
 def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bound, service_rate_current_queue, service_rate_next_queue, current_queue_current_event, next_queue_current_event ,next_queue_previous_event, current_queue_next_event):
+    [current_queue_current_event, next_queue_current_event, next_queue_previous_event, current_queue_next_event] = set_new_bounds(lower_bound, upper_bound,current_queue_current_event, next_queue_current_event, next_queue_previous_event, current_queue_next_event)
     [current_queue_current_arrival, current_queue_current_departure] = current_queue_current_event
     [next_queue_current_arrival, next_queue_current_departure] = next_queue_current_event
     [next_queue_previous_arrival, next_queue_previous_departure] = next_queue_previous_event
     [current_queue_next_arrival, current_queue_next_departure] = current_queue_next_event
-
-    if next_queue_current_arrival is None:
-        next_queue_current_arrival = current_queue_current_departure
-        next_queue_current_departure = np.infty
-    if next_queue_previous_departure is None or next_queue_previous_departure < lower_bound:
-        next_queue_previous_departure = lower_bound
-        next_queue_previous_arrival = lower_bound
-    if current_queue_next_arrival is None or current_queue_next_arrival > upper_bound:
-        current_queue_next_arrival = upper_bound
-        current_queue_next_departure = upper_bound
 
     # Valid partitions
     partitions = []
@@ -203,9 +194,10 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
 
     if section == 0: # left most
         partition_point = min(partitions + [upper_bound])
-        cdf_upper = 1 - np.exp(-service_rate_current_queue * (partition_point - lower_bound))
-        u = np.random.random()*cdf_upper
-        inv = -np.log(1-u)/service_rate_current_queue + lower_bound
+        cdf_upper = 1 - np.exp(-service_rate_current_queue * (partition_point - current_queue_current_arrival))
+        cdf_lower = 1 - np.exp(-service_rate_current_queue * (lower_bound - current_queue_current_arrival))
+        u = np.random.random()*(cdf_upper - cdf_lower) + cdf_lower
+        inv = -np.log(1-u)/service_rate_current_queue + current_queue_current_arrival
         return inv
 
     if section == 2: # Right most
@@ -224,7 +216,7 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
             u = np.random.random() * (partitions[1] - partitions[0]) + partitions[0]
             return u
         if next_queue_previous_departure == max(partitions):
-            u = np.random.random()*(current_queue_current_departure- current_queue_next_arrival)
+            u = np.random.random()*(partitions[1] - partitions[0]) + partitions[0]
             return u
         else:
             gamma = 1
@@ -311,21 +303,12 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
 ## current_queue_next_event ([float] size 2) -- [arrival, departure]
 # Output: Partition probabilities (array, sum to 1)
 def partition_probabilities(lower_bound, upper_bound, service_rate_current_queue, service_rate_next_queue, current_queue_current_event, next_queue_current_event ,next_queue_previous_event, current_queue_next_event):
+
+    [current_queue_current_event, next_queue_current_event, next_queue_previous_event, current_queue_next_event] = set_new_bounds(lower_bound, upper_bound,current_queue_current_event, next_queue_current_event, next_queue_previous_event, current_queue_next_event)
     [current_queue_current_arrival, current_queue_current_departure] = current_queue_current_event
     [next_queue_current_arrival, next_queue_current_departure] = next_queue_current_event
     [next_queue_previous_arrival, next_queue_previous_departure] = next_queue_previous_event
     [current_queue_next_arrival, current_queue_next_departure] = current_queue_next_event
-
-
-    if next_queue_current_arrival is None:
-        next_queue_current_arrival = current_queue_current_departure
-        next_queue_current_departure = np.infty
-    if next_queue_previous_departure is None or next_queue_previous_departure < lower_bound:
-        next_queue_previous_departure = lower_bound
-        next_queue_previous_arrival = lower_bound
-    if current_queue_next_arrival is None or current_queue_next_arrival > upper_bound:
-        current_queue_next_arrival = upper_bound
-        current_queue_next_departure = upper_bound
 
     # Valid partitions
     partitions = []
@@ -335,19 +318,28 @@ def partition_probabilities(lower_bound, upper_bound, service_rate_current_queue
         partitions.append(current_queue_next_arrival)
     partitions.sort()
 
+    if len(partitions) < 2:
+        print('error')
+
+    #print([lower_bound, partitions[0], partitions[1], upper_bound])
+    #print([lower_bound, upper_bound, service_rate_current_queue, service_rate_next_queue, current_queue_current_event, next_queue_current_event ,[next_queue_previous_arrival, next_queue_previous_departure], [current_queue_next_arrival, current_queue_next_departure]])
+
     norm_array = [0]*3
     # F(x) = 1 - exp(-mu*(x-a)) for left side queues
     # F(x) = exp(-mu*(b-x)) for right side queues
 
     # Full scaled probability of left-most case, truncated
-    Z = 0
+
         # Previous event, next queue
         #Z *= np.exp(service_rate_next_queue * (min(next_queue_previous_departure,current_queue_next_arrival) - next_queue_previous_departure)) - \
         #     np.exp(service_rate_next_queue * (max(next_queue_previous_arrival, lower_bound) - next_queue_previous_departure))
         # Current event, next queue
         #Z *= 1-np.exp(service_rate_next_queue * (next_queue_previous_departure - next_queue_current_departure))
+    if partitions[0] == lower_bound:
+        Z = 0
+    else:
     # Current event, current queue
-    Z = np.exp(-service_rate_current_queue * (lower_bound - current_queue_current_arrival)) - \
+        Z = np.exp(-service_rate_current_queue * (lower_bound - current_queue_current_arrival)) - \
             np.exp(-service_rate_current_queue * (partitions[0] - current_queue_current_arrival))
 
     # Next event, current queue
@@ -360,7 +352,7 @@ def partition_probabilities(lower_bound, upper_bound, service_rate_current_queue
 
     # Full scaled probability of right-most case, truncated
     Z = 0
-    if current_queue_next_arrival == np.infty:
+    if current_queue_next_arrival is None or partitions[1] == upper_bound:
         norm_array[2] = 0
     else:
         # Previous event, next queue
@@ -379,7 +371,9 @@ def partition_probabilities(lower_bound, upper_bound, service_rate_current_queue
         norm_array[2] = Z
 
     # Full scaled probability of middle case, truncated
-    if next_queue_previous_departure == min(partitions):
+    if partitions[0] == partitions[1]:
+        Z = 0
+    elif next_queue_previous_departure == min(partitions):
 
 
         Z = 0
@@ -430,19 +424,26 @@ def partition_probabilities(lower_bound, upper_bound, service_rate_current_queue
 
 
     else: # Full probability scaled, uniform. B > A
-        Z = 1
         # Previous event, next queue
         #Z *= 1 - np.exp(-service_rate_next_queue * (next_queue_previous_departure - current_queue_next_arrival))
         # Current event, next queue
         #Z *= np.exp(service_rate_next_queue * (current_queue_next_departure - next_queue_previous_departure))
         # Current queue, current and next event
-        Z *= service_rate_current_queue ** 2 * np.exp(
-            -service_rate_current_queue * (current_queue_next_departure - current_queue_current_arrival))*( next_queue_previous_departure - current_queue_next_arrival)
-        norm_array[1] = Z
+        if service_rate_next_queue == 0 or service_rate_current_queue == 0:
+            norm_array[1] = 1
+        else:
+            Z = service_rate_current_queue ** 2 * np.exp(
+                -service_rate_current_queue * (current_queue_next_departure - current_queue_current_arrival)) * (
+                            next_queue_previous_departure - current_queue_next_arrival)
+            norm_array[1] = Z
 
-    print(norm_array)
     Z_sum = np.sum(norm_array)
+    #print(norm_array)
+    if Z_sum == np.infty:
+        print('error')
+    #print(norm_array)
     normalized_array = [z / Z_sum for z in norm_array]
+    #print(normalized_array)
     return normalized_array
 
 # Sample from a truncated exponential
@@ -471,3 +472,54 @@ def partition_probabilities(lower_bound, upper_bound, service_rate_current_queue
 #     inv_exp_sample = - np.log(1 - norm_constant * u) / param_lambda + start
 #     return inv_exp_sample
 
+
+def set_new_bounds(lower_bound, upper_bound,
+                                current_queue_current_event, next_queue_current_event, next_queue_previous_event,
+                                current_queue_next_event):
+
+    [current_queue_current_arrival, current_queue_current_departure] = current_queue_current_event
+    [next_queue_current_arrival, next_queue_current_departure] = next_queue_current_event
+    [next_queue_previous_arrival, next_queue_previous_departure] = next_queue_previous_event
+    [current_queue_next_arrival, current_queue_next_departure] = current_queue_next_event
+
+    if next_queue_previous_departure is None or next_queue_previous_departure < lower_bound:
+        if next_queue_current_arrival is not None:
+            next_queue_previous_departure = lower_bound
+            next_queue_previous_arrival = lower_bound
+        else:
+            if current_queue_next_arrival is not None:
+                if current_queue_next_arrival <= lower_bound:
+                    next_queue_previous_departure = max(current_queue_next_arrival, lower_bound)
+                else:
+                    next_queue_previous_departure = min(current_queue_next_arrival, upper_bound)
+            else:
+                next_queue_previous_departure = upper_bound
+            next_queue_previous_arrival = lower_bound
+    elif next_queue_previous_departure > upper_bound:
+            next_queue_previous_departure = upper_bound
+    else:
+        if next_queue_current_arrival is None and current_queue_next_arrival is not None:
+            if current_queue_next_arrival > lower_bound:
+                next_queue_previous_departure = current_queue_next_arrival
+            else:
+                next_queue_previous_departure = lower_bound
+            next_queue_previous_arrival = lower_bound
+        elif next_queue_current_arrival is None and current_queue_next_arrival is None:
+            next_queue_previous_departure = upper_bound
+            next_queue_previous_arrival = lower_bound
+
+
+    if current_queue_next_arrival is None or current_queue_next_arrival > upper_bound:
+        current_queue_next_arrival = upper_bound
+        current_queue_next_departure = upper_bound
+    if current_queue_next_arrival < lower_bound:
+        current_queue_next_arrival = lower_bound
+        current_queue_next_departure = upper_bound
+
+
+    current_queue_current_event = [current_queue_current_arrival, current_queue_current_departure]
+    next_queue_current_event = [next_queue_current_arrival, next_queue_current_departure]
+    next_queue_previous_event = [next_queue_previous_arrival, next_queue_previous_departure]
+    current_queue_next_event = [current_queue_next_arrival, current_queue_next_departure]
+
+    return [current_queue_current_event, next_queue_current_event, next_queue_previous_event, current_queue_next_event]
