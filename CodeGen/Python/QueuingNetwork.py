@@ -28,7 +28,11 @@ class QueueNetwork:
             if 'Departure' in e[2]:
                 curr_queue = e[3]
                 event_id = e[1]
+                if event_id == 'e496':
+                    print('here')
                 if i+1 < len(event_triggers) and 'Arrival' in event_triggers[i+1][2] and event_id == event_triggers[i+1][1]:
+                    print(event_triggers[i])
+                    print(event_triggers[i+1])
                     next_queue = event_triggers[i+1][3]
                 else:
                     next_queue = None
@@ -40,7 +44,7 @@ class QueueNetwork:
             self.service_rates[q] = 1
             self.service_loss[q] = [0]*self.K
             for k in range(self.K):
-                self.service_loss[q][k] = 0.5
+                self.service_loss[q][k] = 0
             if q == 'init':
                 self.service_loss[q] = [0]*self.K
                 self.service_rates[q] = 0
@@ -66,7 +70,7 @@ class QueueNetwork:
                 break
             log_id += 1
         if log_id >= len(self.log[queue_id]):
-            print('Event not found in queue {}'.format(queue_id))
+            print('Event {} not found in queue {}'.format(event_id, queue_id))
             return
         event_log = self.log[queue_id][log_id]
         event_log_dict = {}
@@ -93,7 +97,7 @@ class QueueNetwork:
                 break
             log_id += 1
         if log_id >= len(self.log[queue_id]):
-            print('Event not found in queue {}'.format(queue_id))
+            print('Event {} not found in queue {}'.format(event_id, queue_id))
             return
 
         log_tuple = self.log[queue_id][log_id]
@@ -212,7 +216,7 @@ class QueueNetwork:
                 else:
                     delete_point += 1
             if delete_point >= len(old_log):
-                print('Event not found in queue {}'.format(queue_id))
+                print('Event {} not found in queue {}'.format(event_id, queue_id))
                 return
             delete_log = old_log[delete_point]
             old_departure_time = old_log[delete_point][3]
@@ -355,6 +359,10 @@ class QueueNetwork:
             if event_id not in self.hidden_ids:
                 continue
             next_queue_id = self.event_transition[(event_id, current_queue_id)]
+
+            print(event_id)
+            if event_id == 'e496':
+                print('here')
 
             # Index in current queue log
 
@@ -526,9 +534,7 @@ class QueueNetwork:
                 next_queue_previous_event = [previous_event_next_queue_arrival, previous_event_next_queue_departure]
                 current_queue_next_event = [next_event_current_queue_arrival, next_event_current_queue_departure]
 
-                #print(event_id)
-                # if event_id == 'e33':
-                #     print('here')
+
 
                 Z = partition_probabilities(lower_bound_gibbs, upper_bound_gibbs, cq_service_rate,
                                             nq_service_rate, current_queue_current_event,
@@ -848,7 +854,7 @@ for node in ns:
     service_rate = 15*np.random.random()
     service_loss = []
     for k in range(K):
-        sl =  (k+1)*service_rate*np.random.random()
+        sl =  (k)*service_rate*np.random.random()
         service_loss.append(sl)
     queues[node] = Queue(node, service_rate, K, service_loss)
 
@@ -901,7 +907,7 @@ for q in S.Queues:
     print('Queue {}'.format(q))
     print('Arrival, Service, Wait, Departure, ')
     queue = S.Queues[q]
-    queue_log[q] = queue.queue_log[0:-1]
+    queue_log[q] = [qlog for qlog in queue.queue_log]
     for l in queue.queue_log: # [arrival, service, wait, departure
         print(l)
     print('\n')
