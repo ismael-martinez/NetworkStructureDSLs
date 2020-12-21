@@ -316,7 +316,7 @@ class QueueNetwork:
                 return [log_entry_arrival, log_entry_departure]
             else:
                 log_id_prev = log_id - 1
-                while log_id_prev > 0:
+                while log_id_prev >= 0:
                     server_k = queue_log[log_id_prev][5]
                     if log_entry_arrival[server_k] is None:
                         log_entry_arrival[server_k] = queue_log[log_id_prev][0]
@@ -375,6 +375,7 @@ class QueueNetwork:
                     if log[4] == event_id:
                         log_id_nq = idx
                         break
+
             ## Current queue q_pi(e)
             try:
                 # Current event arrival, a_pi(e)
@@ -513,7 +514,7 @@ class QueueNetwork:
                 # Sample from uniform across [L, U]
                 if upper_bound_gibbs == np.infty:
                     continue
-                d = lower_bound_gibbs + np.random.random() * (upper_bound_gibbs-lower_bound_gibbs)
+                d = lower_bound_gibbs + np.random.random() * (upper_bound_gibbs-lower_bound_gibbs)*0.001
                 if verbose:
                     print('Sample d = {}'.format(d))
             else:
@@ -530,8 +531,6 @@ class QueueNetwork:
                 next_queue_previous_event = [previous_event_next_queue_arrival, previous_event_next_queue_departure]
                 current_queue_next_event = [next_event_current_queue_arrival, next_event_current_queue_departure]
 
-                if event_id == 'e498':
-                    print('here')
 
                 Z = partition_probabilities(lower_bound_gibbs, upper_bound_gibbs, cq_service_rate,
                                             nq_service_rate, current_queue_current_event,
@@ -561,7 +560,6 @@ class QueueNetwork:
                     print('Sample d = {}'.format(d))
                 if d > upper_bound_gibbs or d < lower_bound_gibbs:
                     raise Exception('Bound error')
-
             self.update_departure_time(d, event_id, current_queue_id)
             if next_queue_id is not None:
                 self.update_arrival_time(d, event_id, next_queue_id)
@@ -911,15 +909,17 @@ for q in S.Queues:
     print('Queue {}'.format(q))
     print('Arrival, Service, Wait, Departure, ')
     queue = S.Queues[q]
-    true_service_rate[q] = queue.service_rate
     true_service_loss[q] = {}
     for k in range(1, K+1):
         true_service_loss[q][k] = queue.service_loss[k]
-
+    true_service_rate[q] = 0
     queue_log[q] = [qlog for qlog in queue.queue_log]
+    true_observed_sum = 0
     for l in queue.queue_log: # [arrival, service, wait, departure
-        print(l)
-    print('\n')
+        true_observed_sum += l[1]
+        #print(l)
+    true_service_rate[q] = len(queue.queue_log)/true_observed_sum
+    #print('\n')
 
 queue_network = QueueNetwork(queue_log, hidden_ids, S.event_triggers, K)
 
@@ -929,10 +929,35 @@ def service_rate_k(n, eta, sum_s, sum_sk):
     service_rate = service_rate/sum_sk
     return service_rate
 
+def log_likelihood(service_times, service_rate):
+    log_ll = 0
+    for s in service_times:
+        f_s = np.log(service_rate) - service_rate*s
+        log_ll += f_s
+    return log_ll
 
 runs = 10
+estimated_service_rate = {}
+for queue_id, queue_log in queue_network.log.items():
+    if queue_id == 'init':
+        continue
+
+    estimated_service_rate[queue_id] = []
+
+log_likelihood_runs = {}
+for queue_id, queue_log in queue_network.log.items():
+    if queue_id == 'init':
+        continue
+    log_likelihood_runs[queue_id] = []
+    service_times = [log[1] for log in queue_log]
+    service_rate = queue_network.service_rates[queue_id]
+    ll = log_likelihood(service_times, service_rate)
+    log_likelihood_runs[queue_id].append(ll)
+
 for i in range(runs):
     print("Run {}".format(i))
+
+
     # E - step
     print('E-step')
     queue_network.gibbs_sampling_update()
@@ -941,6 +966,8 @@ for i in range(runs):
     print("M-step")
     for queue_id, queue_log in queue_network.log.items():
         if queue_id == 'init':
+            continue
+        if queue_id != 'n1':
             continue
         print('Queue {}'.format(queue_id))
 
@@ -968,6 +995,7 @@ for i in range(runs):
         service_rate_observed = 0
         for k in range(1, K+1):
             service_rate_observed += service_rate_k(obs[k], queue_network.service_loss[queue_id][k], s_sums[k], sk_sums[k])
+            estimated_service_rate[queue_id].append(service_rate_observed)
         print('True service rate: {}'.format(true_service_rate[queue_id]))
         print('Estimated service rate: {}'.format(service_rate_observed))
 
@@ -980,6 +1008,25 @@ for i in range(runs):
             service_loss_estimation = service_rate_observed*(k) - obs[k]/s_sums[k]
             queue_network.service_loss[queue_id][k] = service_loss_estimation
 
+        service_times = [log[1] for log in queue_log]
+        service_rate = queue_network.service_rates[queue_id]
+        ll = log_likelihood(service_times, service_rate)
+        log_likelihood_runs[queue_id].append(ll)
+
+# Plot log likelihood of service rate estimation over runs
+for queue_id, queue_log in queue_network.log.items():
+    if queue_id == 'init':
+        continue
+    if queue_id != 'n1':
+        continue
+    estimated_service_rate_queue = estimated_service_rate[queue_id]
+    true_service_rate_queue = true_service_rate[queue_id]
+    squared_error = [(estimated_service_rate_queue[i] - true_service_rate_queue)**2 for i in range(len(estimated_service_rate_queue))]
+    plt.plot(squared_error)
+    plt.show()
+
+    plt.plot(log_likelihood_runs[queue_id])
+    plt.show()
 
 
 
@@ -1085,4 +1132,4 @@ def plot_service_time_histograms(events_O, events_H, queues):
         plt.xlabel('Service time estimation')
         plt.show()
 
-plot_service_time_histograms(events_O, events_H, queues)
+#plot_service_time_histograms(events_O, events_H, queues)
