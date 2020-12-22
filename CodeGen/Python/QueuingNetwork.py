@@ -646,7 +646,7 @@ class QueueNetwork:
         return bound
 
 
-K = 2
+K =4
 events = 1000
 p = 0.80
 runs = 250
@@ -661,7 +661,7 @@ for node in ns:
         if k == 1:
             service_loss[k] = 0
         else:
-            service_loss[k] = (k) * service_rate * np.random.random()
+            service_loss[k] = 0#(k) * service_rate * np.random.random()
     queues[node] = Queue(node, service_rate, K, service_loss)
 
 arrival_rate = 100
@@ -750,11 +750,11 @@ for q in queue_network.log:
         continue
     N_q = len(queue_network.log[q])
     observation_q = sum([entry[1]*entry[7] for entry in queue_network.log[q]])
-    true_service_rates_unflitered[q] = N_q/observation_q
-    observation_q_1 = np.mean([entry[1] * entry[7] for entry in queue_network.log[q] if entry[7] == 1])
-    observation_q_2 = np.mean([entry[1] * entry[7] for entry in queue_network.log[q] if entry[7] == 2])
-    true_service_loss[q] = 1/observation_q_1 - 1/observation_q_2
-    true_service_rates[q] = observation_q_1
+    # true_service_rates_unflitered[q] = N_q/observation_q
+    # observation_q_1 = sum([entry[1] * entry[7] for entry in queue_network.log[q] if entry[7] == 1])
+    # observation_q_2 = sum([entry[1] * entry[7] for entry in queue_network.log[q] if entry[7] == 2])
+    # true_service_loss[q] = observation_q_1 - observation_q_2
+    true_service_rates[q] = N_q/observation_q
 
 
 #true_service_rate = N_q/observation_sum
@@ -767,9 +767,9 @@ def log_likelihood(service_times, servers_k, service_rate):
     log_ll = 0
     for s, k in zip(service_times, servers_k):
         p_s = np.log(service_rate)  -service_rate*(s*k)
-        p_theta = np.log(10) - 10/service_rate
+        #p_theta = np.log(10) - 10/service_rate
 
-        log_ll +=  p_s + p_theta
+        log_ll +=  p_s #+ p_theta
     return log_ll
 
 
@@ -780,7 +780,6 @@ def log_likelihood(service_times, servers_k, service_rate):
 #         continue
 
 estimated_service_rates = {}
-estimated_service_loss = {}
 log_likelihood_runs = []
 log_lh_full = 0
 for queue_id, queue_log in queue_network.log.items():
@@ -789,7 +788,6 @@ for queue_id, queue_log in queue_network.log.items():
     estimated_service_rates[queue_id] = []
     observed_estimation = queue_network.service_rates[queue_id]
     estimated_service_rates[queue_id].append(observed_estimation)
-    estimated_service_loss[queue_id] = [1]
 
 
     service_times = [log[1] for log in queue_log]
@@ -819,20 +817,17 @@ for i in range(runs):
 
         N_q = len(queue_network.log[queue_id])
         observed_estimation = N_q / observation_q
-        observation_q_1 = np.mean([entry[1] * entry[7] for entry in queue_network.log[queue_id] if entry[7] == 1])
-        observation_q_2 = np.mean([entry[1] * entry[7] for entry in queue_network.log[queue_id] if entry[7] == 2])
-        estimated_service_rates[queue_id].append(observation_q_1)
-        observed_loss = 1/observation_q_1 - 1/observation_q_2
-        estimated_service_loss[queue_id].append(observed_loss)
 
+        estimated_service_rates[queue_id].append(observed_estimation)
+        queue_network.service_rates[queue_id] = observed_estimation
 
-        print('True service loss: {}'.format(true_service_loss[queue_id]))
-        print('Estimated service loss: {}'.format(observed_loss))
+        print('True service rate: {}'.format(true_service_rates[queue_id]))
+        print('Estimated service rate: {}'.format(observed_estimation))
 
         service_times = [log[1] for log in queue_log]
         k_servers = [log[7] for log in queue_log]
-        ll = log_likelihood(service_times, k_servers, observation_q_1)
-        log_lh_full *= ll
+        ll = log_likelihood(service_times, k_servers, observed_estimation)
+        log_lh_full += ll
     log_likelihood_runs.append(log_lh_full)
 
     # for k in range(1, K + 1):
@@ -858,21 +853,21 @@ for i in range(runs):
 # true_service_rate_queue = true_service_rate[queue_id]
 
 p_percent = int(100 * p)
-csv_file = 'Results/server_k{}_events{}_p{}_queue_all_10queues_collabloss.csv'.format(K, events, p_percent)
+csv_file = 'Results/server_k{}_events{}_p{}_queue_all_10queues.csv'.format(K, events, p_percent)
 with open(csv_file, 'w') as f:
-    f.write('Iteration,Squared_error,EstimateRate,EstimateLoss,ActualRate,ActualLoss, Queue\n')
+    f.write('Iteration,Squared_error,Estimate,Actual, Queue\n')
     iterations = len(log_likelihood_runs)
     for q in queue_network.log:
         if q == 'init':
             continue
-        squared_error = [(e - true_service_loss[q]) ** 2 for e in estimated_service_loss[q]]
-        plt.plot(squared_error)
+        squared_error = [(e - true_service_rates[q]) ** 2 for e in estimated_service_rates[q]]
+        #plt.plot(squared_error)
         #plt.show()
         for i in range(iterations):
-            row = [str(i), str(squared_error[i]),  str(estimated_service_rates[q][i]), str(estimated_service_loss[q][i]), str(true_service_rates[q]), str(true_service_loss[q]), q]
+            row = [str(i), str(squared_error[i]),  str(estimated_service_rates[q][i]), str(true_service_rates[q]), q]
             f.write(','.join(row) + '\n')
 
-csv_file_all = 'Results/server_k{}_events{}_p{}_queue_all_loglikelihood_10queues_collabloss.csv'.format(K, events, p_percent)
+csv_file_all = 'Results/server_k{}_events{}_p{}_queue_all_loglikelihood_10queues.csv'.format(K, events, p_percent)
 with open(csv_file_all, 'w') as f:
     f.write('Iteration,LogLikelihood\n')
     iterations = len(log_likelihood_runs)
@@ -881,8 +876,8 @@ with open(csv_file_all, 'w') as f:
         f.write(','.join(row) + '\n')
 
 plt.plot(log_likelihood_runs)
-plt.title('Log Likelihood')
-#plt.show()
+plt.title('Log Likelihood K = {} p = {}'.format(K, p))
+plt.show()
 
 
 def plot_service_time_histograms(events_O, events_H, queues):
