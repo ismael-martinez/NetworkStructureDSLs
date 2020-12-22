@@ -676,7 +676,7 @@ events_H = []
 
 # Build events
 for e in range(events):
-    tasks = np.random.randint(1, 3)
+    tasks = np.random.randint(2, 5)
     event_path = list(random_path(tasks))  # Make copy
     arrival_event = np.zeros(tasks)
     departure_event = np.zeros(tasks)
@@ -755,14 +755,14 @@ def service_rate_k(n, eta, sum_s, sum_sk):
 def log_likelihood(service_times, service_rate):
     log_ll = 0
     for s in service_times:
-        p_s = service_rate*np.exp( -service_rate*s)
-        p_theta = 10*np.exp( - 10/service_rate)
+        p_s = np.log(service_rate)  -service_rate*s
+        p_theta = np.log(10) - 10/service_rate
 
-        log_ll +=  np.log(p_s * p_theta)
+        log_ll +=  p_s + p_theta
     return log_ll
 
 
-runs = 10
+runs = 50
 # estimated_service_rate = {}
 # for queue_id, queue_log in queue_network.log.items():
 #     if queue_id == 'init':
@@ -836,32 +836,31 @@ for i in range(runs):
 #         continue
 # estimated_service_rate_queue = estimated_service_rate[queue_id]
 # true_service_rate_queue = true_service_rate[queue_id]
-for q in queue_network.log:
-    if q == 'init':
-        continue
-    squared_error = [(e - true_service_rates[q]) ** 2 for e in estimated_service_rates[q]]
-    plt.plot(squared_error)
-    plt.title('Square error')
-    plt.show()
-    p_percent = int(100 * p)
-    csv_file = 'Results/server_k{}_events{}_p{}_queue_all_adjusted.csv'.format(K, events, p_percent, q)
-    with open(csv_file, 'w') as f:
-        f.write('Iteration,Squared_error,Estimate,Actual\n')
-        iterations = len(log_likelihood_runs)
+
+p_percent = int(100 * p)
+csv_file = 'Results/server_k{}_events{}_p{}_queue_all_10queues.csv'.format(K, events, p_percent)
+with open(csv_file, 'w') as f:
+    f.write('Iteration,Squared_error,Estimate,Actual, Queue\n')
+    iterations = len(log_likelihood_runs)
+    for q in queue_network.log:
+        if q == 'init':
+            continue
+        squared_error = [(e - true_service_rates[q]) ** 2 for e in estimated_service_rates[q]]
         for i in range(iterations):
-            row = [str(i), str(squared_error[i]),  str(estimated_service_rates[q][i]), str(true_service_rates[q])]
-            f.write(','.join(row) + '\n')
-    csv_file_all = 'Results/server_k{}_events{}_p{}_queue_all_loglikelihood.csv'.format(K, events, p_percent, q)
-    with open(csv_file_all, 'w') as f:
-        f.write('Iteration,LogLikelihood\n')
-        iterations = len(log_likelihood_runs)
-        for i in range(iterations):
-            row = [str(i), str(log_likelihood_runs[i])]
+            row = [str(i), str(squared_error[i]),  str(estimated_service_rates[q][i]), str(true_service_rates[q]), q]
             f.write(','.join(row) + '\n')
 
-    plt.plot(log_likelihood_runs)
-    plt.title('Log Likelihood')
-    plt.show()
+csv_file_all = 'Results/server_k{}_events{}_p{}_queue_all_loglikelihood_10queues.csv'.format(K, events, p_percent)
+with open(csv_file_all, 'w') as f:
+    f.write('Iteration,LogLikelihood\n')
+    iterations = len(log_likelihood_runs)
+    for i in range(iterations):
+        row = [str(i), str(log_likelihood_runs[i])]
+        f.write(','.join(row) + '\n')
+
+plt.plot(log_likelihood_runs)
+plt.title('Log Likelihood')
+plt.show()
 
 
 def plot_service_time_histograms(events_O, events_H, queues):
