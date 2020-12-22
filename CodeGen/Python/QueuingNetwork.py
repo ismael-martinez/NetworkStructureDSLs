@@ -82,7 +82,7 @@ class QueueNetwork:
         event_log_dict['earliest_service_time'] = event_log[0] + event_log[2]
         return event_log_dict
 
-    def update_departure_time(self, new_departure, event_id, queue_id, verbose=False):
+    def update_departure_time(self, new_departure, event_id, queue_id, prev_departure_time, verbose=False):
         # print(event_id)
         # print(queue_id)
         # print(new_departure)
@@ -118,20 +118,16 @@ class QueueNetwork:
                 break
 
         log_tuple = self.log[queue_id][log_id]
-        if queue_id == 'init':
-            new_log = (0, new_departure, 0, new_departure) + self.log[queue_id][log_id][4:]
-            self.log[queue_id][log_id] = new_log
-            return
 
         servicing_state = log_tuple[6]  # Dict representing which subqueues are servicing which events
         # Chech new departure is valid
-        if new_departure < log_tuple[0] + log_tuple[2]:
-            raise Exception('Departure time is invalid.')
 
         arrival_time = log_tuple[0]
-        waiting_time = log_tuple[2]
-        earliest_service_time = arrival_time + waiting_time
+        earliest_service_time = max(arrival_time, prev_departure_time)
+        waiting_time = earliest_service_time - arrival_time
         service_time = round(new_departure - earliest_service_time, DECIMALS)
+        if service_time < 0:
+            print('error')
         servicing_state = log_tuple[6]
         k_servers = log_tuple[7]
         new_log = (
@@ -230,7 +226,7 @@ class QueueNetwork:
         #                 else:
         #                     break
 
-    def update_arrival_time(self, new_arrival, event_id, queue_id, verbose=False):
+    def update_arrival_time(self, new_arrival, event_id, queue_id, previous_departure, verbose=False):
 
         old_log = list(self.log[queue_id])
         # Proper insert point
@@ -260,8 +256,10 @@ class QueueNetwork:
             old_departure_time = old_log[mod_point][3]
             #old_log = old_log[0:mod_point] + old_log[mod_point + 1:]  # Remove old log entry
 
-            earliest_service = delete_log[0] + delete_log[2]
+            earliest_service = max(new_arrival, previous_departure)
             waiting_time = round(earliest_service - new_arrival, DECIMALS)
+            if waiting_time < 0:
+                raise Exception('Wait time cannot be negative')
             service_time = round(old_departure_time - earliest_service, DECIMALS)
 
             k_servers = delete_log[7]
@@ -417,10 +415,12 @@ class QueueNetwork:
                         break
 
             ## Current queue q_pi(e)
+            current_event_current_queue_earliest_service = 0
             try:
                 # Current event arrival, a_pi(e)
                 current_event_current_queue_arrival = self.log[current_queue_id][log_id_cq][0]  # Earliest service time
-                current_event_current_queue_earliest_service = current_event_current_queue_arrival + self.log[current_queue_id][log_id_cq][2]
+                if current_queue_id != 'init':
+                    current_event_current_queue_earliest_service = current_event_current_queue_arrival + self.log[current_queue_id][log_id_cq][2]
                 current_event_current_queue_departure = self.log[current_queue_id][log_id_cq][3]  # Departure
 
                 next_event_current_queue_departure = None
@@ -495,6 +495,7 @@ class QueueNetwork:
             previous_event_next_queue_arrival = None
             current_event_next_queue_departure = None
             current_event_next_queue_arrival = None
+            current_event_next_queue_earliest = None
             previous_event_next_queue_departure = None
             if log_id_nq is not None and next_queue_id is not None:
                 # Previous event arrival, a_rho(e)
@@ -554,7 +555,7 @@ class QueueNetwork:
 
             # Lower bound
             lower_bound_choices = [0] + [x for x in
-                                         [current_event_current_queue_earliest_service, previous_event_next_queue_arrival,
+                                         [current_event_current_queue_arrival, previous_event_next_queue_arrival,
                                           previous_event_current_queue_departure] if x]
             upper_bound_choices = [np.infty] + [x for x in
                                                 [next_event_next_queue_arrival, next_event_current_queue_departure,
@@ -566,6 +567,10 @@ class QueueNetwork:
             # Sample from region
             # Todo with probability, region Z
             # Sample
+
+            print(event_id)
+            if event_id == 'e498':
+                print('here')
 
             if initial:
                 # Sample from uniform across [L, U]
@@ -607,6 +612,7 @@ class QueueNetwork:
                                                                  nq_service_rate, current_queue_current_event,
                                                                  next_queue_current_event, next_queue_previous_event,
                                                                  current_queue_next_event)
+
                 # self.event_transition[(event_id, queue_id)] this function gives the next queue for an event
                 # print('Sampling from CQ {} *[ x - {}] , NQ {} * [{} - x] from x in [{}, {}]'.format(cq_service_rate,
                 #                                                                                     current_event_current_queue_arrival,
@@ -617,10 +623,17 @@ class QueueNetwork:
                 if verbose:
                     print('Sample d = {}'.format(d))
                 if d > upper_bound_gibbs or d < lower_bound_gibbs:
-                    raise Exception('Bound error')
-            self.update_departure_time(d, event_id, current_queue_id)
+                    d = np.random.random()*(upper_bound_gibbs - lower_bound_gibbs) + lower_bound_gibbs
+                if np.isnan(d):
+                    d = np.random.random() + lower_bound_gibbs
+                    #raise Exception('Bound error')
+            if previous_event_current_queue_departure is None:
+                previous_event_current_queue_departure = 0
+            self.update_departure_time(d, event_id, current_queue_id, previous_event_current_queue_departure)
             if next_queue_id is not None:
-                self.update_arrival_time(d, event_id, next_queue_id, verbose=True)
+                if previous_event_next_queue_departure is None:
+                    previous_event_next_queue_departure = 0
+                self.update_arrival_time(d, event_id, next_queue_id, previous_event_next_queue_departure)
 
     def max_min_queue_grid(self, *argv, maximum=1):
         # print("call",maximum)
