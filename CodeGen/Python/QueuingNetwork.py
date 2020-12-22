@@ -7,6 +7,7 @@ from Simulation import *
 import numpy as np
 import random
 import copy
+from scipy.stats import expon
 import matplotlib.pyplot as plt
 
 DECIMALS = 7
@@ -41,7 +42,7 @@ class QueueNetwork:
         # Trim arrival, wait, service, and destination to 7 decimals
         for q in self.log:
             self.queue_ids.append(q)
-            self.service_rates[q] = 1
+            self.service_rates[q] =  1
             self.service_loss[q] = {}
             for k in range(1, self.K + 1):
                 self.service_loss[q][k] = 0
@@ -53,7 +54,7 @@ class QueueNetwork:
                 q_log = q_times + list(self.log[q][i][4:])
                 self.log[q][i] = tuple(q_log)
         # self.update_arrival_time('')
-        self.gibbs_sampling_update(initial=True)
+        #self.gibbs_sampling_update(initial=True)
 
     # For an event in a queue, return all required information.
     # Input
@@ -393,6 +394,8 @@ class QueueNetwork:
 
         for dep_event in events_ordered_departure:
             current_queue_id = dep_event[8]
+            if current_queue_id == 'init':
+                continue
             event_id = dep_event[4]
             if event_id not in self.hidden_ids:
                 continue
@@ -568,15 +571,11 @@ class QueueNetwork:
             # Todo with probability, region Z
             # Sample
 
-            print(event_id)
-            if event_id == 'e498':
-                print('here')
-
             if initial:
                 # Sample from uniform across [L, U]
                 if upper_bound_gibbs == np.infty:
                     continue
-                d = lower_bound_gibbs + np.random.random() * (upper_bound_gibbs - lower_bound_gibbs) * 0.001
+                d = lower_bound_gibbs + np.random.random() * (upper_bound_gibbs - lower_bound_gibbs)
                 if verbose:
                     print('Sample d = {}'.format(d))
             else:
@@ -629,11 +628,12 @@ class QueueNetwork:
                     #raise Exception('Bound error')
             if previous_event_current_queue_departure is None:
                 previous_event_current_queue_departure = 0
-            self.update_departure_time(d, event_id, current_queue_id, previous_event_current_queue_departure)
-            if next_queue_id is not None:
+            if next_queue_id is not None :
+                self.update_departure_time(d, event_id, current_queue_id, previous_event_current_queue_departure)
                 if previous_event_next_queue_departure is None:
                     previous_event_next_queue_departure = 0
                 self.update_arrival_time(d, event_id, next_queue_id, previous_event_next_queue_departure)
+
 
     def max_min_queue_grid(self, *argv, maximum=1):
         # print("call",maximum)
@@ -646,15 +646,15 @@ class QueueNetwork:
         return bound
 
 
-K = 2
-events = 500
-p = 0.2
+K = 1
+events = 1000
+p = 0.8
 random.seed(events)
 ns = network_structure.graph.nodes.get_nodes()
 queues = {}
 
 for node in ns:
-    service_rate = 15 * np.random.random()
+    service_rate =  expon.rvs(scale=10)
     service_loss = {}
     for k in range(1, K + 1):
         if k == 1:
@@ -663,7 +663,7 @@ for node in ns:
             service_loss[k] = (k) * service_rate * np.random.random()
     queues[node] = Queue(node, service_rate, K, service_loss)
 
-arrival_rate = 5
+arrival_rate = 10
 arrivals = np.zeros(events)
 arrivals[0] = 0.0
 for e in range(1, events):
@@ -706,9 +706,10 @@ for h in events_H_actual:
 #     print(e.id)
 #     print(e.departure_times)
 
-true_service_rate = {}
+
 true_service_loss = {}
 queue_log = {}
+
 
 for q in S.Queues:
     # if q == 'init':
@@ -716,19 +717,33 @@ for q in S.Queues:
     print('Queue {}'.format(q))
     print('Arrival, Service, Wait, Departure, ')
     queue = S.Queues[q]
-    true_service_loss[q] = {}
-    for k in range(1, K + 1):
-        true_service_loss[q][k] = queue.service_loss[k]
-    true_service_rate[q] = 0
+    # true_service_loss[q] = {}
+    # for k in range(1, K + 1):
+    #     true_service_loss[q][k] = queue.service_loss[k]
+
     queue_log[q] = [qlog for qlog in queue.queue_log]
-    true_observed_sum = 0
-    for l in queue.queue_log:  # [arrival, service, wait, departure
-        true_observed_sum += l[1]
-        # print(l)
-    true_service_rate[q] = len(queue.queue_log) / true_observed_sum
+#    true_observed_sum = 0
+    # for l in queue.queue_log:  # [arrival, service, wait, departure
+    #     true_observed_sum += l[1]
+    # true_service_rate[q] = len(queue.queue_log) / true_observed_sum
     # print('\n')
 
+
+
 queue_network = QueueNetwork(queue_log, hidden_ids, S.event_triggers, K)
+true_service_rates = {}
+observation_sum = 0
+for q in queue_network.log:
+    if q == 'init':
+        continue
+    N_q = len(queue_network.log[q])
+    observation_q = sum([entry[1] for entry in queue_network.log[q]])
+    true_service_rates[q] = N_q/observation_q
+
+#true_service_rate = N_q/observation_sum
+
+queue_network.gibbs_sampling_update(initial=True)
+
 
 
 def service_rate_k(n, eta, sum_s, sum_sk):
@@ -740,31 +755,36 @@ def service_rate_k(n, eta, sum_s, sum_sk):
 def log_likelihood(service_times, service_rate):
     log_ll = 0
     for s in service_times:
-        f_s = np.log(service_rate) - service_rate * s
-        log_ll += f_s
+        p_s = service_rate*np.exp( -service_rate*s)
+        p_theta = 10*np.exp( - 10/service_rate)
+
+        log_ll +=  np.log(p_s * p_theta)
     return log_ll
 
 
-runs = 1000
-estimated_service_rate = {}
+runs = 10
+# estimated_service_rate = {}
+# for queue_id, queue_log in queue_network.log.items():
+#     if queue_id == 'init':
+#         continue
+
+estimated_service_rates = {}
+log_likelihood_runs = []
+log_lh_full = 0
 for queue_id, queue_log in queue_network.log.items():
     if queue_id == 'init':
         continue
+    estimated_service_rates[queue_id] = []
+    observed_estimation = queue_network.service_rates[queue_id]
+    estimated_service_rates[queue_id].append(observed_estimation)
 
-    estimated_service_rate[queue_id] = []
 
-log_likelihood_runs = {}
-for queue_id, queue_log in queue_network.log.items():
-    if queue_id == 'init':
-        continue
-    log_likelihood_runs[queue_id] = []
     service_times = [log[1] for log in queue_log]
     service_rate = queue_network.service_rates[queue_id]
     ll = log_likelihood(service_times, service_rate)
-    log_likelihood_runs[queue_id].append(ll)
+    log_lh_full += ll
+log_likelihood_runs.append(log_lh_full)
 
-    initial_service = len(service_times) / sum(service_times)
-    estimated_service_rate[queue_id].append(initial_service)
 
 for i in range(runs):
     print("Run {}".format(i))
@@ -775,75 +795,72 @@ for i in range(runs):
 
     # M - Step
     print("M-step")
+
+    log_lh_full = 0
     for queue_id, queue_log in queue_network.log.items():
         if queue_id == 'init':
             continue
-        print('Queue {}'.format(queue_id))
+        observation_q = sum([entry[1] for entry in queue_network.log[queue_id]])
 
-        sum_service_times = 0
-        sum_servicers = 0
+        N_q = len(queue_network.log[queue_id])
+        observed_estimation = N_q / observation_q
+        estimated_service_rates[queue_id].append(observed_estimation)
+        queue_network.service_rates[queue_id] = observed_estimation
 
-        sk_sums = {}
-        for k in range(1, K + 1):
-            sk_sums[k] = 0
-        obs = {}
-        for k in range(1, K + 1):
-            obs[k] = 0
-        s_sums = {}
-        for k in range(1, K + 1):
-            s_sums[k] = 0
-        for log in queue_log:  # [arrival, service, wait, departure
-            k_servers = int(log[7])
-            service_time = log[1]
-            if service_time == np.infty:
-                continue
-            sk_sums[k_servers] += service_time * k_servers
-            obs[k_servers] += 1
-            s_sums[k_servers] += service_time
-
-        service_rate_observed = 0
-        for k in range(1, K + 1):
-            service_rate_observed += service_rate_k(obs[k], queue_network.service_loss[queue_id][k], s_sums[k],
-                                                    sk_sums[k])
-            estimated_service_rate[queue_id].append(service_rate_observed)
-        print('True service rate: {}'.format(true_service_rate[queue_id]))
-        print('Estimated service rate: {}'.format(service_rate_observed))
-
-        print('Update service time estimation')
-        queue_network.service_rates[queue_id] = service_rate_observed  # M step update, service rate
-
-        # Update eta, service loss
-        print('Update service loss estimation')
-        for k in range(1, K + 1):
-            service_loss_estimation = service_rate_observed * (k) - obs[k] / s_sums[k]
-            queue_network.service_loss[queue_id][k] = service_loss_estimation
+        print('True service rate: {}'.format(true_service_rates[queue_id]))
+        print('Estimated service rate: {}'.format(observed_estimation))
 
         service_times = [log[1] for log in queue_log]
-        service_rate = queue_network.service_rates[queue_id]
-        ll = log_likelihood(service_times, service_rate)
-        log_likelihood_runs[queue_id].append(ll)
+        ll = log_likelihood(service_times, observed_estimation)
+        log_lh_full *= ll
+    log_likelihood_runs.append(log_lh_full)
+
+    # for k in range(1, K + 1):
+    #     service_rate_observed += service_rate_k(obs[k], queue_network.service_loss[queue_id][k], s_sums[k],
+    #                                             sk_sums[k])
+    # estimated_service_rate[queue_id].append(service_rate_observed)
+
+
+    print('Update service time estimation')
+
+        # Update eta, service loss
+        # print('Update service loss estimation')
+        # for k in range(1, K + 1):
+        #     service_loss_estimation = service_rate_observed * (k) - obs[k] / s_sums[k]
+        #     queue_network.service_loss[queue_id][k] = service_loss_estimation
+
 
 # Plot log likelihood of service rate estimation over runs
-for queue_id, queue_log in queue_network.log.items():
-    if queue_id == 'init':
+# for queue_id, queue_log in queue_network.log.items():
+#     if queue_id == 'init':
+#         continue
+# estimated_service_rate_queue = estimated_service_rate[queue_id]
+# true_service_rate_queue = true_service_rate[queue_id]
+for q in queue_network.log:
+    if q == 'init':
         continue
-    estimated_service_rate_queue = estimated_service_rate[queue_id]
-    true_service_rate_queue = true_service_rate[queue_id]
-    squared_error = [(estimated_service_rate_queue[i] - true_service_rate_queue) ** 2 for i in
-                     range(len(estimated_service_rate_queue))]
+    squared_error = [(e - true_service_rates[q]) ** 2 for e in estimated_service_rates[q]]
     plt.plot(squared_error)
+    plt.title('Square error')
     plt.show()
     p_percent = int(100 * p)
-    csv_file = 'Results/server_k{}_{}_events_p{}_queue_{}.csv'.format(K, events, p_percent, queue_id)
+    csv_file = 'Results/server_k{}_events{}_p{}_queue_all_adjusted.csv'.format(K, events, p_percent, q)
     with open(csv_file, 'w') as f:
-        f.write('Iteration,Squared_error,LogLoss,Estimate\n')
-        iterations = len(log_likelihood_runs[queue_id])
+        f.write('Iteration,Squared_error,Estimate,Actual\n')
+        iterations = len(log_likelihood_runs)
         for i in range(iterations):
-            row = [str(i), str(squared_error[i]), str(log_likelihood_runs[queue_id][i]),
-                   str(estimated_service_rate_queue[i])]
+            row = [str(i), str(squared_error[i]),  str(estimated_service_rates[q][i]), str(true_service_rates[q])]
+            f.write(','.join(row) + '\n')
+    csv_file_all = 'Results/server_k{}_events{}_p{}_queue_all_loglikelihood.csv'.format(K, events, p_percent, q)
+    with open(csv_file_all, 'w') as f:
+        f.write('Iteration,LogLikelihood\n')
+        iterations = len(log_likelihood_runs)
+        for i in range(iterations):
+            row = [str(i), str(log_likelihood_runs[i])]
             f.write(','.join(row) + '\n')
 
-    plt.plot(log_likelihood_runs[queue_id])
+    plt.plot(log_likelihood_runs)
+    plt.title('Log Likelihood')
     plt.show()
 
 

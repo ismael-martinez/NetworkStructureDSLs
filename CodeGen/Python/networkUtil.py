@@ -202,8 +202,6 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
         cdf_upper = 1 - np.exp(-service_rate_current_queue * (partition_point - current_queue_current_arrival))
         cdf_lower = 1 - np.exp(-service_rate_current_queue * (lower_bound - current_queue_current_arrival))
         u = np.random.random()*(cdf_upper - cdf_lower) + cdf_lower
-        u = min(0.1, u)
-        u = max(0.9, u)
         inv = -np.log(1-u)/service_rate_current_queue + lower_bound
         return inv
 
@@ -215,8 +213,6 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
         cdf_start = np.exp(service_rate_next_queue * (partition_point - upper_bound))
         cdf_upper = 1
         u = np.random.random() * (cdf_upper - cdf_start) + cdf_start
-        u = min(0.1, u)
-        u = max(0.9, u)
         inv = np.log(u) / service_rate_next_queue + upper_bound
         return inv
 
@@ -243,8 +239,8 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
             if service_rate_next_queue == 0:
                 cdf_start = 1 - np.exp(service_rate_current_queue * (lower_bound - current_queue_current_arrival))
                 u = np.random.random()*(1-cdf_start) + cdf_start
-                u = min(0.1, u)
-                u = max(0.9, u)
+                u = min(0.01, u)
+                u = max(0.99, u)
                 inv = - np.log(1-u) + partitions[0]
                 return inv
             if gamma > 0:
@@ -259,14 +255,15 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
             norm_constant = upper_bound - lower_bound
             u = np.random.random() * norm_constant + cdf_start
             if gamma > 0:
-                u = min(0.1, u)
-                u = max(0.9, u)
-                inv_exp_sample =  -np.log(1 - u) / service_rate + loc_const
+                u = min(0.01, u)
+                u = max(0.99, u)
+                inv =  -np.log(1 - u) / service_rate + loc_const
             else:
-                u = min(0.1, u)
-                u = max(0.9, u)
-                inv_exp_sample = np.log(u)/service_rate + loc_const
-            return inv_exp_sample
+                u = min(0.01, u)
+                u = max(0.99, u)
+                inv = np.log(u) / service_rate + loc_const
+                return inv
+            return inv
 
     # # Depermine bounds of previous and next items
     # cq_ne_arrival = current_queue_next_event[0]
