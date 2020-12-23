@@ -202,7 +202,7 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
         cdf_upper = 1 - np.exp(-service_rate_current_queue * (partition_point - current_queue_current_arrival))
         cdf_lower = 1 - np.exp(-service_rate_current_queue * (lower_bound - current_queue_current_arrival))
         u = np.random.random()*(cdf_upper - cdf_lower) + cdf_lower
-        inv = -np.log(1-u)/service_rate_current_queue + lower_bound
+        inv = -np.log(1-u)/service_rate_current_queue + current_queue_current_arrival
         return inv
 
     if section == 2: # Right most
@@ -210,10 +210,10 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
             u = np.random.random() * (upper_bound - partitions[1]) + partitions[1]
             return  u
         partition_point = max(partitions)
-        cdf_start = np.exp(service_rate_next_queue * (partition_point - upper_bound))
+        cdf_start = np.exp(service_rate_next_queue * (partition_point - next_queue_current_departure))
         cdf_upper = 1
         u = np.random.random() * (cdf_upper - cdf_start) + cdf_start
-        inv = np.log(u) / service_rate_next_queue + upper_bound
+        inv = np.log(u) / service_rate_next_queue + next_queue_current_departure
         return inv
 
     if section == 1:
@@ -239,8 +239,8 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
             if service_rate_next_queue == 0:
                 cdf_start = 1 - np.exp(service_rate_current_queue * (lower_bound - current_queue_current_arrival))
                 u = np.random.random()*(1-cdf_start) + cdf_start
-                u = min(0.01, u)
-                u = max(0.99, u)
+                u = max(1.0e-10, u)
+                u = min(0.9999, u)
                 inv = - np.log(1-u) + partitions[0]
                 return inv
             if gamma > 0:
@@ -255,12 +255,12 @@ def sample_truncated_exponential_two_queues_open(section, lower_bound, upper_bou
             norm_constant = upper_bound - lower_bound
             u = np.random.random() * norm_constant + cdf_start
             if gamma > 0:
-                u = min(0.01, u)
-                u = max(0.99, u)
+                u = max(1.0e-10, u)
+                u = min(0.9999, u)
                 inv =  -np.log(1 - u) / service_rate + loc_const
             else:
-                u = min(0.01, u)
-                u = max(0.99, u)
+                u = max(1.0e-10, u)
+                u = min(0.9999, u)
                 inv = np.log(u) / service_rate + loc_const
                 return inv
             return inv
