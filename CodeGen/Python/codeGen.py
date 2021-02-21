@@ -1,11 +1,11 @@
 # Generate Node_, NodeAttributes, Client_, and ClientAttributes classes
 
-## Read parameters from .trs file
+## Read parameters from .nrs file
 
 import json
-from scipy.stats import expon
+from scipy.stats import expon, gamma, chi2, dirichlet, bernoulli, norm
+from scipy.stats import beta as beta_dist
 import numpy as np
-from numpy.random import normal
 from networkStructure import *
 from textx import metamodel_from_file
 from textx.export import metamodel_export
@@ -78,9 +78,64 @@ def convert_probabilistic_schedule(probMap):
         curr_sec = start_sec
         while curr_sec < end_sec:
             schedule_sec.append(curr_sec)
-            curr_sec += normal(mu, var)
+            curr_sec += norm.rvs(loc=mu, scale=np.sqrt(var))
         schedule_str = [str(timestamp(s)) for s in schedule_sec]
         return [schedule_sec, schedule_str]
+    elif 'Gamma' in distribution:
+        alpha_str = probMap['alpha']
+        beta_str = probMap['beta']
+        alpha = float(alpha_str)
+        beta = float(beta_str)
+        schedule_sec = []
+        curr_sec = start_sec
+        while curr_sec < end_sec:
+            schedule_sec.append(curr_sec)
+            curr_sec += gamma.rvs(alpha, scale=(1./beta))
+        schedule_str = [str(timestamp(s)) for s in schedule_sec]
+        return [schedule_sec, schedule_str]
+    elif 'Chi-Square' in distribution:
+        df_str = probMap['df']
+        df = float(df_str)
+        schedule_sec = []
+        curr_sec = start_sec
+        while curr_sec < end_sec:
+            schedule_sec.append(curr_sec)
+            curr_sec += chi2.rvs(df)
+        schedule_str = [str(timestamp(s)) for s in schedule_sec]
+        return [schedule_sec, schedule_str]
+    elif 'Beta' in distribution:
+        alpha_str = probMap['alpha']
+        beta_str = probMap['beta']
+        alpha = float(alpha_str)
+        beta = float(beta_str)
+        schedule_sec = []
+        curr_sec = start_sec
+        while curr_sec < end_sec:
+            schedule_sec.append(curr_sec)
+            curr_sec += beta_dist.rvs(alpha, beta)
+        schedule_str = [str(timestamp(s)) for s in schedule_sec]
+        return [schedule_sec, schedule_str]
+    elif 'Dirichlet' in distribution:
+        alpha_str = probMap['alpha']
+        alpha = float(alpha_str)
+        schedule_sec = []
+        curr_sec = start_sec
+        while curr_sec < end_sec:
+            schedule_sec.append(curr_sec)
+            curr_sec += dirichlet.rvs(alpha)
+        schedule_str = [str(timestamp(s)) for s in schedule_sec]
+        return [schedule_sec, schedule_str]
+    elif 'Bernoulli' in distribution:
+        p_str = probMap['p']
+        p = float(p_str)
+        schedule_sec = []
+        curr_sec = start_sec
+        while curr_sec < end_sec:
+            schedule_sec.append(curr_sec)
+            curr_sec += bernoulli.rvs(p)
+        schedule_str = [str(timestamp(s)) for s in schedule_sec]
+        return [schedule_sec, schedule_str]
+
 
 
 
@@ -105,7 +160,7 @@ def default_val_by_type(string_type):
         raise Exception('Type {} is not a valid simple type'.format(string_type))
     return default_val
 
-# Generates list of attributes and default parameter instantiations for specified attrbutes of TRS or PNS model.
+# Generates list of attributes and default parameter instantiations for specified attrbutes of NRS or PNS model.
 def attribute_parameters(attributes, attr_type_dict, radius_attr):
     # List of attribute names and types
     default_param_list = []
@@ -148,11 +203,11 @@ def attribute_type_valid(attributes, values, types_dict):
     return True
 
 
-### VERIFY TRS AND PNS FILES BEFORE PARSING
-def verify_trs_model(trs_metamodel, trs_file):
+### VERIFY NRS AND PNS FILES BEFORE PARSING
+def verify_nrs_model(nrs_metamodel, nrs_file):
     try:
-        trs_model = trs_metamodel.model_from_file(trs_file)
-        for client_set in trs_model.clientSet:
+        nrs_model = nrs_metamodel.model_from_file(nrs_file)
+        for client_set in nrs_model.clientSet:
 
             # All attributes are unique
             unique_set = list(set(client_set.attributes))
@@ -171,7 +226,7 @@ def verify_trs_model(trs_metamodel, trs_file):
             for client in client_set.clients:
                 # Verify attribute value matches defined attribute type
                 attribute_type_valid(client.attributes, client.val, attr_type)
-            print('Verification of file {} succeeded.'.format(trs_file))
+            print('Verification of file {} succeeded.'.format(nrs_file))
             # The radius attribute is a valid attribute
             radius = client_set.radius
             if radius and radius not in attr_type:
@@ -184,9 +239,9 @@ def verify_trs_model(trs_metamodel, trs_file):
                             raise Exception('Radius of client {} must be non-negative'.format(client.name))
                         break
 
-            return trs_model
+            return nrs_model
     except Exception as e:
-        print('Verification Failed: Error in file {}'.format(trs_file))
+        print('Verification Failed: Error in file {}'.format(nrs_file))
         print(e)
         exit()
 
@@ -253,14 +308,14 @@ def verify_pns_model(pns_metamodel, pns_file):
         exit()
 
 
-### GENERATE CLIENT INSTANCES FROM TRS PARSER ###
-# Generate code for Client instances based on TRS file.
-def generate_client_instances(trs_model, location_json):
-    client_type = trs_model.name
+### GENERATE CLIENT INSTANCES FROM NRS PARSER ###
+# Generate code for Client instances based on NRS file.
+def generate_client_instances(nrs_model, location_json):
+    client_type = nrs_model.name
 
     # Partition clients
     instance_code_gen_client = '###### All Client instances ######\n\n'
-    for client_set in trs_model.clientSet:
+    for client_set in nrs_model.clientSet:
         instance_code_gen_client += '#### Client_{} instances ##### \n\n'.format(client_set.name)
         instance_code_gen_client += 'clients = Clients()\n\n'
         for client in client_set.clients:
@@ -451,12 +506,12 @@ def generate_graph_instances(pns_model, location_json, graph_name):
 
 
 ## Generate class Client - includes name, and specified attributes (with default parameters)
-# Input: trs_model (TextX model, conforms to TRS.tx grammar)
+# Input: nrs_model (TextX model, conforms to NRS.tx grammar)
 # Output: client_class_gen (string) - Generated code for 'class Client'
-def generate_client_class(trs_model):
+def generate_client_class(nrs_model):
     # List of attribute names and types
     client_class_gen = '# Client classes\n\n'
-    for client_set in trs_model.clientSet:
+    for client_set in nrs_model.clientSet:
         attr_name_list = client_set.attributes
         attr_type = {}
         for a in range(len(client_set.attributes)):
@@ -490,14 +545,14 @@ def generate_client_class(trs_model):
             client_class_gen += '\t\treturn np.infty\n'  # If service_rate not specified, default to 0
 
         ## Generate list_attributes() method which returns a string of attribute names
-        attrs_string = ','.join(["'{}'".format(attr) for attr in attr_name_list])
+        atnrs_string = ','.join(["'{}'".format(attr) for attr in attr_name_list])
         client_class_gen += '\n# List the available attributes\n'
-        client_class_gen += '\tdef list_attributes(self):\n\t\treturn [{}]\n'.format(attrs_string)
+        client_class_gen += '\tdef list_attributes(self):\n\t\treturn [{}]\n'.format(atnrs_string)
     return client_class_gen
 
 
 ## Generate class Node - includes name, and specified attributes (with default parameters)
-# Input: pns_model (TextX model, conforms to PNS.tx grammar), service_attrs (str)
+# Input: pns_model (TextX model, conforms to PNS.tx grammar), service_atnrs (str)
 # Output: pns_class_gen (string) - Generated code for 'class Node'
 def generate_node_class(pns_model):
     node_class_gen = '# Link classes for specific attribute set\n'
@@ -547,9 +602,9 @@ def generate_node_class(pns_model):
             node_class_gen += '\t\treturn np.infty\n'  # If service_rate not specified, default to 0
 
         ## Generate list_attributes() method which returns a string of attribute names
-        attrs_string = ','.join(["'{}'".format(attr) for attr in attr_name_list])
+        atnrs_string = ','.join(["'{}'".format(attr) for attr in attr_name_list])
         node_class_gen += '\n# List the available attributes\n'
-        node_class_gen += '\tdef list_attributes(self):\n\t\treturn [{}]\n\n'.format(attrs_string)
+        node_class_gen += '\tdef list_attributes(self):\n\t\treturn [{}]\n\n'.format(atnrs_string)
     return node_class_gen
 
 
@@ -582,9 +637,9 @@ def generate_link_class(pns_model):
             link_class_gen += '\t\tself.{} = {}\n'.format(p, p)
 
         ## Generate list_attributes() method which returns a string of attribute names
-        attrs_string = ','.join(["'{}'".format(attr) for attr in attr_name_list])
+        atnrs_string = ','.join(["'{}'".format(attr) for attr in attr_name_list])
         link_class_gen += '\n# List the available attributes\n'
-        link_class_gen += '\tdef list_attributes(self):\n\t\treturn [{}]\n'.format(attrs_string)
+        link_class_gen += '\tdef list_attributes(self):\n\t\treturn [{}]\n'.format(atnrs_string)
     return link_class_gen
 
 
@@ -603,60 +658,61 @@ def generate_graph_classes(pns_model):
     pns_classes.append(generate_link_class(pns_model))
     return '\n'.join(pns_classes)
 
-def code_generation(trs_model, pns_model, trs_location, pns_location):
+def code_generation(nrs_model, pns_model, nrs_location, pns_location):
     attribute_class_gen = []
     # File headers and imports
     attribute_class_gen.append('from networkStructure import *\nimport numpy as np\nfrom networkUtil import * \n')
     #attribute_class_gen.append('#from CodeGen.Python.networkStructure import *\n')
 
     # Generate Client classes
-    attribute_class_gen.append(generate_client_class(trs_model=trs_model))
+    attribute_class_gen.append(generate_client_class(nrs_model=nrs_model))
     # Generate Graph, Node and Link classes
     attribute_class_gen.append(generate_graph_classes(pns_model))
 
     # Generate client instances
-    attribute_class_gen.append(generate_client_instances(trs_model, trs_location))
+    attribute_class_gen.append(generate_client_instances(nrs_model, nrs_location))
     # Generate node and link instances
     attribute_class_gen.append(generate_graph_instances(pns_model, pns_location, pns_model.name))
 
-    a = open('networkStructureAttributesAndInstances.py', 'w')
+    code_gen_output = 'networkStructureAttributesAndInstances.py'
+    a = open(code_gen_output, 'w')
     a.write('\n'.join(attribute_class_gen))
-
+    print('\nCode generate in {}'.format(code_gen_output))
 
 def main(argv):
     # Arguments
-    trs_file = ''
+    nrs_file = ''
     pns_file = ''
-    trs_location_file = ''
+    nrs_location_file = ''
     pns_location_file = ''
     try:
-        opts, args = getopt.getopt(argv, "ht:T:p:P:", ["trsfile=", "pnsfile=", "clientlocation=", "nodelocation="])
+        opts, args = getopt.getopt(argv, "hr:R:p:P:", ["nrsfile=", "pnsfile=", "clientlocation=", "nodelocation="])
     except getopt.GetoptError:
-        print('codeGen.py -t <trsfilepath> -T <clientlocationJSON> -p <pnsfilepath> -P <nodelocationJSON>')
+        print('codeGen.py -r <nrsfilepath> -R <clientlocationJSON> -p <pnsfilepath> -P <nodelocationJSON>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('codeGen.py -t <trsfilepath> -T <clientlocationJSON> -p <pnsfilepath> -P <nodelocationJSON>')
+            print('codeGen.py -r <nrsfilepath> -R <clientlocationJSON> -p <pnsfilepath> -P <nodelocationJSON>')
             sys.exit()
-        elif opt in ("-t", "--trsfile"):
-            trs_file = arg
+        elif opt in ("-r", "--nrsfile"):
+            nrs_file = arg
         elif opt in ("-p", "--pnsfile"):
             pns_file = arg
-        elif opt in ("-T", "--clientlocation"):
-            trs_location_file = arg
+        elif opt in ("-R", "--clientlocation"):
+            nrs_location_file = arg
         elif opt in ("-P", "--nodelocation"):
             pns_location_file = arg
 
 
-    ### Verify TRS File
-    print("TRS file:" + trs_file)
-    trs_grammar = 'TRS/trs.tx'
-    mm_trs = metamodel_from_file(trs_grammar) # TextX Metamodel
-    metamodel_export(mm_trs, 'TRS/trs.dot')
-    os.system('dot -Tpng -O  TRS/trs.dot')
-    trs_model = verify_trs_model(mm_trs, trs_file)
-    with open(trs_location_file) as loc:
-        loc_data_trs = json.load(loc)
+    ### Verify NRS File
+    print("NRS file:" + nrs_file)
+    nrs_grammar = 'NRS/nrs.tx'
+    mm_nrs = metamodel_from_file(nrs_grammar) # TextX Metamodel
+    metamodel_export(mm_nrs, 'NRS/nrs.dot')
+    os.system('dot -Tpng -O  NRS/nrs.dot')
+    nrs_model = verify_nrs_model(mm_nrs, nrs_file)
+    with open(nrs_location_file) as loc:
+        loc_data_nrs = json.load(loc)
 
 
     ### Verify PNS file
@@ -668,7 +724,7 @@ def main(argv):
     with open(pns_location_file) as loc:
         loc_data_pns = json.load(loc)
 
-    code_generation(trs_model, pns_model, loc_data_trs['location'], loc_data_pns['location'])
+    code_generation(nrs_model, pns_model, loc_data_nrs['location'], loc_data_pns['location'])
 
 
 if __name__=="__main__":
