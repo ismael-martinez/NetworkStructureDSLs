@@ -1,23 +1,30 @@
-ThingSet:
-    'Things' name=ID
+Clients:
+    'Clients' name=ID
+    clientSet+=ClientSet
+;
+
+ClientSet:
+    'clientSet' name=ID '{'
     ('attributes' '{'
-        attributes+=Attribute
+        ('key' ':' attributes= ID ',' 'type' ':' type=SimpleType)+
         '}')?
-    things+=Thing
+    ('radius' ':' radius=ID)?
+    clients+=Client
+    '}'
 ;
 
-Attribute:
-    'key' ':' name=ID ',' 'type' ':' type=SimpleType
+
+FLOATSTRING:
+    STRING | FLOAT
 ;
 
-Thing:
-    'thing' name=ID '{'
+Client:
+    'client' name=ID '{'
         requestSchedule=RequestSchedule
-        location=LocationReference
-        ('radius' ':' radius=FLOAT)?
         ('attributes' '{'
-            (attributes=[Attribute] ':' val=BASETYPE)*
+            (attributes=ID ':' val=BASETYPE)*
         '}')?
+        location=LocationReference
     '}'
 ;
 
@@ -31,7 +38,7 @@ RequestSchedule:
 ;
 
 Distribution:
-	Gaussian | Exponential
+	Gaussian | Exponential | Gamma | Chi-Squared | Beta | Dirichlet | Bernoulli
 ;
 
 Gaussian:
@@ -46,6 +53,38 @@ Exponential:
 	'('
 		'lambda=' lambda_mean=FLOAT
 	')';
+
+Gamma:
+    'Gamma'
+    '('
+        'alpha=' alpha=FLOAT ','
+        'beta=' beta=FLOAT
+    ')';
+
+Chi-Squared:
+    'Chi-Squared'
+    '('
+        'df=' df=FLOAT
+    ')';
+
+Beta:
+    'Beta'
+    '('
+        'alpha=' alpha=FLOAT ','
+        'beta=' beta=FLOAT
+    ')';
+
+Dirichlet:
+    'Dirichlet'
+    '('
+        'alpha=' alpha=FLOAT
+    ')';
+
+Bernoulli:
+    'Bernoulli'
+    '('
+        'p=' p=FLOAT
+    ')';
 
 HOURMIN:
     /(2[0-3]|[01][0-9]):[0-5][0-9]/
@@ -90,9 +129,8 @@ ProbabilisticRequestSchedule:
 
 
 LocationReference:
-    'location' '{'
+    'location' ':'
         '[' '"' loc_ref=INT '"' (',' '"' loc_ref=INT '"')* ']'
-     '}'
 ;
 
 Comment:
