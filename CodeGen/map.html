@@ -24,6 +24,7 @@
 <button type="button" onclick="updateMap()">Search</button>
 
 <div id="map"></div>
+<button type="button" onclick="exportMarkerForm()">Export Coordinates to Form</button>
 <button type="button" onclick="exportMarkers()">Export Coordinates</button>
 <div>
     Steps for creating a set of candidate design edge locations.
@@ -33,10 +34,13 @@
         <li>When you're done placing markers, click 'Export Coordinates" to export a JSON file of enumerated Lat/Lng coordinates.</li>
     </ol>
 </div>
+<div id="form">
+</div>
 <script src="googleApiCoordinates.js"></script>
     <script defer
-            src="https://maps.googleapis.com/maps/api/js?key=<>&callback=initMap&libraries=places&v=weekly">
+            src="https://maps.googleapis.com/maps/api/js?key=&callback=initMap&libraries=places&v=weekly">
     </script>
+
 
 
 </body>
