@@ -56,30 +56,47 @@ function tableRow(tbody, rowTitle, placeholderText){
     tdBox.placeholder = placeholderText;
     tdi.appendChild(tdBox);
     row.appendChild(tdi);
-    document.getElementById("form").appendChild(row);
+    tbody.appendChild(row);
 }
 
 function markerForm(markerNumber){
-    var formHeader = document.createElement("h4");
-    formHeader.innerText = "Resources " + markerNumber;
-    document.getElementById("form").appendChild(formHeader);
+    // Device header
+    var rowHeader = document.createElement("h4");
+    rowHeader.innerText = "Device " + markerNumber;
+    document.getElementById("form").appendChild(rowHeader);
+    // Selection
+    var dropdown = document.createElement("select");
+    dropdown.setAttribute("name", "DeviceType");
+    dropdown.options[0] = new Option("IoT");
+    dropdown.options[1] = new Option("Edge");
+    document.getElementById("form").appendChild(dropdown);
 
     var tableResource = document.createElement("table");
+    tableResource.setAttribute('id', 'dev' + markerNumber);
     tableResource.style.borderSpacing = "15px";
     let tbody = tableResource.createTBody();
     tableRow(tbody, "CPU Resources:", "e.g. 3.42 GHz");
     tableRow(tbody, "STR Resources:", "e.g. 32.84 Gb");
     tableRow(tbody, "MEM Resources:", "e.g. 12.14 Gb");
+    tableResource.appendChild(tbody);
+    document.getElementById("form").appendChild(tableResource);
 }
 
 function exportMarkerForm(){
+    var formHeader = document.createElement("h3");
+    formHeader.innerText = "Device Information";
+    document.getElementById("form").appendChild(formHeader);
+
     let labelIndex = 1;
     markedCandidates = {}
     for (const ll in coordinateList) {
         var id = labelIndex++;
         markerForm(id);
     }
-
+    // Hold for now -- May add functionality later
+    var exportButton = document.createElement("button");
+    exportButton.textContent = "Export device resources";
+    document.getElementById("form").appendChild(exportButton);
 
 }
 
