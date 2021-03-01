@@ -66,20 +66,45 @@ function markerForm(markerNumber){
     document.getElementById("form").appendChild(rowHeader);
     // Selection
     var dropdown = document.createElement("select");
-    dropdown.setAttribute("name", "DeviceType");
+    dropdown.setAttribute('id', 'dropdown' + markerNumber);
+    dropdown.onchange = function(){resourceAttributes(markerNumber)};
     dropdown.options[0] = new Option("IoT");
     dropdown.options[1] = new Option("Edge");
     document.getElementById("form").appendChild(dropdown);
 
+    var deviceDiv = document.createElement('div');
+    deviceDiv.setAttribute("id", "div" + markerNumber);
+    document.getElementById("form").appendChild(deviceDiv);
+
     var tableResource = document.createElement("table");
     tableResource.setAttribute('id', 'dev' + markerNumber);
     tableResource.style.borderSpacing = "15px";
+    // let tbody = tableResource.createTBody();
+    // tableRow(tbody, "CPU Resources:", "e.g. 3.42 GHz");
+    // tableRow(tbody, "STR Resources:", "e.g. 32.84 Gb");
+    // tableRow(tbody, "MEM Resources:", "e.g. 12.14 Gb");
+    // tableResource.appendChild(tbody);
+    deviceDiv.appendChild(tableResource);
+}
+
+function resourceAttributes(markerNumber){
+    dropdown = document.getElementById('dropdown' + markerNumber);
+    dropdownValue = dropdown.options[dropdown.selectedIndex].text;
+    tableResource = document.getElementById("dev" + markerNumber);
+    tableResource.innerHTML = '';
     let tbody = tableResource.createTBody();
-    tableRow(tbody, "CPU Resources:", "e.g. 3.42 GHz");
-    tableRow(tbody, "STR Resources:", "e.g. 32.84 Gb");
-    tableRow(tbody, "MEM Resources:", "e.g. 12.14 Gb");
+    var isIoT = dropdownValue.localeCompare("IoT");
+    if(isIoT === 0){
+        tableRow(tbody, "CPU consumed:", "e.g. 3.42 GHz");
+        tableRow(tbody, "STR consumed:", "e.g. 32.84 Gb");
+        tableRow(tbody, "MEM consumed:", "e.g. 12.14 Gb");
+    } else {
+        tableRow(tbody, "CPU available:", "e.g. 3.42 GHz");
+        tableRow(tbody, "STR available:", "e.g. 32.84 Gb");
+        tableRow(tbody, "MEM available:", "e.g. 12.14 Gb");
+    }
+
     tableResource.appendChild(tbody);
-    document.getElementById("form").appendChild(tableResource);
 }
 
 function exportMarkerForm(){
