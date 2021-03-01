@@ -68,6 +68,7 @@ function markerForm(markerNumber){
     var dropdown = document.createElement("select");
     dropdown.setAttribute('id', 'dropdown' + markerNumber);
     dropdown.onchange = function(){resourceAttributes(markerNumber)};
+
     dropdown.options[0] = new Option("IoT");
     dropdown.options[1] = new Option("Edge");
     document.getElementById("form").appendChild(dropdown);
@@ -79,11 +80,14 @@ function markerForm(markerNumber){
     var tableResource = document.createElement("table");
     tableResource.setAttribute('id', 'dev' + markerNumber);
     tableResource.style.borderSpacing = "15px";
-    // let tbody = tableResource.createTBody();
-    // tableRow(tbody, "CPU Resources:", "e.g. 3.42 GHz");
-    // tableRow(tbody, "STR Resources:", "e.g. 32.84 Gb");
-    // tableRow(tbody, "MEM Resources:", "e.g. 12.14 Gb");
-    // tableResource.appendChild(tbody);
+
+    // Default
+    let tbody = tableResource.createTBody();
+    tableRow(tbody, "CPU consumed:", "e.g. 3.42 GHz");
+    tableRow(tbody, "STR consumed:", "e.g. 32.84 Gb");
+    tableRow(tbody, "MEM consumed:", "e.g. 12.14 Gb");
+    tableResource.appendChild(tbody);
+
     deviceDiv.appendChild(tableResource);
 }
 
