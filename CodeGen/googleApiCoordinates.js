@@ -1,6 +1,6 @@
 let map;
 
-var coordinateList = [];
+let coordinateList = [];
 let labelIndex = 1;
 
 function initMap() {
@@ -14,9 +14,9 @@ function initMap() {
 
 function updateMap() {
     const inputVal = document.getElementById("pac-input").value;
-    var newLatLng = inputVal.split(",");
-    var newLat = parseFloat(newLatLng[0]);
-    var newLng = parseFloat(newLatLng[1]);
+    let newLatLng = inputVal.split(",");
+    let newLat = parseFloat(newLatLng[0]);
+    let newLng = parseFloat(newLatLng[1]);
     const myLatlng = {lat: newLat, lng: newLng};
     const map = new google.maps.Map(document.getElementById("map"), {
         zoom: 12,
@@ -27,7 +27,7 @@ function updateMap() {
 
 function coordinateMarkers(map){
     map.addListener("click", (e) => {
-        var jsonCoordinates = e.latLng.toJSON();
+        let jsonCoordinates = e.latLng.toJSON();
         coordinateList.push(jsonCoordinates);
 
         //console.log(jsonCoordinates);
@@ -61,11 +61,11 @@ function tableRow(tbody, rowTitle, placeholderText){
 
 function markerForm(markerNumber){
     // Device header
-    var rowHeader = document.createElement("h4");
+    let rowHeader = document.createElement("h4");
     rowHeader.innerText = "Device " + markerNumber;
     document.getElementById("form").appendChild(rowHeader);
     // Selection
-    var dropdown = document.createElement("select");
+    let dropdown = document.createElement("select");
     dropdown.setAttribute('id', 'dropdown' + markerNumber);
     dropdown.onchange = function(){resourceAttributes(markerNumber)};
 
@@ -73,86 +73,179 @@ function markerForm(markerNumber){
     dropdown.options[1] = new Option("Edge");
     document.getElementById("form").appendChild(dropdown);
 
-    var deviceDiv = document.createElement('div');
+    let deviceDiv = document.createElement('div');
     deviceDiv.setAttribute("id", "div" + markerNumber);
     document.getElementById("form").appendChild(deviceDiv);
 
-    var tableResource = document.createElement("table");
+    let tableResource = document.createElement("table");
     tableResource.setAttribute('id', 'dev' + markerNumber);
     tableResource.style.borderSpacing = "15px";
 
     // Default
     let tbody = tableResource.createTBody();
-    tableRow(tbody, "CPU consumed:", "e.g. 3.42 GHz");
-    tableRow(tbody, "STR consumed:", "e.g. 32.84 Gb");
-    tableRow(tbody, "MEM consumed:", "e.g. 12.14 Gb");
+    // Resources
+    tableRow(tbody, "File size (MB)", "e.g. 536");
+    tableRow(tbody, "Local CPU (GHz):", "e.g. 3.42");
+    tableRow(tbody, "Local processing (ms)", "e.g. 234");
+    tableRow(tbody, "Storage memory required (MB):", "e.g. 59");
+    tableRow(tbody, "RAM required: (MB)", "e.g. 242");
+    tableRow(tbody, "Communication radius (meters)", "e.g. 279");
+    // Location
+    tableRow(tbody, "Height (metres)", "e.g. 1.2");
     tableResource.appendChild(tbody);
 
     deviceDiv.appendChild(tableResource);
 }
 
 function resourceAttributes(markerNumber){
-    dropdown = document.getElementById('dropdown' + markerNumber);
+    let dropdown = document.getElementById('dropdown' + markerNumber);
     dropdownValue = dropdown.options[dropdown.selectedIndex].text;
     tableResource = document.getElementById("dev" + markerNumber);
     tableResource.innerHTML = '';
     let tbody = tableResource.createTBody();
-    var isIoT = dropdownValue.localeCompare("IoT");
+    let isIoT = dropdownValue.localeCompare("IoT");
     if(isIoT === 0){
-        tableRow(tbody, "CPU consumed:", "e.g. 3.42 GHz");
-        tableRow(tbody, "STR consumed:", "e.g. 32.84 Gb");
-        tableRow(tbody, "MEM consumed:", "e.g. 12.14 Gb");
+        // Resources
+        tableRow(tbody, "File size (MB)", "e.g. 536");
+        tableRow(tbody, "Local CPU (GHz):", "e.g. 3.42");
+        tableRow(tbody, "Local processing (ms)", "e.g. 234");
+        tableRow(tbody, "Storage memory required (MB):", "e.g. 59");
+        tableRow(tbody, "RAM required: (MB)", "e.g. 242");
+        tableRow(tbody, "Communication radius (meters)", "e.g. 279");
+        // Location
+        tableRow(tbody, "Height (metres)", "e.g. 1.2");
     } else {
-        tableRow(tbody, "CPU available:", "e.g. 3.42 GHz");
-        tableRow(tbody, "STR available:", "e.g. 32.84 Gb");
-        tableRow(tbody, "MEM available:", "e.g. 12.14 Gb");
+        // Resources
+        tableRow(tbody, "Local CPU (GHz):", "e.g. 3.42");
+        tableRow(tbody, "Local processing (ms)", "e.g. 234");
+        tableRow(tbody, "Storage memory required (MB):", "e.g. 59");
+        tableRow(tbody, "RAM required: (MB)", "e.g. 242");
+        tableRow(tbody, "Communication radius (meters)", "e.g. 279");
+        tableRow(tbody, "Service rate", "e.g. 2.71");
+        // Location
+        tableRow(tbody, "Height (metres)", "e.g. 1.2");
     }
 
     tableResource.appendChild(tbody);
 }
 
 function exportMarkerForm(){
-    var formHeader = document.createElement("h3");
+    let deviceForm = document.getElementById("form");
+    deviceForm.innerHTML = '';
+    let formHeader = document.createElement("h3");
     formHeader.innerText = "Device Information";
-    document.getElementById("form").appendChild(formHeader);
+    deviceForm.appendChild(formHeader);
 
     let labelIndex = 1;
-    markedCandidates = {}
+    markedCandidates = {};
     for (const ll in coordinateList) {
-        var id = labelIndex++;
+        let id = labelIndex++;
         markerForm(id);
     }
     // Hold for now -- May add functionality later
-    var exportButton = document.createElement("button");
+    let exportButton = document.createElement("button");
     exportButton.textContent = "Export device resources";
+    exportButton.onclick = function(){exportMarkers()};
     document.getElementById("form").appendChild(exportButton);
 
 }
 
+function readLocation(markerNumber){
+    let location = {};
+    location["lat"] = coordinateList[markerNumber]["lat"];
+    location["lng"] = coordinateList[markerNumber]["lng"];
+    return location;
+}
+
+function readIoTTable(markerNumber){
+    let tableResources = document.getElementById("dev" + markerNumber);
+    let resources = {};
+    for (let i = 0; i < tableResources.rows.length; i++) {
+        let objCells = tableResources.rows.item(i).cells;
+        let attr = objCells.item(0).innerHTML;
+        let attrVal = objCells.item(1).firstChild.value;
+        // Check attr type
+        if(attr.includes("File size")){
+            resources["fileSize"] = attrVal;
+        }else if(attr.includes("Local CPU")){
+            resources["localCPU"] = attrVal;
+        }else if(attr.includes("Local processing")){
+            resources["localProcessing"] = attrVal;
+        }else if(attr.includes("Storage")){
+            resources["storageReq"] = attrVal;
+        }else if(attr.includes("RAM")){
+            resources["memReq"] = attrVal;
+        }else if(attr.includes("ComRad")){
+            resources["comRad"] = attrVal;
+        }else if(attr.includes("height")){
+            resources["height"] = attrVal;
+        }
+    }
+    return resources;
+}
+
+function readEdgeTable(markerNumber) {
+    let tableResources = document.getElementById("dev" + markerNumber);
+    for (let i = 0; i < tableResources.rows.length; i++) {
+        let objCells = tableResources.rows.item(i).cells;
+        let attr = objCells.item(0).innerHTML;
+        let attrVal = objCells.item(1).firstChild.value;
+        // Check attr type
+        if(attr.includes("Local CPU")){
+            resources["localCPU"] = attrVal;
+        }else if(attr.includes("Local processing")){
+            resources["localProcessing"] = attrVal;
+        }else if(attr.includes("Storage")){
+            resources["storageReq"] = attrVal;
+        }else if(attr.includes("RAM")){
+            resources["memReq"] = attrVal;
+        }else if(attr.includes("ComRad")){
+            resources["comRad"] = attrVal;
+        }else if(attr.includes("serviceRate")){
+            resources["serviceRate"] = attrVal;
+        }else if(attr.includes("height")){
+            resources["height"] = attrVal;
+        }
+    }
+    return resources;
+}
+
 function exportMarkers(){
     let labelIndex = 1;
-    markedCandidates = {}
-    for (const ll in coordinateList){
-        var lat = coordinateList[ll]["lat"];
-        var lng = coordinateList[ll]["lng"];
+    markedCandidates = {};
+    let coordinateJSON;
+    for (const i in coordinateList){
+        // Device i type
+        let location = readLocation(i);
+        markerNumber = +i + +1;
+        let dropdownTag = 'dropdown' + markerNumber;
+        let dropdown = document.getElementById(dropdownTag);
+        dropdownValue = dropdown.options[dropdown.selectedIndex].text;
+        let isIoT = dropdownValue.localeCompare("IoT");
+        if(isIoT === 0){
+            readIoTTable(markerNumber);
+        } else{
+            readEdgeTable(markerNumber);
+        }
+
+        let lat = coordinateList[i]["lat"];
+        let lng = coordinateList[i]["lng"];
         //var coordinateJSON = '{"latitude":' + lat.toString() + ', "longitude":' + lng.toString() + ', "label":' + labelIndex.toString() + '}';
-        var id = labelIndex++;
-        var coordinateJSON = {
+        let id = labelIndex++;
+        coordinateJSON = {
                 "latitude": lat.toString(),
                 "longitude": lng.toString(),
                 "height" : 1.0
         };
-        //var coordinate
-        candidate = {};
         markedCandidates[id] = coordinateJSON;
         //markedCandidates.push(coordinateJSON);
     }
     //var jsonCandidatesString = markedCandidates.toString()
     //var jsonCandidates = '{"candidates":[' + jsonCandidatesString + ']}'
-    var jsonCandidates = {"location": markedCandidates};
-    var jsonCandidatesPretty = JSON.stringify(jsonCandidates, null, 2);
-    console.log(jsonCandidatesPretty)
-    var blob = new Blob([jsonCandidatesPretty],
+    let jsonCandidates = {"location": markedCandidates};
+    let jsonCandidatesPretty = JSON.stringify(jsonCandidates, null, 2);
+    console.log(jsonCandidatesPretty);
+    let blob = new Blob([jsonCandidatesPretty],
         {type: "text/plain;charset=utf-8"});
     saveAs(blob, "location.json");
 }
