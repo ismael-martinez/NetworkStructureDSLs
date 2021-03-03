@@ -59,6 +59,58 @@ function tableRow(tbody, rowTitle, placeholderText){
     tbody.appendChild(row);
 }
 
+
+function requestDistributionRow(tbody, markerNumber){
+    let requestDistributionDropdown = document.createElement("select");
+    requestDistributionDropdown.setAttribute("id", "reqDist" + markerNumber);
+    requestDistributionDropdown.options[0] = new Option("Exponential");
+    requestDistributionDropdown.options[1] = new Option("Gaussian");
+    requestDistributionDropdown.onchange = function(){distributionParameters(markerNumber)};
+
+    let row = tbody.insertRow();
+    let tdh = document.createElement("td");
+    tdh.innerText = "Request Distribution:";
+    row.appendChild(tdh);
+    let tdi = document.createElement("td");
+    let reqDiv = document.createElement("div");
+    reqDiv.appendChild(document.createElement("br"));
+    let reqParamTable = document.createElement("table");
+    let reqParamBody = document.createElement("tbody");
+    reqParamBody.setAttribute("id", "param" + markerNumber);
+    reqParamTable.appendChild(reqParamBody);
+
+
+    reqDiv.appendChild(requestDistributionDropdown);
+    reqDiv.appendChild(reqParamTable);
+    reqDiv.setAttribute("id", "reqDiv" + markerNumber);
+
+    tdi.appendChild(reqDiv);
+    row.appendChild(tdi);
+    tbody.append(row);
+}
+
+function distributionParameters(markerNumber){
+    let requestDropdown = document.getElementById("reqDist" + markerNumber);
+    let dropdownValue = requestDropdown.options[requestDropdown.selectedIndex].text;
+    let reqParamBody = document.getElementById("param" + markerNumber);
+    reqParamBody.innerHTML = '';
+    // Parameters
+
+    let row = reqParamBody.insertRow();
+    let tdh = document.createElement("td");
+    tdh.innerText = "mu";
+    row.appendChild(tdh);
+    let tdi = document.createElement("td");
+    let tdBox = document.createElement("input");
+    tdBox.type = "text";
+    tdBox.placeholder = "e.g. 1";
+    tdi.appendChild(tdBox);
+    row.appendChild(tdi);
+
+
+}
+
+
 function markerForm(markerNumber){
     // Device header
     let rowHeader = document.createElement("h4");
@@ -92,6 +144,10 @@ function markerForm(markerNumber){
     tableRow(tbody, "Communication radius (meters)", "e.g. 279");
     // Location
     tableRow(tbody, "Height (metres)", "e.g. 1.2");
+    // Request distribution
+    requestDistributionRow(tbody, markerNumber);
+
+
     tableResource.appendChild(tbody);
 
     deviceDiv.appendChild(tableResource);
