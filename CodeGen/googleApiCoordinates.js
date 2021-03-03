@@ -65,7 +65,13 @@ function requestDistributionRow(tbody, markerNumber){
     requestDistributionDropdown.setAttribute("id", "reqDist" + markerNumber);
     requestDistributionDropdown.options[0] = new Option("Exponential");
     requestDistributionDropdown.options[1] = new Option("Gaussian");
-    requestDistributionDropdown.onchange = function(){distributionParameters(markerNumber)};
+    requestDistributionDropdown.options[2] = new Option("Gamma");
+    requestDistributionDropdown.options[3] = new Option("Chi-Squared");
+    requestDistributionDropdown.options[4] = new Option("Beta");
+    requestDistributionDropdown.options[5] = new Option("Dirichlet");
+    requestDistributionDropdown.options[6] = new Option("Bernouilli");
+
+    requestDistributionDropdown.onchange = function(){distributionParametersTable(markerNumber)};
 
     let row = tbody.insertRow();
     let tdh = document.createElement("td");
@@ -89,25 +95,43 @@ function requestDistributionRow(tbody, markerNumber){
     tbody.append(row);
 }
 
-function distributionParameters(markerNumber){
-    let requestDropdown = document.getElementById("reqDist" + markerNumber);
-    let dropdownValue = requestDropdown.options[requestDropdown.selectedIndex].text;
-    let reqParamBody = document.getElementById("param" + markerNumber);
-    reqParamBody.innerHTML = '';
-    // Parameters
-
+function distributionParameters(parameter, placeholderValue, reqParamBody){
     let row = reqParamBody.insertRow();
     let tdh = document.createElement("td");
-    tdh.innerText = "mu";
+    tdh.innerText = parameter + ":";
     row.appendChild(tdh);
     let tdi = document.createElement("td");
     let tdBox = document.createElement("input");
     tdBox.type = "text";
-    tdBox.placeholder = "e.g. 1";
+    tdBox.placeholder = "e.g. " + placeholderValue;
     tdi.appendChild(tdBox);
     row.appendChild(tdi);
+}
 
-
+function distributionParametersTable(markerNumber){
+    let requestDropdown = document.getElementById("reqDist" + markerNumber);
+    let dropdownValueDistribution = requestDropdown.options[requestDropdown.selectedIndex].text;
+    let reqParamBody = document.getElementById("param" + markerNumber);
+    reqParamBody.innerHTML = '';
+    // Parameters
+    if(dropdownValueDistribution.includes("Gaussian")){
+        distributionParameters("mu", "0", reqParamBody);
+        distributionParameters("sigma^2", "1", reqParamBody);
+    } else if(dropdownValueDistribution.includes("Exponential")){
+        distributionParameters("lambda", "1", reqParamBody);
+    } else if(dropdownValueDistribution.includes("Gamma")){
+        distributionParameters("alpha", "1", reqParamBody);
+        distributionParameters("beta", "1", reqParamBody);
+    } else if(dropdownValueDistribution.includes("Chi-Squared")){
+        distributionParameters("k", "1", reqParamBody);
+    } else if(dropdownValueDistribution.includes("Beta")){
+        distributionParameters("alpha", "1", reqParamBody);
+        distributionParameters("beta", "1", reqParamBody);
+    } else if(dropdownValueDistribution.includes("Dirichlet")){
+        distributionParameters("alpha", "1", reqParamBody);
+    } else if(dropdownValueDistribution.includes("Bernouilli")){
+        distributionParameters("p", "0.5", reqParamBody);
+    }
 }
 
 
@@ -170,6 +194,8 @@ function resourceAttributes(markerNumber){
         tableRow(tbody, "Communication radius (meters)", "e.g. 279");
         // Location
         tableRow(tbody, "Height (metres)", "e.g. 1.2");
+        // Request distribution
+        requestDistributionRow(tbody, markerNumber);
     } else {
         // Resources
         tableRow(tbody, "Local CPU (GHz):", "e.g. 3.42");
