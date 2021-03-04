@@ -63,6 +63,8 @@ function tableRow(tbody, rowTitle, placeholderText){
 function requestSchedTypeExplicit(markerNumber){
     let requestDistributionBody = document.getElementById("reqSchedBody" + markerNumber);
     requestDistributionBody.innerHTML = '';
+
+    tableRow(requestDistributionBody, "Schedule:\t", "e.g. 13:00, 13:05, 13:32");
 }
 
 function requestSchedTypeConsistent(markerNumber){
@@ -140,17 +142,18 @@ function requestScheduleType(tbody, markerNumber){
     let reqSchedTypeTable = document.createElement("table");
     let reqSchedTypeBody = document.createElement("tbody");
     reqSchedTypeBody.setAttribute("id", "reqSchedBody" + markerNumber);
-
     let requestSchedType = document.createElement("select");
     requestSchedType.setAttribute("id", "reqType" + markerNumber);
     requestSchedType.options[0] = new Option("Explicit");
     requestSchedType.options[1] = new Option("Consistent");
     requestSchedType.options[2] = new Option("Probabilistic");
     requestSchedType.onchange = function(){requestScheduleTypeTable(markerNumber)};
+    tableRow(reqSchedTypeBody, "Schedule:\t", "e.g. 13:00, 13:05, 13:32"); // Default
+
+
     reqSchedTypeTable.appendChild(reqSchedTypeBody);
     reqSchedTypeDiv.appendChild(requestSchedType);
     reqSchedTypeDiv.appendChild(reqSchedTypeTable);
-
     tdr.appendChild(reqSchedTypeDiv);
     row.appendChild(tdr);
     tbody.append(row);
@@ -413,6 +416,22 @@ function iotEntry(markerNumber, locationDict, resourceDict){
         reqScheduleString += `\t\tstart:\t${probSched["start"]}\n`;
         reqScheduleString += `\t\tend:\t${probSched["end"]}\n`;
         reqScheduleString += `\t\tgap:\t${probSched["frequency"]}\n}`;
+
+    }
+    else if(reqTypeValue.includes("Explicit")) {
+        reqScheduleString += 'explicitRequestSchedule {\n';
+        let reqSchedBody = document.getElementById("reqSchedBody" + markerNumber);
+        let probSched = {};
+        for (let i = 0; i < reqSchedBody.rows.length; i++) {
+            let objCells = reqSchedBody.rows.item(i).cells;
+            let attr = objCells.item(0).innerHTML;
+            let attrVal = objCells.item(1).firstChild.value;
+            // Check attr type
+            if (attr.includes("Schedule")) {
+                probSched["schedule"] = attrVal;
+            }
+        }
+        reqScheduleString += `\t\t[${probSched["schedule"]}]\n}`;
 
     }
     console.log(reqScheduleString);
