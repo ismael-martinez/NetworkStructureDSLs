@@ -68,6 +68,10 @@ function requestSchedTypeExplicit(markerNumber){
 function requestSchedTypeConsistent(markerNumber){
     let requestDistributionBody = document.getElementById("reqSchedBody" + markerNumber);
     requestDistributionBody.innerHTML = '';
+
+    tableRow(requestDistributionBody, "Start Time:\t", "e.g. 13:00");
+    tableRow(requestDistributionBody, "End Time:\t", "e.g. 15:30");
+    tableRow(requestDistributionBody, "Frequency:\t", "e.g. 00:15");
 }
 
 function requestSchedTypeProbabilistic(markerNumber){
@@ -373,11 +377,9 @@ function iotEntry(markerNumber, locationDict, resourceDict){
 
             }
         }
-        console.log(probSched);
         reqScheduleString += `\t\tstart:\t${probSched["start"]}\n`;
         reqScheduleString += `\t\tend:\t${probSched["end"]}\n`;
         reqScheduleString += `\t\tinterarrivalDistribution:\t${probSched["interarrivalDist"]}(`;
-        console.log(probSched["interarrivalDist"]);
         if(probSched["interarrivalDist"].includes("Exponential")){
             reqScheduleString += `lambda=${probSched["lambda"]})\n}`
         }else if(probSched["interarrivalDist"].includes("Gaussian")){
@@ -391,7 +393,29 @@ function iotEntry(markerNumber, locationDict, resourceDict){
         }else if(probSched["interarrivalDist"].includes("Dirichlet")){
             reqScheduleString += `alpha=${probSched["alpha"]})\n}`
         }
+    } else if(reqTypeValue.includes("Consistent")) {
+        reqScheduleString += 'consistentRequestSchedule {\n';
+        let reqSchedBody = document.getElementById("reqSchedBody" + markerNumber);
+        let probSched = {};
+        for (let i = 0; i < reqSchedBody.rows.length; i++) {
+            let objCells = reqSchedBody.rows.item(i).cells;
+            let attr = objCells.item(0).innerHTML;
+            let attrVal = objCells.item(1).firstChild.value;
+            // Check attr type
+            if (attr.includes("Start")) {
+                probSched["start"] = attrVal;
+            } else if (attr.includes("End")) {
+                probSched["end"] = attrVal;
+            } else if (attr.includes("Frequency")) {
+                probSched["frequency"] = attrVal;
+            }
+        }
+        reqScheduleString += `\t\tstart:\t${probSched["start"]}\n`;
+        reqScheduleString += `\t\tend:\t${probSched["end"]}\n`;
+        reqScheduleString += `\t\tgap:\t${probSched["frequency"]}\n}`;
+
     }
+    console.log(reqScheduleString);
 
     return `\tthing t${markerNumber} {\n` +
         `\t\t${reqScheduleString}\n` +
