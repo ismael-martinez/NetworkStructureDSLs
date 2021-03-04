@@ -82,6 +82,7 @@ function requestDistributionRow(tbody, markerNumber){
     reqDiv.appendChild(document.createElement("br"));
     let reqParamTable = document.createElement("table");
     let reqParamBody = document.createElement("tbody");
+    distributionParameters("lambda", "1", reqParamBody, markerNumber); // Exponential Default
     reqParamBody.setAttribute("id", "param" + markerNumber);
     reqParamTable.appendChild(reqParamBody);
 
@@ -95,13 +96,14 @@ function requestDistributionRow(tbody, markerNumber){
     tbody.append(row);
 }
 
-function distributionParameters(parameter, placeholderValue, reqParamBody){
+function distributionParameters(parameter, placeholderValue, reqParamBody, markerNumber){
     let row = reqParamBody.insertRow();
     let tdh = document.createElement("td");
     tdh.innerText = parameter + ":";
     row.appendChild(tdh);
     let tdi = document.createElement("td");
     let tdBox = document.createElement("input");
+    tdBox.setAttribute("id", parameter + markerNumber);
     tdBox.type = "text";
     tdBox.placeholder = "e.g. " + placeholderValue;
     tdi.appendChild(tdBox);
@@ -115,22 +117,22 @@ function distributionParametersTable(markerNumber){
     reqParamBody.innerHTML = '';
     // Parameters
     if(dropdownValueDistribution.includes("Gaussian")){
-        distributionParameters("mu", "0", reqParamBody);
-        distributionParameters("sigma^2", "1", reqParamBody);
+        distributionParameters("mu", "0", reqParamBody, markerNumber);
+        distributionParameters("sigma^2", "1", reqParamBody, markerNumber);
     } else if(dropdownValueDistribution.includes("Exponential")){
-        distributionParameters("lambda", "1", reqParamBody);
+        distributionParameters("lambda", "1", reqParamBody, markerNumber);
     } else if(dropdownValueDistribution.includes("Gamma")){
-        distributionParameters("alpha", "1", reqParamBody);
-        distributionParameters("beta", "1", reqParamBody);
+        distributionParameters("alpha", "1", reqParamBody, markerNumber);
+        distributionParameters("beta", "1", reqParamBody, markerNumber);
     } else if(dropdownValueDistribution.includes("Chi-Squared")){
-        distributionParameters("k", "1", reqParamBody);
+        distributionParameters("k", "1", reqParamBody, markerNumber);
     } else if(dropdownValueDistribution.includes("Beta")){
-        distributionParameters("alpha", "1", reqParamBody);
-        distributionParameters("beta", "1", reqParamBody);
+        distributionParameters("alpha", "1", reqParamBody, markerNumber);
+        distributionParameters("beta", "1", reqParamBody, markerNumber);
     } else if(dropdownValueDistribution.includes("Dirichlet")){
-        distributionParameters("alpha", "1", reqParamBody);
+        distributionParameters("alpha", "1", reqParamBody, markerNumber);
     } else if(dropdownValueDistribution.includes("Bernouilli")){
-        distributionParameters("p", "0.5", reqParamBody);
+        distributionParameters("p", "0.5", reqParamBody, markerNumber);
     }
 }
 
