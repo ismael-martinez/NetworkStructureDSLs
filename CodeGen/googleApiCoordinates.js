@@ -60,7 +60,22 @@ function tableRow(tbody, rowTitle, placeholderText){
 }
 
 
-function requestDistributionRow(tbody, markerNumber){
+function requestSchedTypeExplicit(markerNumber){
+    let requestDistributionBody = document.getElementById("reqSchedBody" + markerNumber);
+    requestDistributionBody.innerHTML = '';
+}
+
+function requestSchedTypeConsistent(markerNumber){
+    let requestDistributionBody = document.getElementById("reqSchedBody" + markerNumber);
+    requestDistributionBody.innerHTML = '';
+}
+
+function requestSchedTypeProbabilistic(markerNumber){
+    console.log("reqSchedBody" + markerNumber);
+    let requestDistributionBody = document.getElementById("reqSchedBody" + markerNumber);
+    requestDistributionBody.innerHTML = '';
+
+
     let requestDistributionDropdown = document.createElement("select");
     requestDistributionDropdown.setAttribute("id", "reqDist" + markerNumber);
     requestDistributionDropdown.options[0] = new Option("Exponential");
@@ -69,13 +84,17 @@ function requestDistributionRow(tbody, markerNumber){
     requestDistributionDropdown.options[3] = new Option("Chi-Squared");
     requestDistributionDropdown.options[4] = new Option("Beta");
     requestDistributionDropdown.options[5] = new Option("Dirichlet");
-    requestDistributionDropdown.options[6] = new Option("Bernouilli");
+    //requestDistributionDropdown.options[6] = new Option("Bernouilli");
 
-    requestDistributionDropdown.onchange = function(){distributionParametersTable(markerNumber)};
+    requestDistributionDropdown.onchange = function () {
+        distributionParametersTable(markerNumber)
+    };
+    tableRow(requestDistributionBody, "Start Time:\t", "e.g. 13:00");
+    tableRow(requestDistributionBody, "End Time:\t", "e.g. 15:30");
 
-    let row = tbody.insertRow();
+    let row = requestDistributionBody.insertRow();
     let tdh = document.createElement("td");
-    tdh.innerText = "Request Distribution:";
+    tdh.innerText = "Interarrival distribution:";
     row.appendChild(tdh);
     let tdi = document.createElement("td");
     let reqDiv = document.createElement("div");
@@ -86,20 +105,57 @@ function requestDistributionRow(tbody, markerNumber){
     reqParamBody.setAttribute("id", "param" + markerNumber);
     reqParamTable.appendChild(reqParamBody);
 
-
     reqDiv.appendChild(requestDistributionDropdown);
     reqDiv.appendChild(reqParamTable);
     reqDiv.setAttribute("id", "reqDiv" + markerNumber);
 
     tdi.appendChild(reqDiv);
     row.appendChild(tdi);
+}
+
+function requestScheduleTypeTable(markerNumber){
+    let requestSchedTypeDropdown = document.getElementById("reqType" + markerNumber);
+    let dropdownValue = requestSchedTypeDropdown.options[requestSchedTypeDropdown.selectedIndex].text;
+    if(dropdownValue.includes("Explicit")){
+        requestSchedTypeExplicit(markerNumber);
+    } else if(dropdownValue.includes("Consistent")){
+        requestSchedTypeConsistent(markerNumber);
+    } else if(dropdownValue.includes("Probabilistic")){
+        requestSchedTypeProbabilistic(markerNumber);
+    }
+}
+
+function requestScheduleType(tbody, markerNumber){
+    let row = tbody.insertRow();
+    let tdh = document.createElement("td");
+    tdh.innerText = "Request Schedule:\t";
+    row.appendChild(tdh);
+    // Request Schedule Type
+    let tdr = document.createElement("td");
+    let reqSchedTypeDiv = document.createElement("div");
+    let reqSchedTypeTable = document.createElement("table");
+    let reqSchedTypeBody = document.createElement("tbody");
+    reqSchedTypeBody.setAttribute("id", "reqSchedBody" + markerNumber);
+
+    let requestSchedType = document.createElement("select");
+    requestSchedType.setAttribute("id", "reqType" + markerNumber);
+    requestSchedType.options[0] = new Option("Explicit");
+    requestSchedType.options[1] = new Option("Consistent");
+    requestSchedType.options[2] = new Option("Probabilistic");
+    requestSchedType.onchange = function(){requestScheduleTypeTable(markerNumber)};
+    reqSchedTypeTable.appendChild(reqSchedTypeBody);
+    reqSchedTypeDiv.appendChild(requestSchedType);
+    reqSchedTypeDiv.appendChild(reqSchedTypeTable);
+
+    tdr.appendChild(reqSchedTypeDiv);
+    row.appendChild(tdr);
     tbody.append(row);
 }
 
 function distributionParameters(parameter, placeholderValue, reqParamBody, markerNumber){
     let row = reqParamBody.insertRow();
     let tdh = document.createElement("td");
-    tdh.innerText = parameter + ":";
+    tdh.innerText = parameter + ":\t";
     row.appendChild(tdh);
     let tdi = document.createElement("td");
     let tdBox = document.createElement("input");
@@ -118,7 +174,7 @@ function distributionParametersTable(markerNumber){
     // Parameters
     if(dropdownValueDistribution.includes("Gaussian")){
         distributionParameters("mu", "0", reqParamBody, markerNumber);
-        distributionParameters("sigma^2", "1", reqParamBody, markerNumber);
+        distributionParameters("var", "1", reqParamBody, markerNumber);
     } else if(dropdownValueDistribution.includes("Exponential")){
         distributionParameters("lambda", "1", reqParamBody, markerNumber);
     } else if(dropdownValueDistribution.includes("Gamma")){
@@ -135,7 +191,6 @@ function distributionParametersTable(markerNumber){
         distributionParameters("p", "0.5", reqParamBody, markerNumber);
     }
 }
-
 
 function markerForm(markerNumber){
     // Device header
@@ -162,16 +217,17 @@ function markerForm(markerNumber){
     // Default
     let tbody = tableResource.createTBody();
     // Resources
-    tableRow(tbody, "File size (MB)", "e.g. 536");
-    tableRow(tbody, "Local CPU (GHz):", "e.g. 3.42");
-    tableRow(tbody, "Local processing (ms)", "e.g. 234");
-    tableRow(tbody, "Storage memory required (MB):", "e.g. 59");
-    tableRow(tbody, "RAM required: (MB)", "e.g. 242");
-    tableRow(tbody, "Communication radius (meters)", "e.g. 279");
+    tableRow(tbody, "File size (MB):\t", "e.g. 536");
+    tableRow(tbody, "Local CPU (GHz):\t", "e.g. 3.42");
+    tableRow(tbody, "Local processing (ms):\t", "e.g. 234");
+    tableRow(tbody, "Storage memory required (MB):\t", "e.g. 59");
+    tableRow(tbody, "RAM required: (MB):\t", "e.g. 242");
+    tableRow(tbody, "Communication radius (meters):\t", "e.g. 279");
     // Location
-    tableRow(tbody, "Height (metres)", "e.g. 1.2");
+    tableRow(tbody, "Height (metres):\t", "e.g. 1.2");
     // Request distribution
-    requestDistributionRow(tbody, markerNumber);
+    requestScheduleType(tbody, markerNumber);
+    //requestDistributionRow(tbody, markerNumber);
 
 
     tableResource.appendChild(tbody);
@@ -188,14 +244,14 @@ function resourceAttributes(markerNumber){
     let isIoT = dropdownValue.localeCompare("IoT");
     if(isIoT === 0){
         // Resources
-        tableRow(tbody, "File size (MB)", "e.g. 536");
-        tableRow(tbody, "Local CPU (GHz):", "e.g. 3.42");
-        tableRow(tbody, "Local processing (ms)", "e.g. 234");
-        tableRow(tbody, "Storage memory required (MB):", "e.g. 59");
-        tableRow(tbody, "RAM required: (MB)", "e.g. 242");
-        tableRow(tbody, "Communication radius (meters)", "e.g. 279");
+        tableRow(tbody, "File size (MB):\t", "e.g. 536");
+        tableRow(tbody, "Local CPU (GHz):\t", "e.g. 3.42");
+        tableRow(tbody, "Local processing (ms):\t", "e.g. 234");
+        tableRow(tbody, "Storage memory required (MB):\t", "e.g. 59");
+        tableRow(tbody, "RAM required: (MB):\t", "e.g. 242");
+        tableRow(tbody, "Communication radius (meters):\t", "e.g. 279");
         // Location
-        tableRow(tbody, "Height (metres)", "e.g. 1.2");
+        tableRow(tbody, "Height (metres):\t", "e.g. 1.2");
         // Request distribution
         requestDistributionRow(tbody, markerNumber);
     } else {
@@ -278,7 +334,67 @@ function iotAttributes(){
 }
 
 function iotEntry(markerNumber, locationDict, resourceDict){
+    let reqTypeDropdown = document.getElementById("reqType" + markerNumber);
+    let reqTypeValue = reqTypeDropdown.options[reqTypeDropdown.selectedIndex].text;
+    let reqScheduleString = '';
+    if(reqTypeValue.includes("Probabilistic")) {
+        reqScheduleString += 'probabilisticRequestSchedule {\n';
+        let reqSchedBody = document.getElementById("reqSchedBody" + markerNumber);
+        let probSched = {};
+        for (let i = 0; i < reqSchedBody.rows.length; i++) {
+            let objCells = reqSchedBody.rows.item(i).cells;
+            let attr = objCells.item(0).innerHTML;
+            let attrVal = objCells.item(1).firstChild.value;
+            // Check attr type
+            if(attr.includes("Start")){
+                probSched["start"] = attrVal;
+            }else if(attr.includes("End")){
+                probSched["end"] = attrVal;
+            }else if(attr.includes("Interarrival")){
+                let distribtuionDropdown = document.getElementById("reqDist" + markerNumber);
+                probSched["interarrivalDist"] = distribtuionDropdown.options[distribtuionDropdown.selectedIndex].text;
+                let paramTable = document.getElementById("param" + markerNumber);
+                for (let i = 0; i < paramTable.rows.length; i++) {
+                    let objCells = paramTable.rows.item(i).cells;
+                    let attrParam = objCells.item(0).innerHTML;
+                    if(attrParam.includes("lambda"))
+                        probSched["lambda"] = objCells.item(1).firstChild.value;
+                    else if(attrParam.includes("mu"))
+                        probSched["mu"] = objCells.item(1).firstChild.value;
+                    else if(attrParam.includes("var"))
+                        probSched["var"] = objCells.item(1).firstChild.value;
+                    else if(attrParam.includes("alpha"))
+                        probSched["alpha"] = objCells.item(1).firstChild.value;
+                    else if(attrParam.includes("beta"))
+                        probSched["beta"] = objCells.item(1).firstChild.value;
+                    else if(attrParam.includes("k"))
+                        probSched["k"] = objCells.item(1).firstChild.value;
+                }
+
+            }
+        }
+        console.log(probSched);
+        reqScheduleString += `\t\tstart:\t${probSched["start"]}\n`;
+        reqScheduleString += `\t\tend:\t${probSched["end"]}\n`;
+        reqScheduleString += `\t\tinterarrivalDistribution:\t${probSched["interarrivalDist"]}(`;
+        console.log(probSched["interarrivalDist"]);
+        if(probSched["interarrivalDist"].includes("Exponential")){
+            reqScheduleString += `lambda=${probSched["lambda"]})\n}`
+        }else if(probSched["interarrivalDist"].includes("Gaussian")){
+            reqScheduleString += `mu=${probSched["mu"]}, var=${probSched["var"]})\n}`
+        }else if(probSched["interarrivalDist"].includes("Gamma")){
+            reqScheduleString += `alpha=${probSched["alpha"]}, beta=${probSched["beta"]})\n}`
+        }else if(probSched["interarrivalDist"].includes("Beta")){
+            reqScheduleString += `alpha=${probSched["alpha"]}, beta=${probSched["beta"]})\n}`
+        }else if(probSched["interarrivalDist"].includes("Chi")){
+            reqScheduleString += `k=${probSched["k"]})\n}`
+        }else if(probSched["interarrivalDist"].includes("Dirichlet")){
+            reqScheduleString += `alpha=${probSched["alpha"]})\n}`
+        }
+    }
+
     return `\tthing t${markerNumber} {\n` +
+        `\t\t${reqScheduleString}\n` +
         `\t\tlocation {\n` + // Location
         `\t\t\tlatitude: ${locationDict["lat"]} \n` +
         `\t\t\tlongitude: ${locationDict["lng"]} \n` +
