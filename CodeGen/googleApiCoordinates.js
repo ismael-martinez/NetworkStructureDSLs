@@ -199,19 +199,11 @@ function distributionParametersTable(markerNumber){
     }
 }
 
-function markerForm(markerNumber){
+function markerFormIoT(markerNumber){
     // Device header
     let rowHeader = document.createElement("h4");
     rowHeader.innerText = "Device " + markerNumber;
     document.getElementById("form").appendChild(rowHeader);
-    // Selection
-    let dropdown = document.createElement("select");
-    dropdown.setAttribute('id', 'dropdown' + markerNumber);
-    dropdown.onchange = function(){resourceAttributes(markerNumber)};
-
-    dropdown.options[0] = new Option("IoT");
-    dropdown.options[1] = new Option("Edge");
-    document.getElementById("form").appendChild(dropdown);
 
     let deviceDiv = document.createElement('div');
     deviceDiv.setAttribute("id", "div" + markerNumber);
@@ -242,8 +234,41 @@ function markerForm(markerNumber){
     deviceDiv.appendChild(tableResource);
 }
 
+function markerFormEdge(markerNumber){
+    // Device header
+    let rowHeader = document.createElement("h4");
+    rowHeader.innerText = "Device " + markerNumber;
+    document.getElementById("form").appendChild(rowHeader);
+
+    let deviceDiv = document.createElement('div');
+    deviceDiv.setAttribute("id", "div" + markerNumber);
+    document.getElementById("form").appendChild(deviceDiv);
+
+    let tableResource = document.createElement("table");
+    tableResource.setAttribute('id', 'dev' + markerNumber);
+    tableResource.style.borderSpacing = "15px";
+
+    // Default
+    let tbody = tableResource.createTBody();
+    // Resources
+    tableRow(tbody, "Local CPU (GHz):", "e.g. 3.42");
+    tableRow(tbody, "Local processing (ms)", "e.g. 234");
+    tableRow(tbody, "Storage memory required (MB):", "e.g. 59");
+    tableRow(tbody, "RAM required: (MB)", "e.g. 242");
+    tableRow(tbody, "Communication radius (meters)", "e.g. 279");
+    tableRow(tbody, "Service rate", "e.g. 2.71");
+    // Location
+    tableRow(tbody, "Height (metres)", "e.g. 1.2");
+
+
+    tableResource.appendChild(tbody);
+
+    deviceDiv.appendChild(tableResource);
+}
+
+/*
 function resourceAttributes(markerNumber){
-    let dropdown = document.getElementById('dropdown' + markerNumber);
+    let dropdown = document.getElementById('deviceType');
     dropdownValue = dropdown.options[dropdown.selectedIndex].text;
     tableResource = document.getElementById("dev" + markerNumber);
     tableResource.innerHTML = '';
@@ -275,6 +300,8 @@ function resourceAttributes(markerNumber){
 
     tableResource.appendChild(tbody);
 }
+*/
+
 
 function exportMarkerForm(){
     let deviceForm = document.getElementById("form");
@@ -282,11 +309,25 @@ function exportMarkerForm(){
     let formHeader = document.createElement("h3");
     formHeader.innerText = "Device Information";
     deviceForm.appendChild(formHeader);
+
+    let dropdown = document.getElementById('deviceType');
+    dropdownValue = dropdown.options[dropdown.selectedIndex].text;
+    let isIoT = dropdownValue.localeCompare("IoT");
+
     let labelIndex = 1;
-    for (const ll in coordinateList) {
-        let id = labelIndex++;
-        markerForm(id);
+    if(isIoT === 0){
+        for (const ll in coordinateList) {
+            let id = labelIndex++;
+            markerFormIoT(id);
+        }
+    } else{
+
+        for (const ll in coordinateList) {
+            let id = labelIndex++;
+            markerFormEdge(id);
+        }
     }
+
     // Hold for now -- May add functionality later
     let exportButton = document.createElement("button");
     exportButton.textContent = "Export device resources";
@@ -515,8 +556,7 @@ function exportMarkers(){
         // Device i type
         let locationDict = readLocation(i);
         markerNumber = +i + +1;
-        let dropdownTag = 'dropdown' + markerNumber;
-        let dropdown = document.getElementById(dropdownTag);
+        let dropdown = document.getElementById('deviceType');
         dropdownValue = dropdown.options[dropdown.selectedIndex].text;
         let isIoT = dropdownValue.localeCompare("IoT");
         if(isIoT === 0){ // is IoT
