@@ -296,6 +296,30 @@ function markerFormEdge(markerNumber){
     deviceDiv.appendChild(tableResource);
 }
 
+function markerFormLinks(){
+    // Link connections
+    let linkHeader = document.createElement("h3");
+    linkHeader.innerText = "Link Connections";
+    document.getElementById("form").appendChild(linkHeader);
+    let linkTable = document.createElement("table");
+    let linkBody = document.createElement("tbody");
+    linkBody.setAttribute("id", "linkBody");
+    linkTable.appendChild(linkBody);
+    document.getElementById("form").appendChild(linkTable);
+
+    let addLinkButton = document.createElement("button");
+    addLinkButton.innerText = "Add Link";
+    addLinkButton.onclick = function(){addLinkField()};
+    document.getElementById("form").appendChild(addLinkButton);
+    document.getElementById("form").appendChild(document.createElement("br"));
+
+
+    let exportButton = document.createElement("button");
+    exportButton.textContent = "Export device resources";
+    exportButton.onclick = function(){exportMarkers()};
+    document.getElementById("form").appendChild(exportButton);
+}
+
 /*
 function resourceAttributes(markerNumber){
     let dropdown = document.getElementById('deviceType');
@@ -356,29 +380,8 @@ function exportMarkerForm(){
             let id = labelIndex++;
             markerFormEdge(id);
         }
+        markerFormLinks();
     }
-
-    // Link connections
-    let linkHeader = document.createElement("h3");
-    linkHeader.innerText = "Link Connections";
-    document.getElementById("form").appendChild(linkHeader);
-    let linkTable = document.createElement("table");
-    let linkBody = document.createElement("tbody");
-    linkBody.setAttribute("id", "linkBody");
-    linkTable.appendChild(linkBody);
-    document.getElementById("form").appendChild(linkTable);
-
-    let addLinkButton = document.createElement("button");
-    addLinkButton.innerText = "Add Link";
-    addLinkButton.onclick = function(){addLinkField()};
-    document.getElementById("form").appendChild(addLinkButton);
-    document.getElementById("form").appendChild(document.createElement("br"));
-
-
-    let exportButton = document.createElement("button");
-    exportButton.textContent = "Export device resources";
-    exportButton.onclick = function(){exportMarkers()};
-    document.getElementById("form").appendChild(exportButton);
 
 }
 
@@ -572,6 +575,17 @@ function readEdgeTable(markerNumber) {
     return resourceDict;
 }
 
+function readLinkTable(){
+    let linkResourcesDict = {};
+    let linkTableBody = document.getElementById("linkBody");
+    for (let i = 0; i < linkTableBody.rows.length; i++) {
+        let objCells = linkTableBody.rows.item(i).cells;
+        linkResourcesDict["pair" + i] = objCells.item(1).firstChild.value;
+        linkResourcesDict["bandwidth" + i] = objCells.item(4).firstChild.value;
+    }
+    return linkResourcesDict;
+}
+
 function edgeAttributes(){
     return "\tattributes: {\n" +
         "\t\tkey: local_CPU_ghz, type: float \n" +
@@ -602,23 +616,46 @@ function edgeEntry(markerNumber, locationDict, resourceDict){
 function exportMarkers(){
     let trs_candidates = {}; let trs_id = 0;
     let ens_candidates = {}; let ens_id = 0;
-    let coordinateJSON;
-    for (const i in coordinateList){
-        // Device i type
-        let locationDict = readLocation(i);
-        markerNumber = +i + +1;
-        let dropdown = document.getElementById('deviceType');
-        dropdownValue = dropdown.options[dropdown.selectedIndex].text;
-        let isIoT = dropdownValue.localeCompare("IoT");
-        if(isIoT === 0){ // is IoT
+    let linkSection;
+
+    let dropdown = document.getElementById('deviceType');
+    dropdownValue = dropdown.options[dropdown.selectedIndex].text;
+    let isIoT = dropdownValue.localeCompare("IoT");
+    if(isIoT === 0){ // is IoT
+        for (const i in coordinateList){
+            // Device i type
+            let locationDict = readLocation(i);
+            markerNumber = +i + +1;
             let resourceDict = readIoTTable(markerNumber);
             // Build TRS entry
             trs_candidates[trs_id++] = iotEntry(markerNumber, locationDict, resourceDict);
-        } else{ // is Edge
+        }
+
+    } else{ // is Edge
+        for (const i in coordinateList){
+            // Device i type
+            let locationDict = readLocation(i);
+            markerNumber = +i + +1;
             let resourceDict = readEdgeTable(markerNumber);
             // Build ENS entry
             ens_candidates[ens_id++] = edgeEntry(markerNumber, locationDict, resourceDict);
         }
+        let linkDict = readLinkTable();
+        let linkId = Object.keys(linkDict).length / 2;
+        if(linkId > 0){
+            linkSection = 'linkSet { \n' +
+                '\tattributes { \n\t\tkey: bandwidth, type: float\n\t}\n';
+            for(let l_id = 0; l_id < linkId; l_id++){
+                let pair = linkDict["pair"+ l_id].split(",");
+                let pairInt = [parseInt(pair[0]), parseInt(pair[1])];
+                linkSection +=`\tlink l${l_id} {\n` +
+                    `\tattributes { \n\t\tbandwidth: ${linkDict["bandwidth" + l_id]}\n}` +
+                    `\t\tnodePair: (n${pairInt[0]}, n${pairInt[1]})\n}\n`;
+            }
+            linkSection += '}';
+        }
+
+
     }
 
     let trsFile;
@@ -637,9 +674,11 @@ function exportMarkers(){
         for(let e_id = 0; e_id < ens_id; e_id++){
             ensFile = ensFile + '\n\t' + ens_candidates[e_id];
         }
-        ensFile = ensFile + '\n}\n}';
+        ensFile += '\n}';
+        ensFile += linkSection + '\n}';
         console.log(ensFile);
     }
+
 
 
 
