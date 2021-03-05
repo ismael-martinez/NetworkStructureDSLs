@@ -59,6 +59,36 @@ function tableRow(tbody, rowTitle, placeholderText){
     tbody.appendChild(row);
 }
 
+function linkTableRow(tbody){
+    let row = tbody.insertRow();
+    let tdh = document.createElement("td");
+    tdh.innerText = "New node pair:\t";
+    row.appendChild(tdh);
+
+    let tdi = document.createElement("td");
+    let tdBox = document.createElement("input");
+    tdBox.type = "text";
+    tdBox.placeholder = "e.g. 1, 2";
+    tdi.appendChild(tdBox);
+    row.appendChild(tdi);
+
+    let tds = document.createElement("td");
+    tds.width = 25;
+    row.appendChild(tds);
+    let tdb = document.createElement("td");
+    tdb.innerText = "\tBandwidth (MB/s):\t";
+    row.appendChild(tdb);
+    let tdbi = document.createElement("td");
+    let tdBoxB = document.createElement("input");
+    tdBoxB.type = "text";
+    tdBoxB.placeholder = "e.g. 524.5";
+
+    tdbi.appendChild(tdBoxB);
+    row.appendChild(tdbi);
+
+    tbody.appendChild(row);
+}
+
 
 function requestSchedTypeExplicit(markerNumber){
     let requestDistributionBody = document.getElementById("reqSchedBody" + markerNumber);
@@ -328,12 +358,33 @@ function exportMarkerForm(){
         }
     }
 
-    // Hold for now -- May add functionality later
+    // Link connections
+    let linkHeader = document.createElement("h3");
+    linkHeader.innerText = "Link Connections";
+    document.getElementById("form").appendChild(linkHeader);
+    let linkTable = document.createElement("table");
+    let linkBody = document.createElement("tbody");
+    linkBody.setAttribute("id", "linkBody");
+    linkTable.appendChild(linkBody);
+    document.getElementById("form").appendChild(linkTable);
+
+    let addLinkButton = document.createElement("button");
+    addLinkButton.innerText = "Add Link";
+    addLinkButton.onclick = function(){addLinkField()};
+    document.getElementById("form").appendChild(addLinkButton);
+    document.getElementById("form").appendChild(document.createElement("br"));
+
+
     let exportButton = document.createElement("button");
     exportButton.textContent = "Export device resources";
     exportButton.onclick = function(){exportMarkers()};
     document.getElementById("form").appendChild(exportButton);
 
+}
+
+function addLinkField(){
+    let linkBody = document.getElementById("linkBody");
+    linkTableRow(linkBody, "Node pair:\t", "e.g. 1, 2");
 }
 
 function readLocation(markerNumber){
