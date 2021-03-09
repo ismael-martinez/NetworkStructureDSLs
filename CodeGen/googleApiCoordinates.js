@@ -258,10 +258,15 @@ function markerFormIoT(markerNumber){
     requestScheduleType(tbody, markerNumber);
     //requestDistributionRow(tbody, markerNumber);
 
-
     tableResource.appendChild(tbody);
-
     deviceDiv.appendChild(tableResource);
+}
+
+function exportButton(){
+    let exportButton = document.createElement("button");
+    exportButton.textContent = "Export device resources";
+    exportButton.onclick = function(){exportMarkers()};
+    document.getElementById("form").appendChild(exportButton);
 }
 
 function markerFormEdge(markerNumber){
@@ -313,11 +318,6 @@ function markerFormLinks(){
     document.getElementById("form").appendChild(addLinkButton);
     document.getElementById("form").appendChild(document.createElement("br"));
 
-
-    let exportButton = document.createElement("button");
-    exportButton.textContent = "Export device resources";
-    exportButton.onclick = function(){exportMarkers()};
-    document.getElementById("form").appendChild(exportButton);
 }
 
 /*
@@ -382,7 +382,7 @@ function exportMarkerForm(){
         }
         markerFormLinks();
     }
-
+    exportButton();
 }
 
 function addLinkField(){
@@ -666,6 +666,9 @@ function exportMarkers(){
         }
         trsFile = trsFile + '\n}';
         console.log(trsFile);
+        let blob = new Blob([trsFile],
+            {type: "text/plain;charset=utf-8"});
+        saveAs(blob, "iotRequest.trs");
     }
 
     let ensFile;
@@ -677,17 +680,12 @@ function exportMarkers(){
         ensFile += '\n}';
         ensFile += linkSection + '\n}';
         console.log(ensFile);
+        let blob = new Blob([ensFile],
+            {type: "text/plain;charset=utf-8"});
+        saveAs(blob, "networkStructure.ens");
     }
 
 
 
 
-    //var jsonCandidatesString = markedCandidates.toString()
-    //var jsonCandidates = '{"candidates":[' + jsonCandidatesString + ']}'
-    //let jsonCandidates = {"location": markedCandidates};
-    //let jsonCandidatesPretty = JSON.stringify(jsonCandidates, null, 2);
-    //console.log(jsonCandidatesPretty);
-    //let blob = new Blob([jsonCandidatesPretty],
-    //    {type: "text/plain;charset=utf-8"});
-   // saveAs(blob, "location.json");
 }
