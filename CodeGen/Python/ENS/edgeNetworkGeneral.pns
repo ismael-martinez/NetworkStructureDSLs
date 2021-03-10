@@ -1,0 +1,73 @@
+Graph Edge
+	nodeSet {
+		attributes {
+			key: storage_mb, type: int
+			key: cpu_ghz, type: float
+			key: memory_mb, type: int
+		}
+        serviceRate: cpu_ghz
+		node n1 {
+				attributes {
+					cpu_ghz: 3.2
+					memory_mb: 1024
+					storage_mb: 512
+				} 
+				location {
+	            	["1"]
+	            }
+		}
+		node n2 {
+				attributes {
+					cpu_ghz: 2.8
+					memory_mb: 32
+					storage_mb: 128
+				}
+				location {
+	            	["2"]
+	            }
+		}
+		node n3 {
+				attributes {
+					cpu_ghz: 1.6
+					memory_mb: 64
+					storage_mb: 32
+				} 
+				location {
+	            	["3"]
+	            }
+		}
+		node n4 {
+				attributes {
+					cpu_ghz: 2.9
+					memory_mb: 2048
+					storage_mb: 4096
+				}
+				location {
+	            	["4"]
+	            }
+		}
+
+	} 
+	linkSet {
+		attributes {
+		    key: bandwidth, type:float
+		}
+		link l1 {
+				attributes {
+				    bandwidth: 3.5
+				}
+				nodePair: (n1, n2)
+		}
+		link l2 {
+				attributes {
+				    bandwidth: 8.1
+				}
+				nodePair: (n2, n3)
+		}
+		link l3 {
+				attributes {
+				    bandwidth: 7.3
+				}
+				nodePair: (n2, n4)
+		}
+	}

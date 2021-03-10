@@ -251,7 +251,7 @@ def verify_pns_model(pns_metamodel, pns_file):
         pns_model = pns_metamodel.model_from_file(pns_file)
         # All attributes are unique
         ## Nodes
-        for node_set in pns_model.nodeSets:
+        for node_set in pns_model.nodeSet:
             unique_set_node = list(set(node_set.attributes))
             if len(node_set.attributes) != len(unique_set_node):
                 raise Exception("NodeType attributes must be unique: Graph {}.".format(pns_model.name))
@@ -263,7 +263,7 @@ def verify_pns_model(pns_metamodel, pns_file):
             # The value of each node attribute conforms to the attribute type
             attr_type = {}
             for a in range(len(node_set.attributes)):
-                attr_type[node_set.attributes[a]] = node_set.type[a]
+                attr_type[node_set.attributes[a]] = node_set.attributes[a].type
             for node in node_set.nodes:
                 for a in range(len(node.attributes)):
                     # Verify attribute value matches defined attribute type
@@ -283,7 +283,7 @@ def verify_pns_model(pns_metamodel, pns_file):
                         if node.val[a] < 0:
                             raise Exception('Radius of node {} must be non-negative'.format(node.name))
         ## Links
-        for link_set in pns_model.linkSets:
+        for link_set in pns_model.linkSet:
             unique_set_link = list(set(link_set.attributes))
             if len(link_set.attributes) != len(unique_set_link):
                 raise Exception("LinkType attributes must be unique: Graph {}.".format(pns_model.name))
@@ -295,7 +295,7 @@ def verify_pns_model(pns_metamodel, pns_file):
             # The value of each link attribute conforms to the attribute type
             attr_type = {}
             for a in range(len(link_set.attributes)):
-                attr_type[link_set.attributes[a]] = link_set.type[a]
+                attr_type[link_set.attributes[a]] = link_set.attributes[a].type
             for link in link_set.links:
                 for a in range(len(link.attributes)):
                     # Verify attribute value matches defined attribute type
@@ -379,11 +379,7 @@ def generate_client_instances(nrs_model, location_json):
 
             # Build locations
             client_location = {}
-            loc_refs = client.location.loc_ref
-            for loc_ref in loc_refs:
-                ref_str = str(loc_ref)
-                location_data = location_json[ref_str]
-                client_location[loc_ref] = location_data
+
 
             instance_code_gen_client += 'locations = []\n'
             for id in client_location:
@@ -405,7 +401,7 @@ def generate_client_instances(nrs_model, location_json):
 
 ### GENERATE Graph INSTANCES FROM PNS PARSER ###
 # Generate instances of Graph = (Nodes, Links) based on PNS file.
-def generate_graph_instances(pns_model, location_json, graph_name):
+def generate_graph_instances(pns_model, graph_name):
     instance_code_gen_graph = 'nodes = Nodes()\nlinks=Links()\n'
     graph_name = pns_model.name
     ## Node instances
@@ -441,11 +437,7 @@ def generate_graph_instances(pns_model, location_json, graph_name):
 
             # Build locations
             node_locations = {}
-            loc_refs = node.location.loc_ref
-            for loc_ref in loc_refs:
-                ref_str = str(loc_ref)
-                location_data = location_json[ref_str]
-                node_locations[loc_ref] = location_data
+
 
             instance_code_gen_graph += 'locations = []\n'
             for attr in node_locations:
@@ -556,7 +548,7 @@ def generate_client_class(nrs_model):
 # Output: pns_class_gen (string) - Generated code for 'class Node'
 def generate_node_class(pns_model):
     node_class_gen = '# Link classes for specific attribute set\n'
-    for node_set in pns_model.nodeSets:
+    for node_set in pns_model.nodeSet:
         node_class_gen += 'class Node_{}(NodeAbstract):\n'.format(node_set.name)
         # List of attribute names and types
         attr_name_list = node_set.attributes
@@ -658,7 +650,7 @@ def generate_graph_classes(pns_model):
     pns_classes.append(generate_link_class(pns_model))
     return '\n'.join(pns_classes)
 
-def code_generation(nrs_model, pns_model, nrs_location, pns_location):
+def code_generation(nrs_model, pns_model):
     attribute_class_gen = []
     # File headers and imports
     attribute_class_gen.append('from networkStructure import *\nimport numpy as np\nfrom networkUtil import * \n')
@@ -670,9 +662,9 @@ def code_generation(nrs_model, pns_model, nrs_location, pns_location):
     attribute_class_gen.append(generate_graph_classes(pns_model))
 
     # Generate client instances
-    attribute_class_gen.append(generate_client_instances(nrs_model, nrs_location))
+    attribute_class_gen.append(generate_client_instances(nrs_model))
     # Generate node and link instances
-    attribute_class_gen.append(generate_graph_instances(pns_model, pns_location, pns_model.name))
+    attribute_class_gen.append(generate_graph_instances(pns_model, pns_model.name))
 
     code_gen_output = 'networkStructureAttributesAndInstances.py'
     a = open(code_gen_output, 'w')
@@ -683,48 +675,37 @@ def main(argv):
     # Arguments
     nrs_file = ''
     pns_file = ''
-    nrs_location_file = ''
-    pns_location_file = ''
     try:
-        opts, args = getopt.getopt(argv, "hr:R:p:P:", ["nrsfile=", "pnsfile=", "clientlocation=", "nodelocation="])
+        opts, args = getopt.getopt(argv, "hr:p:", ["nrsfile=", "pnsfile="])
     except getopt.GetoptError:
-        print('codeGen.py -r <nrsfilepath> -R <clientlocationJSON> -p <pnsfilepath> -P <nodelocationJSON>')
+        print('codeGen.py -r <nrsfilepath> -p <pnsfilepath>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('codeGen.py -r <nrsfilepath> -R <clientlocationJSON> -p <pnsfilepath> -P <nodelocationJSON>')
+            print('codeGen.py -r <nrsfilepath> -p <pnsfilepath>')
             sys.exit()
         elif opt in ("-r", "--nrsfile"):
             nrs_file = arg
         elif opt in ("-p", "--pnsfile"):
             pns_file = arg
-        elif opt in ("-R", "--clientlocation"):
-            nrs_location_file = arg
-        elif opt in ("-P", "--nodelocation"):
-            pns_location_file = arg
 
 
     ### Verify NRS File
     print("NRS file:" + nrs_file)
-    nrs_grammar = 'NRS/nrs.tx'
+    nrs_grammar = 'TRS/trs.tx'
     mm_nrs = metamodel_from_file(nrs_grammar) # TextX Metamodel
-    metamodel_export(mm_nrs, 'NRS/nrs.dot')
-    os.system('dot -Tpng -O  NRS/nrs.dot')
+    metamodel_export(mm_nrs, 'TRS/trs.dot')
+    os.system('dot -Tpng -O  TRS/trs.dot')
     nrs_model = verify_nrs_model(mm_nrs, nrs_file)
-    with open(nrs_location_file) as loc:
-        loc_data_nrs = json.load(loc)
-
 
     ### Verify PNS file
-    pns_grammar = 'PNS/pns.tx'
+    pns_grammar = 'ENS/ens.tx'
     mm_pns = metamodel_from_file(pns_grammar) # TextX Metamodel
-    metamodel_export(mm_pns, 'PNS/pns.dot')
-    os.system('dot -Tpng -O  PNS/pns.dot')
+    metamodel_export(mm_pns, 'ENS/pns.dot')
+    os.system('dot -Tpng -O  ENS/pns.dot')
     pns_model = verify_pns_model(mm_pns, pns_file)
-    with open(pns_location_file) as loc:
-        loc_data_pns = json.load(loc)
 
-    code_generation(nrs_model, pns_model, loc_data_nrs['location'], loc_data_pns['location'])
+    code_generation(nrs_model, pns_model)
 
 
 if __name__=="__main__":

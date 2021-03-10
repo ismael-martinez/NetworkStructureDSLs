@@ -291,7 +291,6 @@ function markerFormEdge(markerNumber){
     tableRow(tbody, "Storage memory required (MB):", "e.g. 59");
     tableRow(tbody, "RAM required: (MB)", "e.g. 242");
     tableRow(tbody, "Communication radius (meters)", "e.g. 279");
-    tableRow(tbody, "Service rate", "e.g. 2.71");
     // Location
     tableRow(tbody, "Height (metres)", "e.g. 1.2");
 
@@ -347,7 +346,6 @@ function resourceAttributes(markerNumber){
         tableRow(tbody, "Storage memory required (MB):", "e.g. 59");
         tableRow(tbody, "RAM required: (MB)", "e.g. 242");
         tableRow(tbody, "Communication radius (meters)", "e.g. 279");
-        tableRow(tbody, "Service rate", "e.g. 2.71");
         // Location
         tableRow(tbody, "Height (metres)", "e.g. 1.2");
     }
@@ -425,14 +423,16 @@ function readIoTTable(markerNumber){
 }
 
 function iotAttributes(){
-    return "attributes: {\n" +
-        "\t key: filseSize_mb, type: int \n" +
+    return "attributes {\n" +
+        "\t key: fileSize_mb, type: int \n" +
         "\t key: local_CPU_ghz, type: float \n" +
         "\t key: localProcessing_ms, type: int \n" +
         "\t key: storageReq_mb, type: int \n" +
         "\t key: ramReq_mb, type: int \n" +
         "\t key: communicationRadius_m, type:float \n" +
-        "}";
+        "}\n" +
+        "radius: communicationRadius_m";
+
 }
 
 function iotEntry(markerNumber, locationDict, resourceDict){
@@ -541,10 +541,9 @@ function iotEntry(markerNumber, locationDict, resourceDict){
         `\t\t\tfileSize_mb: ${resourceDict["fileSize"]}\n` +
         `\t\t\tlocal_CPU_ghz: ${resourceDict["localCPU"]}\n` +
         `\t\t\tlocalProcessing_ms: ${resourceDict["localProcessing"]}\n` +
-        `\t\t\tstorageAvail_mb: ${resourceDict["storageAvail"]}\n` +
-        `\t\t\tramAvail_mb: ${resourceDict["memAvail"]}\n` +
+        `\t\t\tstorageReq_mb: ${resourceDict["storageReq"]}\n` +
+        `\t\t\tramReq_mb: ${resourceDict["memReq"]}\n` +
         `\t\t\tcommunicationRadius_m: ${resourceDict["comRad"]}\n` +
-        `\t\t\tserviceRate: ${resourceDict["serviceRate"]}\n` +
         `\t\t}\n}`;
 }
 
@@ -566,8 +565,6 @@ function readEdgeTable(markerNumber) {
             resourceDict["memAvail"] = attrVal;
         }else if(attr.includes("Comm")){
             resourceDict["comRad"] = attrVal;
-        }else if(attr.includes("Service")){
-            resourceDict["serviceRate"] = attrVal;
         }else if(attr.includes("Height")){
             resourceDict["height"] = attrVal;
         }
@@ -587,14 +584,15 @@ function readLinkTable(){
 }
 
 function edgeAttributes(){
-    return "\tattributes: {\n" +
+    return "\tattributes {\n" +
         "\t\tkey: local_CPU_ghz, type: float \n" +
         "\t\tkey: localProcessing_ms, type: int \n" +
         "\t\tkey: storageAvail_mb, type: int \n" +
         "\t\tkey: ramAvail_mb, type: int \n" +
-        "\t\tkey: communicationRadius_m, type:float \n" +
-        "\t\tkey: serviceRate, type: float \n" +
-        "}";
+        "\t\tkey: communicationRadius_m, type: float \n" +
+        "}\n" +
+        "serviceRate: local_CPU_ghz\n" +
+        "radius: communicationRadius_m";
 }
 
 function edgeEntry(markerNumber, locationDict, resourceDict){
@@ -609,7 +607,6 @@ function edgeEntry(markerNumber, locationDict, resourceDict){
         `\t\tstorageAvail_mb: ${resourceDict["storageAvail"]}\n` +
         `\t\tramAvail_mb: ${resourceDict["memAvail"]}\n` +
         `\t\tcommunicationRadius_m: ${resourceDict["comRad"]}\n` +
-        `\t\tserviceRate: ${resourceDict["serviceRate"]}\n` +
         `\t}\n}`;
 }
 
@@ -643,7 +640,7 @@ function exportMarkers(){
         let linkDict = readLinkTable();
         let linkId = Object.keys(linkDict).length / 2;
         if(linkId > 0){
-            linkSection = 'linkSet { \n' +
+            linkSection = 'linkSet EdgeLinks { \n' +
                 '\tattributes { \n\t\tkey: bandwidth, type: float\n\t}\n';
             for(let l_id = 0; l_id < linkId; l_id++){
                 let pair = linkDict["pair"+ l_id].split(",");
@@ -660,11 +657,11 @@ function exportMarkers(){
 
     let trsFile;
     if(trs_id > 0){
-        trsFile  = "Thing IoT \n\t " + iotAttributes();
+        trsFile  = "Thing IoT \n\tclientSet IoTSet { " + iotAttributes();
         for(let i_id = 0; i_id < trs_id; i_id++){
             trsFile = trsFile + '\n\t' + trs_candidates[i_id];
         }
-        trsFile = trsFile + '\n}';
+        trsFile += '}';
         console.log(trsFile);
         let blob = new Blob([trsFile],
             {type: "text/plain;charset=utf-8"});
@@ -673,12 +670,12 @@ function exportMarkers(){
 
     let ensFile;
     if(ens_id > 0){
-        ensFile = "Graph Edge \n\tnodeset {\n\t" + edgeAttributes();
+        ensFile = "Graph Edge \n\tnodeSet EdgeSet {\n\t" + edgeAttributes();
         for(let e_id = 0; e_id < ens_id; e_id++){
             ensFile = ensFile + '\n\t' + ens_candidates[e_id];
         }
         ensFile += '\n}';
-        ensFile += linkSection + '\n}';
+        ensFile += linkSection;
         console.log(ensFile);
         let blob = new Blob([ensFile],
             {type: "text/plain;charset=utf-8"});
