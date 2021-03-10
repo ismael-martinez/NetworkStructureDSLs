@@ -310,7 +310,7 @@ def verify_pns_model(pns_metamodel, pns_file):
 
 ### GENERATE CLIENT INSTANCES FROM NRS PARSER ###
 # Generate code for Client instances based on NRS file.
-def generate_client_instances(nrs_model, location_json):
+def generate_client_instances(nrs_model):
     client_type = nrs_model.name
 
     # Partition clients
@@ -378,12 +378,10 @@ def generate_client_instances(nrs_model, location_json):
                 instance_code_gen_client += '{} = {}\n'.format(attr, client_attributes[attr])
 
             # Build locations
-            client_location = {}
-
+            client_location = {"height": client.location.ht, "latitude": client.location.lat, "longitude": client.location.lng}
 
             instance_code_gen_client += 'locations = []\n'
-            for id in client_location:
-                instance_code_gen_client += 'locations.append(Locations({}, {}, {}))\n'.format(client_location[id]['latitude'], client_location[id]['longitude'], client_location[id]['height'])
+            instance_code_gen_client += 'locations.append(Locations({}, {}, {}))\n'.format(client_location['latitude'], client_location['longitude'], client_location['height'])
 
             # Comment timestamp meaning
             instance_code_gen_client += '# schedule_str = {}\n'.format(schedule_str)
@@ -406,7 +404,7 @@ def generate_graph_instances(pns_model, graph_name):
     graph_name = pns_model.name
     ## Node instances
     instance_code_gen_graph += '###### All Node Instances ###### \n\n'
-    for node_set in pns_model.nodeSets:
+    for node_set in pns_model.nodeSet:
         instance_code_gen_graph += '### Node_{} Instances ### \n\n'.format(node_set.name)
         for node in node_set.nodes:
             node_name = node.name
@@ -415,17 +413,18 @@ def generate_graph_instances(pns_model, graph_name):
             instance_code_gen_graph += '# Instance of Node {}\n'.format(node_name)
             node_type_dict = {}
             node_attributes = {}
+            node_attr_keys = [a.name for a in node.attributes]
             for i in range(len(node.attributes)):
-                attr = node.attributes[i]
+                attr = node.attributes[i].name
                 attr_val = node.val[i]
                 node_attributes[attr] = attr_val
             for i in range(len(node_set.attributes)):
-                attr = node_set.attributes[i]
-                type = node_set.type[i]
+                attr = node_set.attributes[i].name
+                type = node_set.attributes[i].type
                 node_type_dict[attr] = type
-            for attr in node_set.attributes:
+            for attr in node_attr_keys:
                 if attr not in node_attributes:
-                    if attr == node_set.radius:
+                    if attr == node_set.radius.name:
                         default_val = 'np.infty'
                     else:
                         attr_type = node_type_dict[attr]
@@ -436,16 +435,15 @@ def generate_graph_instances(pns_model, graph_name):
                 instance_code_gen_graph += '{} = {}\n'.format(attr, node_attributes[attr])
 
             # Build locations
-            node_locations = {}
-
+            node_location = {"height": node.location.ht, "latitude": node.location.lat,
+                               "longitude": node.location.lng}
 
             instance_code_gen_graph += 'locations = []\n'
-            for attr in node_locations:
-                instance_code_gen_graph += 'locations.append(Locations({}, {}, {}))\n'.format(node_locations[attr]['latitude'],
-                                                                                                 node_locations[attr]['longitude'],
-                                                                                                 node_locations[attr]['height'])
+            instance_code_gen_graph += 'locations.append(Locations({}, {}, {}))\n'.format(node_location['latitude'],
+                                                                                          node_location['longitude'],
+                                                                                              node_location['height'])
 
-            parameters = ['locations'] + node_set.attributes
+            parameters = ['locations'] + node_attr_keys
             instance_code_gen_graph += 'node = Node_{}("{}", {})\n'.format(node_set.name, node_name, ', '.join(parameters))
             instance_code_gen_graph += 'nodes.append_node(node)\n\n'
 
@@ -453,7 +451,7 @@ def generate_graph_instances(pns_model, graph_name):
 
     instance_code_gen_graph += '###### All Link Instances ######\n\n'
 
-    for link_set in pns_model.linkSets:
+    for link_set in pns_model.linkSet:
         instance_code_gen_graph += '### Link_{} Instance ###\n\n'.format(link_set.name)
         for link in link_set.links:
             link_name = link.name
@@ -466,9 +464,10 @@ def generate_graph_instances(pns_model, graph_name):
                 attr_val = link.val[i]
                 link_attributes[attr] = attr_val
             link_type_dict = {}
-            for i in range(len(link_set.attributes)):
-                attr = link_set.attributes[i]
-                type = link_set.type[i]
+            link_attr_keys = [a.name for a in link_set.attributes]
+            for i in range(len(link_attr_keys)):
+                attr = link_set.attributes[i].name
+                type = link_set.attributes[i].type
                 link_type_dict[attr] = type
             for attr in link_set.attributes:
                 if attr not in link_attributes:
@@ -485,7 +484,7 @@ def generate_graph_instances(pns_model, graph_name):
             # Set neighbours of nodes based on link definitions
             instance_code_gen_graph += 'nodes.get_node("{}").neighbours.append(("{}", "{}"))\n'.format(node_pair[0], link_name, node_pair[1])
             # Generate instance of link class
-            parameters = ['node_pair'] + link_set.attributes
+            parameters = ['node_pair'] + link_attr_keys
             instance_code_gen_graph += 'link = Link_{}("{}", {})\n'.format(link_set.name, link_name, ', '.join(parameters))
             instance_code_gen_graph += 'links.append_link(link)\n\n'
 
@@ -554,7 +553,7 @@ def generate_node_class(pns_model):
         attr_name_list = node_set.attributes
         attr_type = {}
         for a in range(len(node_set.attributes)):
-            attr_type[node_set.attributes[a]] = node_set.type[a]
+            attr_type[node_set.attributes[a]] = node_set.attributes[a].type
         default_param_list = attribute_parameters(attr_name_list, attr_type, node_set.radius)
         mandatory_param_list = ['self', 'id', 'locations']
         param_list = mandatory_param_list + default_param_list
@@ -606,13 +605,13 @@ def generate_node_class(pns_model):
 # Output: pns_class_gen (string) - Generated code for 'class Link'
 def generate_link_class(pns_model):
     link_class_gen = '# Link classes for specific attribute set\n'
-    for link_set in pns_model.linkSets:
+    for link_set in pns_model.linkSet:
         link_class_gen += 'class Link_{}(LinkAbstract):\n'.format(link_set.name)
         # List of attribute names and types
         attr_name_list = link_set.attributes
         attr_type = {}
         for a in range(len(link_set.attributes)):
-            attr_type[link_set.attributes[a]] = link_set.type[a]
+            attr_type[link_set.attributes[a]] = link_set.attributes[a].type
         default_param_list = attribute_parameters(attr_name_list, attr_type, '')
         mandatory_param_list = ['self', 'id', 'node_pair']
         param_list = mandatory_param_list + default_param_list
