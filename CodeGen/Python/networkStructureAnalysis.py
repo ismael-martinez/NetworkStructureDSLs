@@ -4,6 +4,7 @@ from networkUtil import *
 from Simulation import *
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 import random
 import networkx as nx
 import os
@@ -128,6 +129,7 @@ def main(argv):
         #     if a > max_y:
         #         max_y = a
 
+    hour_pdf = PdfPages('request_arrival_perHour.pdf')
     for node in node_arrival_schedules:
         # Plot hourly arrival
         arrivals = arrivals_node[node]
@@ -147,10 +149,13 @@ def main(argv):
 
         if arrival_analysis:
 
-            plot_pdf = 'request_arrivals_perHour_{}.pdf'.format(node)
-            fig.savefig(plot_pdf, bbox_inches='tight')
+            #plot_pdf = 'request_arrivals_perHour_{}.pdf'.format(node)
+            #fig.savefig(plot_pdf, bbox_inches='tight')
+            hour_pdf.savefig(fig)
+    hour_pdf.close()
 
     # Arrivals per quarter hour (15)
+    quarter_pdf = PdfPages('request_arrival_perQuarter.pdf')
     quarters = []
     for h in hours:
         for i in range(4):
@@ -205,8 +210,10 @@ def main(argv):
         #plt.show()
 
         if arrival_analysis:
-            plot_pdf = 'request_arrivals_perQuarter_{}.pdf'.format(node)
-            fig.savefig(plot_pdf, bbox_inches='tight')
+            quarter_pdf.savefig(fig)
+            #plot_pdf = 'request_arrivals_perQuarter_{}.pdf'.format(node)
+            #fig.savefig(plot_pdf, bbox_inches='tight')
+    quarter_pdf.close()
 
     if arrival_analysis:
         print('Complete')
