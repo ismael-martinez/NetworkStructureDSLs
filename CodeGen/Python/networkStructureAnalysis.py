@@ -83,13 +83,20 @@ def main(argv):
             node_arrival_schedules[node_name] = []
         client_id = client_key_index[t]
         n = node_key_dict[node_id]
-        within_node_radius = (distance_matrix[t][n])*1000 <= network_structure.graph.nodes.get_node(node_id).get_radius()
-        within_thing_radius = (distance_matrix[t][n])*1000 <= network_structure.clients.get_client(client_id).get_radius()
+        node_radius = network_structure.graph.nodes.get_node(node_id).get_radius()
+        client_radius = network_structure.clients.get_client(client_id).get_radius()
+        within_node_radius = (distance_matrix[t][n])*1000 <= node_radius
+        within_thing_radius = (distance_matrix[t][n])*1000 <= client_radius
         if (within_node_radius and within_thing_radius): # distance matrix in kilometeres. Radius in meters.
             sched = network_structure.clients.get_client(client_id).schedule
             old_sched = node_arrival_schedules[node_name]
             new_sched = merge_timestamps(sched, old_sched)
             node_arrival_schedules[node_name] = new_sched
+
+    node_arrival_keys = [a for a in node_arrival_schedules.keys()]
+    for node in node_arrival_keys:
+        if node_arrival_schedules[node] == []:
+            node_arrival_schedules.pop(node, None)
 
     if arrival_analysis:
         print('Arrival Request graphs printing in .pdf files')
