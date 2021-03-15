@@ -117,7 +117,7 @@ function requestSchedTypeProbabilistic(markerNumber){
     requestDistributionDropdown.options[0] = new Option("Exponential");
     requestDistributionDropdown.options[1] = new Option("Gaussian");
     requestDistributionDropdown.options[2] = new Option("Gamma");
-    requestDistributionDropdown.options[3] = new Option("Chi-Squared");
+    requestDistributionDropdown.options[3] = new Option("ChiSquared");
     requestDistributionDropdown.options[4] = new Option("Beta");
     requestDistributionDropdown.options[5] = new Option("Dirichlet");
     //requestDistributionDropdown.options[6] = new Option("Bernouilli");
@@ -288,8 +288,8 @@ function markerFormEdge(markerNumber){
     // Resources
     tableRow(tbody, "Local CPU (GHz):", "e.g. 3.42");
     tableRow(tbody, "Local processing (ms)", "e.g. 234");
-    tableRow(tbody, "Storage memory required (MB):", "e.g. 59");
-    tableRow(tbody, "RAM required: (MB)", "e.g. 242");
+    tableRow(tbody, "Storage memory available (MB):", "e.g. 59");
+    tableRow(tbody, "RAM available: (MB)", "e.g. 242");
     tableRow(tbody, "Communication radius (meters)", "e.g. 279");
     // Location
     tableRow(tbody, "Height (metres)", "e.g. 1.2");

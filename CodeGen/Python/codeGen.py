@@ -93,8 +93,8 @@ def convert_probabilistic_schedule(probMap):
             curr_sec += gamma.rvs(alpha, scale=(1./beta))
         schedule_str = [str(timestamp(s)) for s in schedule_sec]
         return [schedule_sec, schedule_str]
-    elif 'Chi-Square' in distribution:
-        df_str = probMap['df']
+    elif 'ChiSquare' in distribution:
+        df_str = probMap['k']
         df = float(df_str)
         schedule_sec = []
         curr_sec = start_sec
@@ -311,12 +311,12 @@ def verify_pns_model(pns_metamodel, pns_file):
 ### GENERATE CLIENT INSTANCES FROM NRS PARSER ###
 # Generate code for Client instances based on NRS file.
 def generate_client_instances(nrs_model):
-    client_type = nrs_model.name
 
     # Partition clients
     instance_code_gen_client = '###### All Client instances ######\n\n'
     for client_set in nrs_model.clientSet:
-        instance_code_gen_client += '#### Client_{} instances ##### \n\n'.format(client_set.name)
+
+        instance_code_gen_client += '#### IoT_{} instances ##### \n\n'.format(client_set.name)
         instance_code_gen_client += 'clients = Clients()\n\n'
         for client in client_set.clients:
             # Get client ID
@@ -348,7 +348,19 @@ def generate_client_instances(nrs_model):
                 elif 'Gaussian' in distribution:
                     probMap['mu'] = requestSchedule.interarrivalDistribution.mu
                     probMap['var'] = requestSchedule.interarrivalDistribution.var
+                elif 'Gamma' in distribution:
+                    probMap['alpha'] = requestSchedule.interarrivalDistribution.alpha
+                    probMap['beta'] = requestSchedule.interarrivalDistribution.beta
+                elif 'ChiSquared' in distribution:
+                    probMap['k'] = requestSchedule.interarrivalDistribution.k
+                elif 'Beta' in distribution:
+                    probMap['alpha'] = requestSchedule.interarrivalDistribution.alpha
+                    probMap['beta'] = requestSchedule.interarrivalDistribution.beta
+                elif 'Dirichlet' in distribution:
+                    probMap['alpha'] = requestSchedule.interarrivalDistribution.alpha
+                    probMap['beta'] = requestSchedule.interarrivalDistribution.beta
                 [schedule_sec, schedule_str] = convert_probabilistic_schedule(probMap)
+
 
             else:
                 continue
@@ -391,7 +403,7 @@ def generate_client_instances(nrs_model):
             instance_code_gen_client += 'timestamp({})]\n'.format(schedule_sec[-1])
 
             parameters = ['schedule', 'locations'] + client_set.attributes
-            instance_code_gen_client += 'client = Client_{}("{}", {})\n'.format(client_type, client_name, ', '.join(parameters))
+            instance_code_gen_client += 'client = Client_{}("{}", {})\n'.format(client_set.name, client_name, ', '.join(parameters))
             instance_code_gen_client += 'clients.append_client(client)\n\n'
 
     return instance_code_gen_client
