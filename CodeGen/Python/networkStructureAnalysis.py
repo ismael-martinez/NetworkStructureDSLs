@@ -129,7 +129,7 @@ def main(argv):
         #     if a > max_y:
         #         max_y = a
 
-    hour_pdf = PdfPages('request_arrival_perHour.pdf')
+    arrival_pdf = PdfPages('request_arrival.pdf')
     for node in node_arrival_schedules:
         # Plot hourly arrival
         arrivals = arrivals_node[node]
@@ -151,11 +151,9 @@ def main(argv):
 
             #plot_pdf = 'request_arrivals_perHour_{}.pdf'.format(node)
             #fig.savefig(plot_pdf, bbox_inches='tight')
-            hour_pdf.savefig(fig)
-    hour_pdf.close()
+            arrival_pdf.savefig(fig)
 
     # Arrivals per quarter hour (15)
-    quarter_pdf = PdfPages('request_arrival_perQuarter.pdf')
     quarters = []
     for h in hours:
         for i in range(4):
@@ -210,11 +208,11 @@ def main(argv):
         #plt.show()
 
         if arrival_analysis:
-            quarter_pdf.savefig(fig)
+            arrival_pdf.savefig(fig)
             #plot_pdf = 'request_arrivals_perQuarter_{}.pdf'.format(node)
             #fig.savefig(plot_pdf, bbox_inches='tight')
-    quarter_pdf.close()
 
+    arrival_pdf.close()
     if arrival_analysis:
         print('Complete')
     ############################################
