@@ -1,6 +1,6 @@
 from networkStructureAttributesAndInstances import *
 import networkStructure as NS
-from networkUtil import *
+import networkUtil as NU
 from Simulation import *
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,6 +11,172 @@ import os
 import cv2
 import math
 import sys, getopt
+
+
+def handshake():
+    # Handshake -- create a distance matrix between every 'thing' and 'node'
+    T = len(network_structure.clients.get_clients())
+    N = len(network_structure.graph.nodes.get_nodes())
+    distance_matrix = np.zeros((T, N))
+    nearest_node = [0] * T
+    client_key_index = []
+    for client in network_structure.clients.get_clients():
+        client_key_index.append(client)
+    node_key_index = []
+    node_key_dict = {}
+    n = 0
+    for node in network_structure.graph.nodes.get_nodes():
+        node_key_index.append(node)
+        node_key_dict[node] = n
+        n += 1
+
+    t = 0
+    for client in network_structure.clients.get_clients():
+        for client_location in network_structure.clients.get_client(client).locations:
+            n = 0
+            for node in network_structure.graph.nodes.get_nodes():
+                for node_location in network_structure.graph.nodes.get_node(node).locations:
+                    distance_matrix[t][n] = NU.distance_location(client_location, node_location)
+                    if distance_matrix[t][n] < distance_matrix[t][nearest_node[t]]:
+                        nearest_node[t] = n
+                n += 1
+        t += 1
+
+    node_arrival_schedules = {}
+
+    for t in range(T):
+        node_id = node_key_index[nearest_node[t]]
+        node_name = network_structure.graph.nodes.get_node(node_id).id
+        if node_name not in node_arrival_schedules.keys():
+            node_arrival_schedules[node_name] = []
+        client_id = client_key_index[t]
+        n = node_key_dict[node_id]
+        node_radius = network_structure.graph.nodes.get_node(node_id).get_radius()
+        client_radius = network_structure.clients.get_client(client_id).get_radius()
+        within_node_radius = (distance_matrix[t][n]) * 1000 <= node_radius # kilometers to meters
+        within_thing_radius = (distance_matrix[t][n]) * 1000 <= client_radius # kilometers to meters
+        if (within_node_radius and within_thing_radius):  # distance matrix in kilometeres. Radius in meters.
+            sched = network_structure.clients.get_client(client_id).schedule
+            old_sched = node_arrival_schedules[node_name]
+            new_sched = merge_timestamps(sched, old_sched)
+            node_arrival_schedules[node_name] = new_sched
+
+    node_arrival_keys = [a for a in node_arrival_schedules.keys()]
+    for node in node_arrival_keys:
+        if node_arrival_schedules[node] == []:
+            node_arrival_schedules.pop(node, None)
+
+    return node_arrival_schedules
+
+def timestamp_floor(timestamp_var, parts_per_hour = 1):
+    partition_minutes = 60/parts_per_hour
+    timestamp_hour = timestamp_var.hour
+    timestamp_floor_minutes = 0
+    for p in range(parts_per_hour):
+        if timestamp_var.minutes >= p*partition_minutes:
+            timestamp_floor_minutes = p
+        else:
+            break
+    # Build timestamp_floor
+    timestamp_seconds = timestamp_floor_minutes*partition_minutes*60
+    timestamp_seconds += timestamp_hour*3600
+    timestamp_floor = NS.timestamp(timestamp_seconds)
+    return timestamp_floor
+
+# def timestamp_ceil(timestamp_var, parts_per_hour = 1):
+#     partition_minutes = 60/parts_per_hour
+#     timestamp_hour = timestamp_var.hour
+#     timestamp_ceil_minutes = 60
+#     for p in range(parts_per_hour, -1, -1):
+#         if timestamp_var.minutes <= p*partition_minutes:
+#             timestamp_ceil_minutes = p
+#         else:
+#             break
+#     # Build timestamp_floor
+#     timestamp_seconds = timestamp_ceil_minutes*60
+#     timestamp_seconds += timestamp_hour*3600
+#     timestamp_ceil = NS.timestamp(timestamp_seconds)
+#     return timestamp_ceil
+
+def minute_str(integer):
+    int_str = str(integer)
+    if int_str == '0':
+        int_str = '00'
+    return int_str
+
+def hour_partition(node_arrival_schedules, arrival_pdf, parts_per_hour=1, type='quantity'):
+    # This ensures all histograms are the same size. This shouldn't be necessary
+    # first_timestamp_all = NS.timestamp(24*60*60 - 1)
+    # last_timestamp_all = NS.timestamp(0)
+    # for node in node_arrival_schedules:
+    #     first_timestamp = node_arrival_schedules[node][0]
+    #     last_timestamp = node_arrival_schedules[node][-1]
+    #     if NU.compare_time(first_timestamp, first_timestamp_all) < 0:
+    #         first_timestamp_all = first_timestamp
+    #     if NU.compare_time(last_timestamp, last_timestamp_all) > 0:
+    #         last_timestamp_all = last_timestamp
+
+    if (60 % parts_per_hour != 0):
+        raise ValueError("Partitions must equally divide an hour by minutes")
+
+    for node in node_arrival_schedules:
+        minutes_per_partition = int(60/parts_per_hour)
+        first_partition = timestamp_floor(node_arrival_schedules[node][0], parts_per_hour)
+        last_partition = timestamp_floor(node_arrival_schedules[node][-1], parts_per_hour)
+
+
+        partitions_qty = int((last_partition.timestamp_to_seconds() - first_partition.timestamp_to_seconds())/(60*minutes_per_partition)) + 1
+        partition_timestamps = [NS.timestamp(first_partition.timestamp_to_seconds() + p*minutes_per_partition*60) for p in range(partitions_qty)]
+
+
+        arrivals = [0] * (partitions_qty)
+        partition_indices = list(range((partitions_qty)))
+        for ts in node_arrival_schedules[node]:
+            ts_partition = timestamp_floor(ts, parts_per_hour)
+            ts_partition_idx = int((ts_partition.timestamp_to_seconds() - first_partition.timestamp_to_seconds())/(60*minutes_per_partition))
+            # For quantity of arrivals
+            arrivals[ts_partition_idx] += 1
+
+        # Plot in PDF
+        # Plot arrivals by partition
+        fig, ax = plt.subplots()
+        ax.bar(partition_indices, arrivals)
+
+        partition_str = [str(ts.hour) + 'h' + minute_str(ts.minutes) for ts in partition_timestamps]
+        ax.set_xticks(partition_indices)
+        ax.set_xticklabels(partition_str)
+        ax.set_xticklabels(partition_str, rotation=45)
+        # ax.set_ylim(0, max_y)
+        # ax.set_yticks(list(range(0, max_y+1)))
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Arrivals')
+        ax.set_title('Arrivals per Hour, partitions = {}, Node {}'.format(parts_per_hour, node))
+
+        rects = ax.patches
+        ax_labels = [str(a) for a in arrivals]
+        for rect, ax_label in zip(rects, ax_labels):
+            height = rect.get_height()
+            ax.text(rect.get_x() + rect.get_width() / 2, height + 5, ax_label, ha='center', va='bottom')
+
+        # plt.show()
+        arrival_pdf.savefig(fig)
+
+    # hours = list(range(first_hour_all, last_hour_all + 1))
+    # arrivals_node = {}
+    # for h in hours:
+    #     arrivals_node[h] = 0
+    # # max_y = 0 # Max y-axis value for plot
+    # for node in node_arrival_schedules:
+    #     arrivals = [0] * (last_hour_all - first_hour_all + 1)
+    #     for timestamp in node_arrival_schedules[node]:
+    #         hour = timestamp.hour
+    #         idx = hour - first_hour_all
+    #         arrivals[idx] += 1
+    #     arrivals_node[node] = arrivals
+    #     # for a in arrivals:
+    #     #     if a > max_y:
+    #     #         max_y = a
+
 
 
 def main(argv):
@@ -46,173 +212,17 @@ def main(argv):
 
 
     # Request arrival graphs ####################
+    node_arrival_schedules = handshake()
 
-    # Handshake -- create a distance matrix between every 'thing' and 'node'
-    T = len(network_structure.clients.get_clients())
-    N = len(network_structure.graph.nodes.get_nodes())
-    distance_matrix = np.zeros((T, N))
-    nearest_node = [0]*T
-    client_key_index = []
-    for client in network_structure.clients.get_clients():
-        client_key_index.append(client)
-    node_key_index = []
-    node_key_dict = {}
-    n = 0
-    for node in network_structure.graph.nodes.get_nodes():
-        node_key_index.append(node)
-        node_key_dict[node] = n
-        n += 1
-
-    t = 0
-    for client in network_structure.clients.get_clients():
-        for client_location in network_structure.clients.get_client(client).locations:
-            n = 0
-            for node in network_structure.graph.nodes.get_nodes():
-                for node_location in network_structure.graph.nodes.get_node(node).locations:
-                    distance_matrix[t][n] = distance_location(client_location, node_location)
-                    if distance_matrix[t][n] < distance_matrix[t][nearest_node[t]]:
-                        nearest_node[t] = n
-                n += 1
-        t += 1
-
-    node_arrival_schedules = {}
-
-    for t in range(T):
-        node_id = node_key_index[nearest_node[t]]
-        node_name = network_structure.graph.nodes.get_node(node_id).id
-        if node_name not in node_arrival_schedules.keys():
-            node_arrival_schedules[node_name] = []
-        client_id = client_key_index[t]
-        n = node_key_dict[node_id]
-        node_radius = network_structure.graph.nodes.get_node(node_id).get_radius()
-        client_radius = network_structure.clients.get_client(client_id).get_radius()
-        within_node_radius = (distance_matrix[t][n])*1000 <= node_radius
-        within_thing_radius = (distance_matrix[t][n])*1000 <= client_radius
-        if (within_node_radius and within_thing_radius): # distance matrix in kilometeres. Radius in meters.
-            sched = network_structure.clients.get_client(client_id).schedule
-            old_sched = node_arrival_schedules[node_name]
-            new_sched = merge_timestamps(sched, old_sched)
-            node_arrival_schedules[node_name] = new_sched
-
-    node_arrival_keys = [a for a in node_arrival_schedules.keys()]
-    for node in node_arrival_keys:
-        if node_arrival_schedules[node] == []:
-            node_arrival_schedules.pop(node, None)
 
     if arrival_analysis:
         print('Arrival Request graphs printing in .pdf files')
 
-    # Arrivals per hour
-    first_hour_all = 24
-    last_hour_all = 0
-    for node in node_arrival_schedules:
-        first_hour = node_arrival_schedules[node][0].hour
-        last_hour = node_arrival_schedules[node][-1].hour
-        if first_hour < first_hour_all:
-            first_hour_all = first_hour
-        if last_hour > last_hour_all:
-            last_hour_all = last_hour
-
-    hours = list(range(first_hour_all, last_hour_all+1))
-    arrivals_node = {}
-    for h in hours:
-        arrivals_node[h] = 0
-    #max_y = 0 # Max y-axis value for plot
-    for node in node_arrival_schedules:
-        arrivals = [0]*(last_hour_all - first_hour_all + 1)
-        for timestamp in node_arrival_schedules[node]:
-            hour = timestamp.hour
-            idx = hour - first_hour_all
-            arrivals[idx] += 1
-        arrivals_node[node] = arrivals
-        # for a in arrivals:
-        #     if a > max_y:
-        #         max_y = a
-
     arrival_pdf = PdfPages('request_arrival.pdf')
-    for node in node_arrival_schedules:
-        # Plot hourly arrival
-        arrivals = arrivals_node[node]
-        fig, ax = plt.subplots()
-        ax.bar(hours, arrivals)
-        hour_str = [str(h) + 'h00' for h in hours]
-        ax.set_xticks(hours)
-        ax.set_xticklabels(hour_str)
-        ax.set_xticklabels(hour_str, rotation=45)
-        #ax.set_ylim(0, max_y)
-        #ax.set_yticks(list(range(0, max_y+1)))
-        ax.set_xlabel('Hours')
-        ax.set_ylabel('Arrivals')
-        ax.set_title('Arrivals per hour - Node {}'.format(node))
-        #plt.show()
-
-
-        if arrival_analysis:
-
-            #plot_pdf = 'request_arrivals_perHour_{}.pdf'.format(node)
-            #fig.savefig(plot_pdf, bbox_inches='tight')
-            arrival_pdf.savefig(fig)
-
-    # Arrivals per quarter hour (15)
-    quarters = []
-    for h in hours:
-        for i in range(4):
-            quarter_time = h + i*0.25
-            quarters.append(quarter_time)
-    arrivals_node = {}
-    for h in hours:
-        arrivals_node[h] = 0
-    #max_y = 0
-    for node in node_arrival_schedules:
-        arrivals = [0]*(last_hour_all - first_hour_all + 1)*4
-        for timestamp in node_arrival_schedules[node]:
-            hour = timestamp.hour
-            minutes = timestamp.minutes
-            idx = 4*(hour - first_hour_all)
-            if minutes >= 15 and minutes < 30:
-                idx += 1
-            elif minutes >= 30 and minutes < 45:
-                idx += 2
-            elif minutes >= 45:
-                idx += 3
-            arrivals[idx] += 1
-        arrivals_node[node] = arrivals
-        # for a in arrivals:
-        #     if a > max_y:
-        #         max_y = a
-
-    for node in node_arrival_schedules:
-        # Plot quarterly arrival
-        arrivals = arrivals_node[node]
-        fig, ax = plt.subplots()
-        ax.bar(quarters, arrivals, 0.2, color='g')
-        quarter_str = []
-        for q in quarters:
-            h = math.floor(q)
-            m = q % 1
-            if m < 0.25:
-                quarter_str.append(str(h) + 'h00')
-            elif m < 0.5:
-                quarter_str.append(str(h) + 'h15')
-            elif m < 0.75:
-                quarter_str.append(str(h) + 'h30')
-            else:
-                quarter_str.append(str(h) + 'h45')
-        ax.set_xticks(quarters)
-        ax.set_xticklabels(quarter_str, rotation=45)
-        #ax.set_ylim(0, max_y)
-        #ax.set_yticks(list(range(0, max_y+1)))
-        ax.set_xlabel('Quarter Hours')
-        ax.set_ylabel('Arrivals')
-        ax.set_title('Arrivals per 15 minutes - Node {}'.format(node))
-        #plt.show()
-
-        if arrival_analysis:
-            arrival_pdf.savefig(fig)
-            #plot_pdf = 'request_arrivals_perQuarter_{}.pdf'.format(node)
-            #fig.savefig(plot_pdf, bbox_inches='tight')
-
+    hour_partition(node_arrival_schedules, arrival_pdf, 1)
+    hour_partition(node_arrival_schedules, arrival_pdf, 4)
     arrival_pdf.close()
+
     if arrival_analysis:
         print('Complete')
     ############################################
