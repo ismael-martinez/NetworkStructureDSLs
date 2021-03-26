@@ -56,10 +56,11 @@ def handshake():
         within_node_radius = (distance_matrix[t][n]) * 1000 <= node_radius # kilometers to meters
         within_thing_radius = (distance_matrix[t][n]) * 1000 <= client_radius # kilometers to meters
         if (within_node_radius and within_thing_radius):  # distance matrix in kilometeres. Radius in meters.
-            sched = network_structure.clients.get_client(client_id).schedule
-            old_sched = node_arrival_schedules[node_name]
-            new_sched = merge_timestamps(sched, old_sched)
-            node_arrival_schedules[node_name] = new_sched
+            client = network_structure.clients.get_client(client_id)
+            client_attributes = [client.schedule, client.fileSize_mb, client.local_CPU_ghz, client.storageReq_mb, client.ramReq_mb]
+            old_attributes = node_arrival_schedules[node_name]
+            new_attributes = NU.merge_timestamps_attr(client_attributes, old_attributes) # Merge via first index = schedule
+            node_arrival_schedules[node_name] = new_attributes
 
     node_arrival_keys = [a for a in node_arrival_schedules.keys()]
     for node in node_arrival_keys:
@@ -104,7 +105,7 @@ def minute_str(integer):
         int_str = '00'
     return int_str
 
-def hour_partition(node_arrival_schedules, arrival_pdf, parts_per_hour=1, type='quantity'):
+def hour_partition(node_arrival_schedules, arrival_pdf, parts_per_hour=1, histo_type='quantity'):
 
 
     if (60 % parts_per_hour != 0):
@@ -112,8 +113,8 @@ def hour_partition(node_arrival_schedules, arrival_pdf, parts_per_hour=1, type='
 
     for node in node_arrival_schedules:
         minutes_per_partition = int(60/parts_per_hour)
-        first_partition = timestamp_floor(node_arrival_schedules[node][0], parts_per_hour)
-        last_partition = timestamp_floor(node_arrival_schedules[node][-1], parts_per_hour)
+        first_partition = timestamp_floor(node_arrival_schedules[node][0][0], parts_per_hour)
+        last_partition = timestamp_floor(node_arrival_schedules[node][-1][0], parts_per_hour)
 
 
         partitions_qty = int((last_partition.timestamp_to_seconds() - first_partition.timestamp_to_seconds())/(60*minutes_per_partition)) + 1
@@ -122,17 +123,24 @@ def hour_partition(node_arrival_schedules, arrival_pdf, parts_per_hour=1, type='
 
         arrivals = [0] * (partitions_qty)
         partition_indices = list(range((partitions_qty)))
-        for ts in node_arrival_schedules[node]:
+        for row in node_arrival_schedules[node]:
+            ts = row[0]
             ts_partition = timestamp_floor(ts, parts_per_hour)
             ts_partition_idx = int((ts_partition.timestamp_to_seconds() - first_partition.timestamp_to_seconds())/(60*minutes_per_partition))
-            # For quantity of arrivals
-            arrivals[ts_partition_idx] += 1
+            if histo_type == 'quantity':
+                # For quantity of arrivals
+                arrivals[ts_partition_idx] += 1
+            elif histo_type == 'storage':
+                # For storage of arrivals
+                arrivals[ts_partition_idx] += row[4]
+            elif histo_type == 'ram':
+                # For storage of arrivals
+                arrivals[ts_partition_idx] += row[5]
 
         # Plot in PDF
         # Plot arrivals by partition
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(10,10))
         ax.bar(partition_indices, arrivals)
-
         partition_str = [str(ts.hour) + 'h' + minute_str(ts.minutes) for ts in partition_timestamps]
         ax.set_xticks(partition_indices)
         ax.set_xticklabels(partition_str)
@@ -140,7 +148,12 @@ def hour_partition(node_arrival_schedules, arrival_pdf, parts_per_hour=1, type='
         # ax.set_ylim(0, max_y)
         # ax.set_yticks(list(range(0, max_y+1)))
         ax.set_xlabel('Time')
-        ax.set_ylabel('Arrivals')
+        if histo_type == 'quantity':
+            ax.set_ylabel('# of Arrivals')
+        elif histo_type == 'storage':
+            ax.set_ylabel('Storage Required (GB)')
+        elif histo_type == 'ram':
+            ax.set_ylabel('RAM Required (GB)')
         ax.set_title('Arrivals per 1/{} Hour — Node {}'.format(parts_per_hour, node))
 
         rects = ax.patches
@@ -159,15 +172,16 @@ def main(argv):
     arrival_analysis = False
     network_structure_analysis = False
     partitions = 1
+    histo_type = "quantity" #Default
 
     try:
-        opts, args = getopt.getopt(argv, "hqanp:", ["queueAnalysis=", "arrivalAnalysis=", "networkAnalysis=", "number_partitions="])
+        opts, args = getopt.getopt(argv, "hqanp:t:", ["queueAnalysis=", "arrivalAnalysis=", "networkAnalysis=", "numberPartitions=", "histogramType="])
     except getopt.GetoptError:
-        print('networkStructureAnalysis.py -q (optional) -a (optional) -n (optional) -p <number of partitions per hour> (optional)')
+        print('networkStructureAnalysis.py -q (optional) -a (optional) -n (optional) -p <number of partitions per hour> (optional) -t <type of histogram> (optional)')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('networkStructureAnalysis.py -q (optional) -a (optional) -n (optional) -p <number of partitions per hour> (optional)')
+            print('networkStructureAnalysis.py -q (optional) -a (optional) -n (optional) -p <number of partitions per hour> (optional) -t <type of histogram> (optional)')
             sys.exit()
         elif opt in ("-q", "--queueAnalysis"):
             queue_analysis = True
@@ -175,8 +189,10 @@ def main(argv):
             arrival_analysis = True
         elif opt in ("-n", "--networkAnalysis"):
             network_structure_analysis = True
-        elif opt in ('-p', '--number_partitions'):
+        elif opt in ('-p', '--numberPartitions'):
             partitions = int(arg)
+        elif opt in ('-t', '--histogramType'):
+            histo_type = str(arg)
 
     print('*** ATTRIBUTES ***')
     for client_set in network_structure.clients.attributes:
@@ -195,8 +211,8 @@ def main(argv):
     if arrival_analysis:
         print('Arrival Request graphs printing in .pdf files')
 
-        arrival_pdf = PdfPages('request_arrival_{}partitions.pdf'.format(partitions))
-        hour_partition(node_arrival_schedules, arrival_pdf, partitions)
+        arrival_pdf = PdfPages('request_arrival_{}partitions_{}.pdf'.format(partitions, histo_type))
+        hour_partition(node_arrival_schedules, arrival_pdf, partitions, histo_type)
         arrival_pdf.close()
         print('Complete')
     ############################################
