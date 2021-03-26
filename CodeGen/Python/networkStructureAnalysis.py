@@ -105,16 +105,7 @@ def minute_str(integer):
     return int_str
 
 def hour_partition(node_arrival_schedules, arrival_pdf, parts_per_hour=1, type='quantity'):
-    # This ensures all histograms are the same size. This shouldn't be necessary
-    # first_timestamp_all = NS.timestamp(24*60*60 - 1)
-    # last_timestamp_all = NS.timestamp(0)
-    # for node in node_arrival_schedules:
-    #     first_timestamp = node_arrival_schedules[node][0]
-    #     last_timestamp = node_arrival_schedules[node][-1]
-    #     if NU.compare_time(first_timestamp, first_timestamp_all) < 0:
-    #         first_timestamp_all = first_timestamp
-    #     if NU.compare_time(last_timestamp, last_timestamp_all) > 0:
-    #         last_timestamp_all = last_timestamp
+
 
     if (60 % parts_per_hour != 0):
         raise ValueError("Partitions must equally divide an hour by minutes")
@@ -150,7 +141,7 @@ def hour_partition(node_arrival_schedules, arrival_pdf, parts_per_hour=1, type='
         # ax.set_yticks(list(range(0, max_y+1)))
         ax.set_xlabel('Time')
         ax.set_ylabel('Arrivals')
-        ax.set_title('Arrivals per Hour, partitions = {}, Node {}'.format(parts_per_hour, node))
+        ax.set_title('Arrivals per 1/{} Hour — Node {}'.format(parts_per_hour, node))
 
         rects = ax.patches
         ax_labels = [str(a) for a in arrivals]
@@ -161,38 +152,22 @@ def hour_partition(node_arrival_schedules, arrival_pdf, parts_per_hour=1, type='
         # plt.show()
         arrival_pdf.savefig(fig)
 
-    # hours = list(range(first_hour_all, last_hour_all + 1))
-    # arrivals_node = {}
-    # for h in hours:
-    #     arrivals_node[h] = 0
-    # # max_y = 0 # Max y-axis value for plot
-    # for node in node_arrival_schedules:
-    #     arrivals = [0] * (last_hour_all - first_hour_all + 1)
-    #     for timestamp in node_arrival_schedules[node]:
-    #         hour = timestamp.hour
-    #         idx = hour - first_hour_all
-    #         arrivals[idx] += 1
-    #     arrivals_node[node] = arrivals
-    #     # for a in arrivals:
-    #     #     if a > max_y:
-    #     #         max_y = a
-
-
 
 def main(argv):
     # Arguments
     queue_analysis = False
     arrival_analysis = False
     network_structure_analysis = False
+    partitions = 1
 
     try:
-        opts, args = getopt.getopt(argv, "hqan", ["queueAnalysis=", "arrivalAnalysis=", "networkAnalysis="])
+        opts, args = getopt.getopt(argv, "hqanp:", ["queueAnalysis=", "arrivalAnalysis=", "networkAnalysis=", "number_partitions="])
     except getopt.GetoptError:
-        print('networkStructureAnalysis.py -q (optional) -a (optional) -n (optional)')
+        print('networkStructureAnalysis.py -q (optional) -a (optional) -n (optional) -p <number of partitions per hour> (optional)')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('networkStructureAnalysis.py -q (optional) -a (optional) -n (optional)')
+            print('networkStructureAnalysis.py -q (optional) -a (optional) -n (optional) -p <number of partitions per hour> (optional)')
             sys.exit()
         elif opt in ("-q", "--queueAnalysis"):
             queue_analysis = True
@@ -200,6 +175,8 @@ def main(argv):
             arrival_analysis = True
         elif opt in ("-n", "--networkAnalysis"):
             network_structure_analysis = True
+        elif opt in ('-p', '--number_partitions'):
+            partitions = int(arg)
 
     print('*** ATTRIBUTES ***')
     for client_set in network_structure.clients.attributes:
@@ -218,12 +195,9 @@ def main(argv):
     if arrival_analysis:
         print('Arrival Request graphs printing in .pdf files')
 
-    arrival_pdf = PdfPages('request_arrival.pdf')
-    hour_partition(node_arrival_schedules, arrival_pdf, 1)
-    hour_partition(node_arrival_schedules, arrival_pdf, 4)
-    arrival_pdf.close()
-
-    if arrival_analysis:
+        arrival_pdf = PdfPages('request_arrival_{}partitions.pdf'.format(partitions))
+        hour_partition(node_arrival_schedules, arrival_pdf, partitions)
+        arrival_pdf.close()
         print('Complete')
     ############################################
 
