@@ -5,8 +5,12 @@ from Simulation import *
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from PyPDF2 import PdfFileMerger
+from fpdf import FPDF
+from PIL import Image
 import random
 import networkx as nx
+import pydot
 import os
 import cv2
 import math
@@ -231,11 +235,12 @@ def main(argv):
         arrivals.append(zero_timestamp)
 
 
-
+        latency_logs = {}
         for n in ns:
             if n not in node_arrival_schedules:
                 continue
-            arrivals = [s.timestamp_to_seconds() for s in  node_arrival_schedules[n]]
+            latency_logs[n] = []
+            arrivals = [s[0].timestamp_to_seconds() for s in  node_arrival_schedules[n]]
             events = []
             node = ns[n]
             service_rate = node.get_service_rate()
@@ -256,7 +261,6 @@ def main(argv):
             queue_log_file = 'queue_log_{}.csv'.format(n)
             f = open(queue_log_file, 'w')
 
-
             queue_log = {}
             for q in S.Queues:
                 if q == 'init':
@@ -270,9 +274,42 @@ def main(argv):
                     departure = NS.timestamp.convertTime(l[3])
                     log = [arrival, str(l[1]), str(l[2]), departure]
                     f.write(','.join(log) + '\n')
+                    # Latency log
+                    total_latency = l[1] + l[2]  # Service + Wait time
+                    latency_logs[n].append(total_latency)
             f.close()
             print('Queue simulation log available in {}'.format(queue_simulation_file))
             print('Queue event log available in {}'.format(queue_log_file))
+
+        # Print latency metrics to PDF
+        pdf = FPDF()
+        pdf.add_page()
+        line_number = 1
+        for n in ns:
+            pdf.set_font('Arial', size=15)
+            pdf.cell(200,10, txt="Queue {} Latency".format(n), ln=line_number, align='L')
+            line_number+= 1
+            # Average Latency
+            pdf.set_font('Arial', size=12)
+            avg_latency = np.average(latency_logs[n])
+            pdf.cell(200,10, txt="Average: {}".format(avg_latency), ln=line_number, align='L')
+            line_number += 1
+            # STD Latency
+            std_latency = np.std(latency_logs[n])
+            pdf.cell(200, 10, txt="Standard Deviation: {}".format(std_latency), ln=line_number, align='L')
+            line_number += 1
+            # Min Latency
+            min_latency = min(latency_logs[n])
+            pdf.cell(200, 10, txt="Minimum: {}".format(min_latency), ln=line_number, align='L')
+            line_number += 1
+            # Max Latency
+            max_latency = max(latency_logs[n])
+            pdf.cell(200, 10, txt="Maximum: {}".format(max_latency), ln=line_number, align='L')
+            line_number += 3
+
+
+        pdf.output(("latency_simulation.pdf"))
+
     ##############################
     # Show Network Structure
     if network_structure_analysis:
@@ -287,11 +324,12 @@ def main(argv):
 
         ## Network structure
         A = nx.nx_pydot.write_dot(G, 'graph.dot')
-        os.system('dot -Tpng -O  graph.dot')
-        graph_img = cv2.imread('graph.dot.png')
-        cv2.imshow('Graph Structure', graph_img)
-        cv2.waitKey(0)
+        os.system('dot -Tpdf  graph.dot -o graph_structure.pdf')
 
+
+        #graph_img = cv2.imread('graph.dot.png')
+        #cv2.imshow('Graph Structure', graph_img)
+        #cv2.waitKey(0)
 
 if __name__=="__main__":
     main(sys.argv[1:])
