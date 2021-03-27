@@ -178,6 +178,8 @@ def main(argv):
     partitions = 1
     histo_type = "quantity" #Default
 
+    analysis_pdfs = []
+
     try:
         opts, args = getopt.getopt(argv, "hqanp:t:", ["queueAnalysis=", "arrivalAnalysis=", "networkAnalysis=", "numberPartitions=", "histogramType="])
     except getopt.GetoptError:
@@ -215,10 +217,12 @@ def main(argv):
     if arrival_analysis:
         print('Arrival Request graphs printing in .pdf files')
 
-        arrival_pdf = PdfPages('request_arrival_{}partitions_{}.pdf'.format(partitions, histo_type))
+        arrival_pdf_title = 'request_arrival_{}partitions_{}.pdf'.format(partitions, histo_type)
+        arrival_pdf = PdfPages(arrival_pdf_title)
         hour_partition(node_arrival_schedules, arrival_pdf, partitions, histo_type)
         arrival_pdf.close()
         print('Complete')
+        analysis_pdfs.append(arrival_pdf_title)
     ############################################
 
     if queue_analysis:
@@ -308,7 +312,9 @@ def main(argv):
             line_number += 3
 
 
-        pdf.output(("latency_simulation.pdf"))
+        latency_sim_title = "latency_simulation.pdf"
+        pdf.output((latency_sim_title))
+        analysis_pdfs.append(latency_sim_title)
 
     ##############################
     # Show Network Structure
@@ -323,13 +329,16 @@ def main(argv):
             G.add_edge(n_source, n_target)
 
         ## Network structure
-        A = nx.nx_pydot.write_dot(G, 'graph.dot')
+        nx.nx_pydot.write_dot(G, 'graph.dot')
         os.system('dot -Tpdf  graph.dot -o graph_structure.pdf')
+        analysis_pdfs.append("graph_structure.pdf")
 
-
-        #graph_img = cv2.imread('graph.dot.png')
-        #cv2.imshow('Graph Structure', graph_img)
-        #cv2.waitKey(0)
+    # Merge analysis PDF
+    merger = PdfFileMerger()
+    for pdf in analysis_pdfs:
+        merger.append(pdf)
+    merger.write("analysis_results.pdf")
+    merger.close()
 
 if __name__=="__main__":
     main(sys.argv[1:])
