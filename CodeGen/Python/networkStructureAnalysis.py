@@ -291,7 +291,7 @@ def main(argv):
         line_number = 1
         for n in ns:
             pdf.set_font('Arial', size=15)
-            pdf.cell(200,10, txt="Queue {} Latency".format(n), ln=line_number, align='L')
+            pdf.cell(200,10, txt="Queue {} Latency (seconds)".format(n), ln=line_number, align='L')
             line_number+= 1
             # Average Latency
             pdf.set_font('Arial', size=12)
