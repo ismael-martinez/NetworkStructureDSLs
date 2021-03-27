@@ -136,15 +136,15 @@ def hour_partition(node_arrival_schedules, arrival_pdf, parts_per_hour=1, histo_
                 arrivals[ts_partition_idx] += 1
             elif histo_type == 'storage':
                 # For storage of arrivals
-                arrivals[ts_partition_idx] += row[4]
+                arrivals[ts_partition_idx] += row[3]
             elif histo_type == 'ram':
                 # For storage of arrivals
-                arrivals[ts_partition_idx] += row[5]
+                arrivals[ts_partition_idx] += row[4]
 
         # Plot in PDF
         # Plot arrivals by partition
-        fig, ax = plt.subplots(figsize=(10,10))
-        ax.bar(partition_indices, arrivals)
+        fig, ax = plt.subplots(figsize=(7, 7))
+        ax.bar(partition_indices, arrivals, color='green')
         partition_str = [str(ts.hour) + 'h' + minute_str(ts.minutes) for ts in partition_timestamps]
         ax.set_xticks(partition_indices)
         ax.set_xticklabels(partition_str)
@@ -160,11 +160,11 @@ def hour_partition(node_arrival_schedules, arrival_pdf, parts_per_hour=1, histo_
             ax.set_ylabel('RAM Required (GB)')
         ax.set_title('Arrivals per 1/{} Hour — Node {}'.format(parts_per_hour, node))
 
-        rects = ax.patches
-        ax_labels = [str(a) for a in arrivals]
-        for rect, ax_label in zip(rects, ax_labels):
-            height = rect.get_height()
-            ax.text(rect.get_x() + rect.get_width() / 2, height + 5, ax_label, ha='center', va='bottom')
+        # rects = ax.patches
+        # ax_labels = [str(a) for a in arrivals]
+        # for rect, ax_label in zip(rects, ax_labels):
+        #     height = rect.get_height()
+        #     ax.text(rect.get_x() + rect.get_width() / 2, height + 5, ax_label, ha='center', va='bottom')
 
         # plt.show()
         arrival_pdf.savefig(fig)
