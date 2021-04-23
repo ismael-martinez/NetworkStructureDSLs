@@ -57,7 +57,7 @@ One of the following types --  `int | float | string | bool | timestamp`
 The grammar is available in `CodeGen\Python\TRS\trs.tx`
 
 ### TRS Metamodel
-![alt text](metamodel-diagrams/trs-metamodel.jpg "TRS Metamodel")
+![alt text](https://github.com/ismael-martinez/NetworkStructureDSLs/tree/main/metamodel-diagrams/trs-metamodel.jpg "TRS Metamodel")
 
 ### TRS DSL 
 * *name* -- Name of TRS configurations.
@@ -148,7 +148,7 @@ thing t3 {
 The grammar is available in `CodeGen\Python\PNS\pns.tx`
 
 ### PNS Metamodel
-![alt text](metamodel-diagrams/pns-metamodel.jpg "PNS Metamodel")
+![alt text](https://github.com/ismael-martinez/NetworkStructureDSLs/tree/main/metamodel-diagrams/pns-metamodel.jpg "PNS Metamodel")
 
 ### PNS DSL 
 * *name* -- Name of PNS configurations.
