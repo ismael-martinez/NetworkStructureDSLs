@@ -69,11 +69,11 @@ radius: communicationRadius_m
 
 
 -----------------------------------------
-## Physical Request Schedule (PNS) DSL
+## Edge Request Schedule (ENS) DSL
 
 The grammar is available in `EdgeNetwork\Python\PNS\pns.tx`
 
-### PNS Metamodel
+### ENS Metamodel
 ![alt text](https://github.com/ismael-martinez/NetworkStructureDSLs/blob/main/EdgeNetwork/Network%20Metamodels/ENS-network-metamodel.JPG "ENS Metamodel")
 
 
