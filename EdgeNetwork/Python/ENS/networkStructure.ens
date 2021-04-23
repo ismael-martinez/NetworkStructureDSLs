@@ -1,0 +1,73 @@
+Graph Edge 
+	nodeSet EdgeSet {
+		attributes {
+		key: local_CPU_ghz, type: float 
+		key: localProcessing_ms, type: int 
+		key: storageAvail_mb, type: int 
+		key: ramAvail_mb, type: int 
+		key: communicationRadius_m, type: float 
+}
+serviceRate: local_CPU_ghz
+radius: communicationRadius_m
+	node n1 {
+	location {
+		latitude: 45.464289282566135 
+		longitude: -73.74175835693006 
+		height: 5 
+}
+	attributes {
+		local_CPU_ghz: 5.78
+		localProcessing_ms: 789
+		storageAvail_mb: 465
+		ramAvail_mb: 9789
+		communicationRadius_m: 80000
+	}
+}
+	node n2 {
+	location {
+		latitude: 45.46555341943783 
+		longitude: -73.7503414257777 
+		height: 2 
+}
+	attributes {
+		local_CPU_ghz: 7.89
+		localProcessing_ms: 87
+		storageAvail_mb: 687
+		ramAvail_mb: 6547
+		communicationRadius_m: 95000
+	}
+}
+	node n3 {
+	location {
+		latitude: 45.468382575431434 
+		longitude: -73.74544907653454 
+		height: 3 
+}
+	attributes {
+		local_CPU_ghz: 8.54
+		localProcessing_ms: 465
+		storageAvail_mb: 3158
+		ramAvail_mb: 6785
+		communicationRadius_m: 95000
+	}
+}
+}linkSet EdgeLinks { 
+	attributes { 
+		key: bandwidth, type: float
+	}
+	link l0 {
+	attributes { 
+		bandwidth: 456
+}		nodePair: (n1, n2)
+}
+	link l1 {
+	attributes { 
+		bandwidth: 4658
+}		nodePair: (n2, n3)
+}
+	link l2 {
+	attributes { 
+		bandwidth: 536
+}		nodePair: (n1, n3)
+}
+}

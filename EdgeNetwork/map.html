@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UACompatible">
+    <title>Location of Fog nodes</title>
+    <style>
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+    </style>
+    <script src="FileSaver.js"></script>
+</head>
+<body>
+<input
+        id="pac-input"
+        class="controls"
+        size="35",
+        type="text"
+        placeholder="Coordinates (e.g. 45.506,-73.614)"
+/>
+<button type="button" onclick="updateMap()">Search</button>
+
+<div id="map"></div>
+<br>
+<b>Device Type:</b>
+<select name="device" id = "deviceType" onchange="exportMarkerForm()">
+    <option value = "IoT">IoT</option>
+    <option value = "Edge">Edge</option>
+</select>
+<button type="button" onclick="exportMarkerForm()">Export Coordinates to Form</button>
+<div>
+    <br><br>
+    Steps for creating a set of candidate design edge locations.
+    <ol>
+        <li>Enter the coordinates of the location where you want to design an edge infrastructure. Search.</li>
+        <li>Select which type of device are being marked: IoT or Edge nodes.</li>
+        <li>Click on the map to place markers for candidate edge locations.</li>
+        <li>When you're done placing markers, click 'Export Coordinates" to export a JSON file of enumerated Lat/Lng coordinates.</li>
+    </ol>
+</div>
+<div id="form">
+</div>
+<script src="googleApiCoordinates.js"></script>
+    <script defer
+            src="https://maps.googleapis.com/maps/api/js?key=&callback=initMap&libraries=places&v=weekly">
+    </script>
+
+
+
+</body>
+</html>

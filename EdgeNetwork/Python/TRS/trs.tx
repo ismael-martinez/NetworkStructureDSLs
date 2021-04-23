@@ -1,0 +1,142 @@
+Things:
+    'Thing' name=ID
+    clientSet+=ClientSet
+;
+
+ClientSet:
+'clientSet' name=ID '{'
+    ('attributes' '{'
+        ('key' ':' attributes= ID ',' 'type' ':' type=SimpleType)+
+        '}')?
+    ('radius' ':' radius=ID)?
+    clients+=Client
+    '}'
+;
+
+
+FLOATSTRING:
+    STRING | FLOAT
+;
+
+Client:
+    'thing' name=ID '{'
+        requestSchedule=RequestSchedule
+        location=Location
+        ('attributes' '{'
+            (attributes=ID ':' val=BASETYPE)*
+        '}')?
+
+    '}'
+;
+
+SimpleType:
+    'string' | 'float' | 'int' | 'id' | 'bool' | 'timestamp'
+;
+
+
+RequestSchedule:
+	ExplicitRequestSchedule | ConsistentRequestSchedule | ProbabilisticRequestSchedule
+;
+
+Distribution:
+	Gaussian | Exponential | Gamma | ChiSquared | Beta | Dirichlet | Bernoulli
+;
+
+Gaussian:
+	'Gaussian'
+	'('
+		'mu=' mu=FLOAT ','
+		'var=' var=FLOAT
+	')';
+
+Exponential:
+	'Exponential'
+	'('
+		'lambda=' lambda_mean=FLOAT
+	')';
+
+Gamma:
+    'Gamma'
+    '('
+        'alpha=' alpha=FLOAT ','
+        'beta=' beta=FLOAT
+    ')';
+
+ChiSquared:
+    'ChiSquared'
+    '('
+        'k=' k=FLOAT
+    ')';
+
+Beta:
+    'Beta'
+    '('
+        'alpha=' alpha=FLOAT ','
+        'beta=' beta=FLOAT
+    ')';
+
+Dirichlet:
+    'Dirichlet'
+    '('
+        'alpha=' alpha=FLOAT
+    ')';
+
+Bernoulli:
+    'Bernoulli'
+    '('
+        'p=' p=FLOAT
+    ')';
+
+HOURMIN:
+    /(2[0-3]|[01][0-9]):[0-5][0-9]/
+;
+HOURMINSEC:
+    /(2[0-3]|[01][0-9]):[0-5][0-9]:[0-5][0-9]/
+;
+HOURMINSECMS:
+    /(2[0-3]|[01][0-9]):[0-5][0-9]:[0-5][0-9].[0-9]{3}/
+;
+
+Timestamp:
+    HOURMIN | HOURMINSEC | HOURMINSECMS
+;
+
+Schedule:
+	'[' Timestamp (',' Timestamp)* ']'
+;
+
+ExplicitRequestSchedule:
+	'explicitRequestSchedule'
+	'{'
+		schedule=Schedule
+	'}'
+;
+
+ConsistentRequestSchedule:
+	'consistentRequestSchedule'
+	'{'
+		'start:' start=Timestamp
+		'end:' end=Timestamp
+		'gap:' gap=Timestamp
+	'}';
+
+ProbabilisticRequestSchedule:
+	'probabilisticRequestSchedule'
+	'{'
+		'start' ':' start=Timestamp
+		'end' ':' end=Timestamp
+		'interarrivalDistribution' ':' interarrivalDistribution=Distribution
+	'}';
+
+
+Location:
+     'location' '{'
+     'latitude' ':' lat=FLOAT
+     'longitude' ':' lng=FLOAT
+     'height' ':' ht=FLOAT
+     '}'
+;
+
+Comment:
+    /\/\*(.|\n)*?\*\//
+;
