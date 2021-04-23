@@ -291,7 +291,7 @@ class SubQueue:
 class Queue:
     # K (int) - Number of servers
     # service_loss (array size K) - loss for k server collaboration
-    def __init__(self, id, service_rate, K, service_loss={}):
+    def __init__(self, id, service_rate, K, service_style='fixed', service_loss={}):
         self.id = id
         self.service_rate = service_rate
         self.queue_events = []
@@ -300,6 +300,7 @@ class Queue:
         self.queue_times_service = []
         self.prev_dep = 0.0
         self.waiting = 0
+        self.service_stle = service_style
         self.all_servers_occupied = False
         self.queue_log = []
         self.sub_servers = []
@@ -380,7 +381,10 @@ class Queue:
         else:
             k_servers = 1
         service_loss_k = self.service_loss[k_servers]
-        service_time = expon.rvs(scale=1 / (self.service_rate*k_servers - service_loss_k))
+        if 'expon' in self.service_stle:
+            service_time = expon.rvs(scale=1 / (self.service_rate*k_servers - service_loss_k))
+        else: # if fixed
+            service_time = self.service_rate * k_servers - service_loss_k
         #service_time =     #self.queue_times_service.pop(0)
         wait_time = event_time - arrival_time
         departure_time = event_time + service_time
