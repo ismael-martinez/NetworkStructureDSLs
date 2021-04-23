@@ -3,7 +3,7 @@
 TRS and ENS DSLs, with Python Code Generation and Analysis
 -----------------------------------------
 
-## Physical Request Schedule (PNS) DSL
+## Thing Request Schedule (TRS) DSL
 
 The grammar is available in `EdgeNetwork\Python\TRS\trs.tx`
 
