@@ -9,7 +9,7 @@ The grammar is available in `EdgeNetwork\Python\TRS\trs.tx`
 
 
 ### TRS Metamodel
-![alt text](https://github.com/ismael-martinez/NetworkStructureDSLs/blob/main/metamodel-diagrams/trs-metamodel.JPG "TRS Metamodel")
+![alt text](https://github.com/ismael-martinez/NetworkStructureDSLs/blob/main/EdgeNetwork/Network%20Metamodels/TRS-network-metamodel.JPG "TRS Metamodel")
 
 
 ### TRS Sample
@@ -74,7 +74,7 @@ radius: communicationRadius_m
 The grammar is available in `EdgeNetwork\Python\PNS\pns.tx`
 
 ### PNS Metamodel
-![alt text](https://github.com/ismael-martinez/NetworkStructureDSLs/blob/main/metamodel-diagrams/pns-metamodel.JPG "PNS Metamodel")
+![alt text](https://github.com/ismael-martinez/NetworkStructureDSLs/blob/main/EdgeNetwork/Network%20Metamodels/ENS-network-metamodel.JPG "ENS Metamodel")
 
 
 
